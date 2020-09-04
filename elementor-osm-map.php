@@ -1,9 +1,10 @@
 <?php
 /**
- * Plugin Name:     Elementor OSM Map
+ * Plugin Name:     OSM Map Widget for Elementor
  * Description:     An Elementor Widget that creates an OSM Map. Requires Elementor Plugin Version: 3.0.5+
  * Author:          ACT Innovate, James Arama, Alex Hooten
- * Version:         1.0
+ * Author URI:      https://github.com/flopperj/elementor-osm-map
+ * Version:         1.0.1
  */
 
 namespace OSM_Map;
@@ -28,7 +29,7 @@ add_action('elementor/widgets/widgets_registered', function () {
 
 // Add global settings for our widget
 add_action('admin_menu', function () {
-    add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'elementor-osm-map', function () {
+    add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'osm-map-elementor', function () {
 
         $action = !empty($_REQUEST['action']) ? $_REQUEST['action'] : null;
         if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget'])) {

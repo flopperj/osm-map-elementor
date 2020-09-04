@@ -20,7 +20,7 @@ jQuery(window).on(
         };
 
 
-        elementor.hooks.addAction('panel/open_editor/widget/elementor-osm-map', function (panel, model, view) {
+        elementor.hooks.addAction('panel/open_editor/widget/osm-map-elementor', function (panel, model, view) {
             jQuery('input[data-setting="marker_coords"],input[data-setting="marker_title"], input[data-setting="size"]').change(function () {
                 jQuery(this).trigger('input');
             });

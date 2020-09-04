@@ -19,7 +19,7 @@ use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
 class Widget_OSM_Map extends \Elementor\Widget_Base
 {
 
-    public static $slug = 'elementor-osm-map';
+    public static $slug = 'osm-map-elementor';
 
     var $__depended_scripts = [];
 
@@ -200,7 +200,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Google Maps Key', self::$slug),
                 'type' => \Elementor\Controls_Manager::TEXT,
-                'description' => 'Update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=elementor-osm-map">here</a>',
+                'description' => 'Update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a>',
                 'placeholder' => __('Google Maps API Key', self::$slug),
                 'default' => !empty($osm_settings['gmaps_key']) ? $osm_settings['gmaps_key'] : null
             ]
@@ -761,7 +761,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         // queue admin js
         if (is_admin()) {
             $admin_scripts = [
-                'elementor-osm-map-controls' => plugins_url('/elementor-osm-map/assets/js/osm-map-controls.js')
+                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')
             ];
 
             $dependencies = [
