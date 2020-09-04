@@ -24,7 +24,7 @@ An Elementor Widget that creates an OSM Map. Requires Elementor Plugin Version: 
     - Add multiple markers & style them accordingly
     - Change Zoom level
     - Change Tiles from style section *requires **Mapbox Access Token** and **Geoapify API Key***
-    
+
 == Screenshots ==
 1. Update optional API keys
 2. Add multiple markers & style them accordingly
