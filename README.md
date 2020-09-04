@@ -15,6 +15,6 @@ An Elementor Widget that creates an OSM Map. Requires Elementor Plugin Version: 
     - Change Tiles from style section _(requires **Mapbox Access Token** and **Geoapify API Key**)_<br />
     <img src="https://raw.githubusercontent.com/flopperj/elementor-osm-map/master/assets/img/screenshots/OSM_Map_Widget_tiles.jpg" width="500" height="auto" />
 ## Licence
-[GNU GENERAL PUBLIC LICENSE](https://raw.githubusercontent.com/flopperj/elementor-osm-map/LICENSE.txt)
+[GNU GENERAL PUBLIC LICENSE](https://raw.githubusercontent.com/flopperj/elementor-osm-map/master/LICENSE.txt)
 
 
