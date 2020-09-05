@@ -12,7 +12,7 @@ License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 == Description ==
-Utilizes [Open Street Map](https://www.openstreetmap.org/) to provide a powerful yet free to use Elementor Map Widget. Comes with features like adding multiple markers, and choosing from a library of custom tiles. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.0.5+
+Utilizes [Open Street Map](https://www.openstreetmap.org/) to provide a powerful yet free to use Elementor Map Widget. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.0.5+
 
 This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so feel free to contribute to it :)
 
