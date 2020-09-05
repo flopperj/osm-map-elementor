@@ -6,6 +6,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
+require_once('constants.php');
+
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
 
@@ -19,7 +21,7 @@ use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
 class Widget_OSM_Map extends \Elementor\Widget_Base
 {
 
-    public static $slug = 'osm-map-elementor';
+    public static $slug = OSM_MAP_SLUG;
 
     var $__depended_scripts = [];
 
@@ -668,6 +670,11 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         data-markers=\'' . json_encode($coords) . '\'></div>';
         ?>
         <script type="text/javascript">
+            function initOSMEditorControls (){
+                jQuery.getScript('<?php echo plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')?>');
+                console.log('loaded callback')
+            }
+
             jQuery(window).ready(function () {
                 "use strict";
 
@@ -760,17 +767,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
             // queue google maps key if provided
             $admin_scripts = [
-                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&key=' . (!empty($widget_settings['gmaps_key']) ? $widget_settings['gmaps_key'] : null),
-                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')
+                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js'),
+                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . (!empty($widget_settings['gmaps_key']) ? $widget_settings['gmaps_key'] : null)
             ];
-
-            // check to see if google maps is enqueued if it is let's remove it
-            foreach ($wp_scripts->queue as $key) {
-                $script = $wp_scripts->registered[$key];
-                if (preg_match('#maps\.google(?:\w+)?\.com/maps/api/js#', $script->src)) {
-                    unset($admin_scripts['google-maps']);
-                }
-            }
 
             $dependencies = [];
             foreach ($admin_scripts as $handle => $path) {

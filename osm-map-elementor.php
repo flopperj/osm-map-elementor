@@ -13,6 +13,8 @@ use Elementor\Plugin;
 
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
+require_once ('constants.php');
+
 // The Widget_Base class is not available immediately after plugins are loaded, so
 // we delay the class' use until Elementor widgets are registered
 add_action('elementor/widgets/widgets_registered', function () {
@@ -41,13 +43,18 @@ add_action('admin_menu', function () {
         if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget'])) {
 
             $input = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
+
+            // sanitize user input
             $osm_settings = [
-                'gmaps_key' => !empty($input['gmaps_key']) ? $input['gmaps_key'] : null,
-                'mapbox_token' => !empty($input['mapbox_token']) ? $input['mapbox_token'] : null,
-                'geoapify_key' => !empty($input['geoapify_key']) ? $input['geoapify_key'] : null,
+                'gmaps_key' => !empty($input['gmaps_key']) ? sanitize_text_field($input['gmaps_key']) : null,
+                'mapbox_token' => !empty($input['mapbox_token']) ? sanitize_text_field($input['mapbox_token']) : null,
+                'geoapify_key' => !empty($input['geoapify_key']) ? sanitize_text_field($input['geoapify_key']) : null,
             ];
 
+            // save the sanitized data
             update_option('osm_widget', $osm_settings);
+
+            // redirect to form with confirmation alert message
             wp_redirect($_SERVER['HTTP_REFERER'] . '&action=settings_saved');
         }
 
@@ -56,7 +63,7 @@ add_action('admin_menu', function () {
         ?>
         <div id="osm-map-settings">
             <h2>OSM Map Widget Settings</h2>
-            <?php if (!empty($_REQUEST['action']) && $_REQUEST['action'] == 'settings_saved'): ?>
+            <?php if (!empty($_REQUEST['action']) && sanitize_key($_REQUEST['action']) == 'settings_saved'): ?>
                 <div style="background-color: rgb(255, 251, 204);" id="alert-message" class="updated"><p>
                         <strong><?php echo __('Settings saved') ?>.</strong></p></div>
             <?php endif; ?>
@@ -72,7 +79,7 @@ add_action('admin_menu', function () {
                                             href="https://developers.google.com/maps/documentation/javascript/get-api-key"
                                             target="_blank">Read this resource</a>.</em></p>
                             <input type="text" name="osm_widget[gmaps_key]"
-                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? $osm_settings['gmaps_key'] : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea(__($osm_settings['gmaps_key'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -87,7 +94,7 @@ add_action('admin_menu', function () {
                                             href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
                                             target="_blank">Read this resource</a></em></p>
                             <input type="text" name="osm_widget[mapbox_token]"
-                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? $osm_settings['mapbox_token'] : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea(__($osm_settings['mapbox_token'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -101,7 +108,7 @@ add_action('admin_menu', function () {
                                     tiles. Need help to get a Geoapify API key. <a
                                             href="https://www.geoapify.com/maps-api/">Read this resource.</a></em></p>
                             <input type="text" name="osm_widget[geoapify_key]"
-                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? $osm_settings['geoapify_key'] : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea(__($osm_settings['geoapify_key'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
                     </div>
                 </div>
