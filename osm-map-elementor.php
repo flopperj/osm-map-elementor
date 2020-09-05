@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:     OSM Map Widget for Elementor
- * Description:     An Elementor Widget that creates an OSM Map. Requires Elementor Plugin Version: 3.0.5+
+ * Description:     A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
  * Author:          ACT Innovate, James Arama, Alex Hooten
  * Author URI:      https://github.com/flopperj/elementor-osm-map
  * Version:         1.0.1
