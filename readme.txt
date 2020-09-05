@@ -25,10 +25,12 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 3. Add OSM Map widget to your elementor page and have fun :)
     - Find OSM Map widget from elements listing and add it to your elementor page
     - Add multiple markers, change Zoom level style them accordingly
+    - *Editing the markers:* A marker's settings contains **Title, Location, Coordinates, Description, Button Text, and Button URL** fields. Of those fields, only the **Coordinates** field is required to render a marker on the map. If you have a Google Maps API key added, you'll be able to automatically populate the coordinates field without manually doing so.
     - Change Tiles from style section *requires **[Mapbox Access Token](https://docs.mapbox.com/help/how-mapbox-works/access-tokens/)** and **[Geoapify API Key](https://www.geoapify.com/maps-api/)***
 
 == Screenshots ==
 1. Update optional API keys
 2. Add widget to your elementor page
 3. Add multiple markers & style them accordingly
-4. Choose from 14 different custom tiles
+4. Edit the marker's coordinates to render them in the map
+5. Choose from 14 different custom tiles
