@@ -1,5 +1,5 @@
 # OSM Map Widget for Elementor
-Utilizes [Open Street Map](https://www.openstreetmap.org/) to provide a powerful yet free to use Elementor Map Widget. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.0.5+
+A free Elementor Map Widget that Utilizes [Open Street Map](https://www.openstreetmap.org/). Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.0.5+
 
 This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so feel free to contribute to it :)
 
@@ -11,10 +11,11 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
     - **Geoapify API Key**<br />_(Used for custom tiles. Need help to get a Geoapify API key? [Read this resource](https://www.geoapify.com/maps-api/))_ <br />
     <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-1.jpg" width="500" height="auto" />
 3. Add OSM Map to your elementor page and have fun :)
-    - Add multiple markers & style them accordingly<br />
+    - Find OSM Map widget from elements listing and add it to your elementor page<br />
       <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-2.jpg" width="500" height="auto" />
-    - Change Zoom level
+    - Add multiple markers, change Zoom level style them accordingly<br />
+      <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-3.jpg" width="500" height="auto" />
     - Change Tiles from style section _(requires **Mapbox Access Token** and **Geoapify API Key**)_<br />
-    <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-3.jpg" width="500" height="auto" />
+    <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-4.jpg" width="500" height="auto" />
 ## Licence
 [GNU GENERAL PUBLIC LICENSE](https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/LICENSE.txt)
