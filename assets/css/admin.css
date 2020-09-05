@@ -1,0 +1,62 @@
+
+#osm-map-settings {
+    margin: 5px 15px 2px;
+}
+
+#osm-map-settings div#alert-message {
+    margin-left: 0;
+}
+
+#osm-map-settings h2 {
+    color: #6d7882;
+    font-weight: 400;
+    font-size: 22px;
+}
+
+#osm-map-settings .card-header h3.card-title {
+    color: #6d7882;
+    padding: 5px 20px;
+    font-weight: 500;
+}
+
+#osm-map-settings .card {
+    padding: 0;
+    border-color: #f1f1f1;;
+}
+
+#osm-map-settings .card-content {
+    padding: 20px;
+    background-color: #f7f7f7;
+}
+
+#osm-map-settings .card-header {
+    border-bottom: 1px solid #f1f1f1;
+}
+
+#osm-map-settings input[type="text"] {
+    width: 100%;
+}
+
+#osm-map-settings .osm-button {
+    background: #e14d43;
+    border-color: #e14d43;
+    color: #fff;
+    display: inline-block;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 2.15384615;
+    min-height: 30px;
+    margin: 0;
+    padding: 0 10px;
+    cursor: pointer;
+    border-width: 1px;
+    border-style: solid;
+    -webkit-appearance: none;
+    border-radius: 3px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+#osm-map-settings .form-group {
+    margin-bottom: 25px;
+}

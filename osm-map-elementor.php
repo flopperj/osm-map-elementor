@@ -31,9 +31,22 @@ add_action('elementor/widgets/widgets_registered', function () {
 add_action('admin_menu', function () {
     add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'osm-map-elementor', function () {
 
-        $action = !empty($_REQUEST['action']) ? $_REQUEST['action'] : null;
-        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget'])) {
-            $osm_settings = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
+        // queue admin styles
+        wp_register_style('osm-map-admin', plugins_url('/osm-map-elementor/assets/css/admin.css'));
+        wp_enqueue_style('osm-map-admin');
+
+        $action = !empty($_REQUEST['action']) && is_string($_REQUEST['action']) ? sanitize_key($_REQUEST['action']) : null;
+
+        // grab settings, sanitize, validate and save them
+        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget'])) {
+
+            $input = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
+            $osm_settings = [
+                'gmaps_key' => !empty($input['gmaps_key']) ? $input['gmaps_key'] : null,
+                'mapbox_token' => !empty($input['mapbox_token']) ? $input['mapbox_token'] : null,
+                'geoapify_key' => !empty($input['geoapify_key']) ? $input['geoapify_key'] : null,
+            ];
+
             update_option('osm_widget', $osm_settings);
             wp_redirect($_SERVER['HTTP_REFERER'] . '&action=settings_saved');
         }
@@ -41,70 +54,6 @@ add_action('admin_menu', function () {
         $osm_settings = get_option('osm_widget');
 
         ?>
-        <style type="text/css">
-            #osm-map-settings {
-                margin: 5px 15px 2px;
-            }
-
-            #osm-map-settings div#alert-message {
-                margin-left: 0;
-            }
-
-            #osm-map-settings h2 {
-                color: #6d7882;
-                font-weight: 400;
-                font-size: 22px;
-            }
-
-            #osm-map-settings .card-header h3.card-title {
-                color: #6d7882;
-                padding: 5px 20px;
-                font-weight: 500;
-            }
-
-            #osm-map-settings .card {
-                padding: 0;
-                border-color: #f1f1f1;;
-            }
-
-            #osm-map-settings .card-content {
-                padding: 20px;
-                background-color: #f7f7f7;
-            }
-
-            #osm-map-settings .card-header {
-                border-bottom: 1px solid #f1f1f1;
-            }
-
-            #osm-map-settings input[type="text"] {
-                width: 100%;
-            }
-
-            #osm-map-settings .osm-button {
-                background: #e14d43;
-                border-color: #e14d43;
-                color: #fff;
-                display: inline-block;
-                text-decoration: none;
-                font-size: 13px;
-                line-height: 2.15384615;
-                min-height: 30px;
-                margin: 0;
-                padding: 0 10px;
-                cursor: pointer;
-                border-width: 1px;
-                border-style: solid;
-                -webkit-appearance: none;
-                border-radius: 3px;
-                white-space: nowrap;
-                box-sizing: border-box;
-            }
-
-            #osm-map-settings .form-group {
-                margin-bottom: 25px;
-            }
-        </style>
-
         <div id="osm-map-settings">
             <h2>OSM Map Widget Settings</h2>
             <?php if (!empty($_REQUEST['action']) && $_REQUEST['action'] == 'settings_saved'): ?>
@@ -119,7 +68,9 @@ add_action('admin_menu', function () {
                         </div>
                         <div class="card-content">
                             <p><em><strong>Note:</strong> This setting is required if you wish to use Google Maps to
-                                    lookup location coordinates.</em></p>
+                                    lookup location coordinates. Need help to get a Google map API key? <a
+                                            href="https://developers.google.com/maps/documentation/javascript/get-api-key"
+                                            target="_blank">Read this resource</a>.</em></p>
                             <input type="text" name="osm_widget[gmaps_key]"
                                    value="<?php echo !empty($osm_settings['gmaps_key']) ? $osm_settings['gmaps_key'] : null; ?>"/>
                         </div>
@@ -131,7 +82,10 @@ add_action('admin_menu', function () {
                             <h3 class="card-title">Mapbox Access Token</h3>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Mapbox / Geoapify tiles.</em></p>
+                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Mapbox /
+                                    Geoapify tiles. Need help to get a Mapbox Access Token? <a
+                                            href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
+                                            target="_blank">Read this resource</a></em></p>
                             <input type="text" name="osm_widget[mapbox_token]"
                                    value="<?php echo !empty($osm_settings['mapbox_token']) ? $osm_settings['mapbox_token'] : null; ?>"/>
                         </div>
@@ -143,7 +97,9 @@ add_action('admin_menu', function () {
                             <h3 class="card-title">Geoapify API Key</h3>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Geoapify tiles.</em></p>
+                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Geoapify
+                                    tiles. Need help to get a Geoapify API key. <a
+                                            href="https://www.geoapify.com/maps-api/">Read this resource.</a></em></p>
                             <input type="text" name="osm_widget[geoapify_key]"
                                    value="<?php echo !empty($osm_settings['geoapify_key']) ? $osm_settings['geoapify_key'] : null; ?>"/>
                         </div>

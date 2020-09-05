@@ -26,6 +26,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     public function __construct($data = [], $args = null)
     {
         parent::__construct($data, $args);
+
+        // add these scripts later
         $this->__queue_assets();
     }
 
@@ -194,15 +196,13 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
-        $osm_settings = get_option('osm_widget');
         $this->add_control(
-            'gmaps_key',
+            'important_note',
             [
-                'label' => __('Google Maps Key', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
-                'description' => 'Update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a>',
-                'placeholder' => __('Google Maps API Key', self::$slug),
-                'default' => !empty($osm_settings['gmaps_key']) ? $osm_settings['gmaps_key'] : null
+                'label' => __('Important Note', self::$slug),
+                'type' => \Elementor\Controls_Manager::RAW_HTML,
+                'raw' => __('<div class="elementor-control-field-description">Update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
+                'content_classes' => 'your-class',
             ]
         );
 
@@ -637,12 +637,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $settings = $this->get_settings_for_display();
         $markers = $this->get_settings_for_display('marker_list');
 
-        // queue google maps key if provided
-        if (is_admin()) {
-            wp_register_script('google-maps', 'https://maps.googleapis.com/maps/api/js?libraries=places&key=' . $settings['gmaps_key']);
-            wp_enqueue_script('google-maps');
-        }
-
         if (0 === absint($settings['zoom']['size'])) {
             $settings['zoom']['size'] = 10;
         }
@@ -669,7 +663,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
         echo '<div id="osm-map-' . $this->get_id() . '" 
         class="osm-map-container" 
-        data-gmap-key="' . $settings['gmaps_key'] . '" 
         data-center="' . implode(',', $center_coords) . '" 
         data-zoom="' . $settings['zoom']['size'] . '"
         data-markers=\'' . json_encode($coords) . '\'></div>';
@@ -748,8 +741,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      */
     private function __queue_assets()
     {
+        global $wp_scripts;
         $styles = [
-            'leaflet' => '//unpkg.com/leaflet@1.6.0/dist/leaflet.css',
+            'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
             'mapbox-gl' => '//api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css',
         ];
 
@@ -760,24 +754,37 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
         // queue admin js
         if (is_admin()) {
+
+            // grab g
+            $widget_settings = get_option('osm_widget');
+
+            // queue google maps key if provided
             $admin_scripts = [
+                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&key=' . (!empty($widget_settings['gmaps_key']) ? $widget_settings['gmaps_key'] : null),
                 'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')
             ];
 
-            $dependencies = [
-            ];
+            // check to see if google maps is enqueued if it is let's remove it
+            foreach ($wp_scripts->queue as $key) {
+                $script = $wp_scripts->registered[$key];
+                if (preg_match('#maps\.google(?:\w+)?\.com/maps/api/js#', $script->src)) {
+                    unset($admin_scripts['google-maps']);
+                }
+            }
+
+            $dependencies = [];
             foreach ($admin_scripts as $handle => $path) {
                 wp_register_script($handle, $path, $dependencies, '1.0', false);
                 wp_enqueue_script($handle);
+                $dependencies[] = $handle;
             }
         }
 
-
         // queue widget view js
         $scripts = [
-            'leaflet' => '//unpkg.com/leaflet@1.6.0/dist/leaflet.js',
-            'mapbox-gl' => '//api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js',
-            'leaflet-mapbox-gl' => '//unpkg.com/mapbox-gl-leaflet/leaflet-mapbox-gl.js"'
+            'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.js'),
+            'mapbox-gl' => plugins_url('/osm-map-elementor/assets/js/mapbox-gl.js'),
+            'leaflet-mapbox-gl' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet-mapbox-gl.js'),
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {
