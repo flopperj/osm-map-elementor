@@ -748,10 +748,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      */
     private function __queue_assets()
     {
-        global $wp_scripts;
         $styles = [
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
-            'mapbox-gl' => '//api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css',
+            'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
         ];
 
         foreach ($styles as $handle => $path) {
