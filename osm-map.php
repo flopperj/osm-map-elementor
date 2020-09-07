@@ -16,6 +16,7 @@ use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
  *
  * Widget that displays an embedded OSM map.
  *
+ * @package OSM_Map
  * @since 1.0.0
  */
 class Widget_OSM_Map extends \Elementor\Widget_Base
@@ -23,8 +24,17 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
     public static $slug = OSM_MAP_SLUG;
 
-    var $__depended_scripts = [];
-
+    /**
+     * Widget OSM Map constructor.
+     *
+     * Initializing the widget base class.
+     *
+     * @since 1.0.0
+     * @access public
+     *
+     * @param array      $data Widget data. Default is an empty array.
+     * @param array|null $args Optional. Widget default arguments. Default is null.
+     */
     public function __construct($data = [], $args = null)
     {
         parent::__construct($data, $args);
@@ -91,11 +101,19 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         return ['basic'];
     }
 
+    /**
+     * Retrieve the list of script dependencies the element requires.
+     * @return string[]
+     */
     public function get_script_depends()
     {
-        return $this->__depended_scripts;
+        return ['jquery'];
     }
 
+    /**
+     * Retrieve the list of style dependencies the element requires.
+     * @return string[]
+     */
     public function get_style_depends()
     {
         return ['leaflet'];
@@ -111,8 +129,10 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     protected function _register_controls()
     {
 
+        // register content controls
         $this->__register_content_controls();
 
+        // register style controls
         $this->__register_style_controls();
     }
 
@@ -203,7 +223,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Important Note', self::$slug),
                 'type' => \Elementor\Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">Update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
+                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
                 'content_classes' => 'your-class',
             ]
         );
@@ -670,14 +690,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         data-markers=\'' . json_encode($coords) . '\'></div>';
         ?>
         <script type="text/javascript">
-            function initOSMEditorControls (){
-                jQuery.getScript('<?php echo plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')?>');
-                console.log('loaded callback')
-            }
-
             jQuery(window).ready(function () {
                 "use strict";
-
                 const mapId = '<?php echo 'osm-map-' . $this->get_id(); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
@@ -761,7 +775,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         // queue admin js
         if (is_admin()) {
 
-            // grab g
+            // grab global settings
             $widget_settings = get_option('osm_widget');
 
             // queue google maps key if provided

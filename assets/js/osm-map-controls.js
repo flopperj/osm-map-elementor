@@ -1,3 +1,6 @@
+/**
+ * Called as a callback to google maps API to allow for autocompletion of coordinates
+ */
 function initOSMEditorControls() {
     jQuery(window).on(
         'elementor:init',
@@ -22,6 +25,8 @@ function initOSMEditorControls() {
 
 
             elementor.hooks.addAction('panel/open_editor/widget/osm-map-elementor', function (panel, model, view) {
+
+                // if value changes in input fields, trigger an input event that will allow for data to be saved
                 jQuery('input[data-setting="marker_coords"],input[data-setting="marker_title"], input[data-setting="size"]').change(function () {
                     jQuery(this).trigger('input');
                 });
@@ -30,6 +35,7 @@ function initOSMEditorControls() {
                 const initMarkerFields = () => {
                     const markers = jQuery('.elementor-control-marker_list .elementor-repeater-fields:visible');
 
+                    // loop through all visible marker fields
                     jQuery.each(markers, function () {
                         const location_input = jQuery(this).find('input[data-setting="marker_location"]');
                         const coords_input = jQuery(this).find('input[data-setting="marker_coords"]');
