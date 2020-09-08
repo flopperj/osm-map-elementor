@@ -29,11 +29,11 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      *
      * Initializing the widget base class.
      *
+     * @param array $data Widget data. Default is an empty array.
+     * @param array|null $args Optional. Widget default arguments. Default is null.
      * @since 1.0.0
      * @access public
      *
-     * @param array      $data Widget data. Default is an empty array.
-     * @param array|null $args Optional. Widget default arguments. Default is null.
      */
     public function __construct($data = [], $args = null)
     {
@@ -720,8 +720,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                 // install leaflet-mapbox-gl plugin
                 L.mapboxGL({
-                    style: 'https://maps.geoapify.com/v1/styles/<?php echo $settings['geoapify_tile']; ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? $global_settings['geoapify_key'] : null; ?>',
-                    accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? $global_settings['mapbox_token'] : 'no-token'; ?>'
+                    style: 'https://maps.geoapify.com/v1/styles/<?php echo $settings['geoapify_tile']; ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea(__($global_settings['geoapify_key'], self::$slug)) : null; ?>',
+                    accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea(__($global_settings['mapbox_token'], self::$slug)) : 'no-token'; ?>'
                 }).addTo(map);
                 <?php endif; ?>
 
@@ -781,7 +781,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             // queue google maps key if provided
             $admin_scripts = [
                 'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js'),
-                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . (!empty($widget_settings['gmaps_key']) ? $widget_settings['gmaps_key'] : null)
+                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . (!empty($widget_settings['gmaps_key']) ? esc_textarea(__($widget_settings['gmaps_key'], self::$slug)) : null)
             ];
 
             $dependencies = [];
