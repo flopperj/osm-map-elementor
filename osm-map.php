@@ -223,8 +223,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Important Note', self::$slug),
                 'type' => \Elementor\Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
-                'content_classes' => 'your-class',
+                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug)
             ]
         );
 
@@ -277,6 +276,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     private function __register_style_controls()
     {
 
+        $global_settings = get_option('osm_widget');
+
         // START Map Section
         $this->start_controls_section(
             'section_map_style',
@@ -286,6 +287,19 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
+        // show notice about api keys
+        if (empty($global_settings['mapbox_token']) || empty($global_settings['geoapify_key'])) {
+            $this->add_control(
+                'important_note2',
+                [
+                    'label' => __('Important Note', self::$slug),
+                    'type' => \Elementor\Controls_Manager::RAW_HTML,
+                    'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
+                    'separator' => 'after'
+                ]
+            );
+        }
+
         $this->add_control(
             'geoapify_tile',
             [
@@ -293,7 +307,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::SELECT,
                 'default' => 'osm-carto',
                 'options' => [
-                    'osm-carto' => __('OSM Carto', self::$slug),
+                    'osm-carto' => __('OSM Carto (Free)', self::$slug),
                     'osm-bright' => __('OSM Bright', self::$slug),
                     'osm-bright-grey' => __('OSM Bright Grey', self::$slug),
                     'osm-bright-smooth' => __('OSM Bright Smooth', self::$slug),
@@ -307,7 +321,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     'dark-matter-dark-purple' => __('Dark Matter Dark Purple', self::$slug),
                     'dark-matter-purple-roads' => __('Dark Matter Purple Roads', self::$slug),
                     'dark-matter-yellow-roads' => __('Dark Matter Yellow Roads', self::$slug),
-                ],
+                ]
             ]
         );
 
