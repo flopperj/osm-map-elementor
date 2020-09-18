@@ -816,19 +816,31 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     marker.addTo(map);
 
                     // prep tooltip content
-                    let tooltipContent = null;
-                    if (this.marker.marker_title && !this.marker.marker_description) {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div></div>`;
-                    } else if (this.marker.marker_description && this.marker.show_button !== 'yes') {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-description">${this.marker.marker_description}</div></div></div>`;
-                    } else if (this.marker.show_button === 'yes' && !this.marker.marker_description) {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div></div></div>`;
-                    } else if (this.marker.show_button === 'yes') {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-description">${this.marker.marker_description}</div><div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div></div></div>`;
+                    let tooltipContent = '<div class="marker-tooltip">';
+
+                    // add marker title
+                    if (this.marker.marker_title) {
+                        tooltipContent += `<div class="marker-title">${this.marker.marker_title}</div>`;
                     }
 
+                    // marker content
+                    tooltipContent += '<div class="marker-content">';
+
+                    // add marker description
+                    if (this.marker.marker_description) {
+                        tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
+                    }
+
+                    // add marker button
+                    if (this.marker.show_button === 'yes' && this.marker.button_text) {
+                        tooltipContent += `<div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div>`;
+                    }
+
+                    tooltipContent += '</div>';
+                    tooltipContent += '</div>';
+
                     // add tooltip to marker
-                    if (tooltipContent) {
+                    if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
                         marker.bindPopup(tooltipContent);
                     }
                 });
