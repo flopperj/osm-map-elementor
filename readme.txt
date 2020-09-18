@@ -34,3 +34,9 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 3. Add multiple markers & style them accordingly
 4. Edit the marker's coordinates to render them in the map
 5. Choose from 14 different custom tiles
+
+
+== Changelog ==
+Thank you for using OSM Map Widget for Elementor.
+
+To make your experience using the widget better we release updates regularly, you can view the full changelog [here](https://github.com/flopperj/osm-map-elementor/wiki/Changelog)
