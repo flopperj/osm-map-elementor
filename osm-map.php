@@ -469,6 +469,49 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'tab' => \Elementor\Controls_Manager::TAB_STYLE,
             ]
         );
+        $this->add_responsive_control(
+            'content_align',
+            [
+                'label' => __('Alignment', self::$slug),
+                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'options' => [
+                    'left' => [
+                        'title' => __('Left', self::$slug),
+                        'icon' => 'eicon-text-align-left',
+                    ],
+                    'center' => [
+                        'title' => __('Center', self::$slug),
+                        'icon' => 'eicon-text-align-center',
+                    ],
+                    'right' => [
+                        'title' => __('Right', self::$slug),
+                        'icon' => 'eicon-text-align-right',
+                    ],
+                    'justify' => [
+                        'title' => __('Justified', self::$slug),
+                        'icon' => 'eicon-text-align-justify',
+                    ],
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'text-align: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'content_text_color',
+            [
+                'label' => __('Text Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '',
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'color: {{VALUE}};',
+                ],
+                'global' => [
+                    'default' => Global_Colors::COLOR_TEXT,
+                ],
+            ]
+        );
 
         $this->add_group_control(
             \Elementor\Group_Control_Typography::get_type(),
@@ -476,7 +519,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'name' => 'content_typography',
                 'label' => __('Typography', self::$slug),
                 'scheme' => \Elementor\Scheme_Typography::TYPOGRAPHY_1,
-                'selector' => '{{WRAPPER}} .marker-content',
+                'selector' => '{{WRAPPER}} .marker-content .marker-description',
             ]
         );
 
@@ -492,10 +535,35 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
+        $this->add_responsive_control(
+            'button_align',
+            [
+                'label' => __('Alignment', self::$slug),
+                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'options' => [
+                    'left' => [
+                        'title' => __('Left', self::$slug),
+                        'icon' => 'eicon-text-align-left',
+                    ],
+                    'center' => [
+                        'title' => __('Center', self::$slug),
+                        'icon' => 'eicon-text-align-center',
+                    ],
+                    'right' => [
+                        'title' => __('Right', self::$slug),
+                        'icon' => 'eicon-text-align-right',
+                    ]
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-button' => 'text-align: {{VALUE}};',
+                ],
+            ]
+        );
+
         $this->add_group_control(
             \Elementor\Group_Control_Typography::get_type(),
             [
-                'name' => 'typography',
+                'name' => 'button_typography',
                 'global' => [
                     'default' => Global_Typography::TYPOGRAPHY_ACCENT,
                 ],
@@ -506,7 +574,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_group_control(
             \Elementor\Group_Control_Text_Shadow::get_type(),
             [
-                'name' => 'text_shadow',
+                'name' => 'button_text_shadow',
                 'selector' => '{{WRAPPER}} .elementor-button',
             ]
         );
@@ -752,9 +820,11 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     if (this.marker.marker_title && !this.marker.marker_description) {
                         tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div></div>`;
                     } else if (this.marker.marker_description && this.marker.show_button !== 'yes') {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content">${this.marker.marker_description}</div></div>`;
+                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-description">${this.marker.marker_description}</div></div></div>`;
+                    } else if (this.marker.show_button === 'yes' && !this.marker.marker_description) {
+                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div></div></div>`;
                     } else if (this.marker.show_button === 'yes') {
-                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content">${this.marker.marker_description}<br /><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div></div>`;
+                        tooltipContent = `<div class="marker-tooltip"><div class="marker-title">${this.marker.marker_title}</div><div class="marker-content"><div class="marker-description">${this.marker.marker_description}</div><div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div></div></div>`;
                     }
 
                     // add tooltip to marker
