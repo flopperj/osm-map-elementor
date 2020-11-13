@@ -431,10 +431,10 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Text Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
                 'global' => [
-                    'default' => Global_Colors::COLOR_PRIMARY,
+                    'default' => Global_Colors::COLOR_SECONDARY,
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .marker-title' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-title .elementor-heading-title' => 'color: {{VALUE}};',
                 ],
             ]
         );
@@ -442,19 +442,52 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_group_control(
             \Elementor\Group_Control_Typography::get_type(),
             [
-                'name' => 'typography',
+                'name' => 'title_typography',
                 'global' => [
                     'default' => Global_Typography::TYPOGRAPHY_PRIMARY,
                 ],
-                'selector' => '{{WRAPPER}} .marker-title',
+                'selector' => '{{WRAPPER}} .marker-title .elementor-heading-title',
             ]
         );
 
         $this->add_group_control(
             \Elementor\Group_Control_Text_Shadow::get_type(),
             [
-                'name' => 'text_shadow',
-                'selector' => '{{WRAPPER}} .marker-title',
+                'name' => 'title_text_shadow',
+                'selector' => '{{WRAPPER}} .marker-title .elementor-heading-title',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'title_padding',
+            [
+                'label' => __('Padding', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-title .elementor-heading-title' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'title_margin',
+            [
+                'label' => __('Margin', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'default' => [
+                    'top' => 0,
+                    'right' => 0,
+                    'bottom' => 0,
+                    'left' => 0,
+                    'unit' => 'px'
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-title .elementor-heading-title' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
             ]
         );
 
@@ -503,7 +536,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Text Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
-                'default' => '',
                 'selectors' => [
                     '{{WRAPPER}} .marker-content .marker-description' => 'color: {{VALUE}};',
                 ],
@@ -593,7 +625,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Text Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
-                'default' => '',
+                'global' => [
+                    'default' => Global_Colors::COLOR_SECONDARY
+                ],
                 'selectors' => [
                     '{{WRAPPER}} .elementor-button' => 'fill: {{VALUE}}; color: {{VALUE}};',
                 ],
@@ -601,12 +635,12 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_control(
-            'background_color',
+            'button_background_color',
             [
                 'label' => __('Background Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
                 'global' => [
-                    'default' => Global_Colors::COLOR_ACCENT,
+                    'default' => Global_Colors::COLOR_PRIMARY,
                 ],
                 'selectors' => [
                     '{{WRAPPER}} .elementor-button' => 'background-color: {{VALUE}};',
@@ -624,7 +658,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_control(
-            'hover_color',
+            'button_hover_color',
             [
                 'label' => __('Text Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
@@ -661,7 +695,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_control(
-            'hover_animation',
+            'button_hover_animation',
             [
                 'label' => __('Hover Animation', self::$slug),
                 'type' => \Elementor\Controls_Manager::HOVER_ANIMATION,
@@ -675,14 +709,14 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_group_control(
             \Elementor\Group_Control_Border::get_type(),
             [
-                'name' => 'border',
+                'name' => 'button_border',
                 'selector' => '{{WRAPPER}} .elementor-button',
                 'separator' => 'before',
             ]
         );
 
         $this->add_control(
-            'border_radius',
+            'button_border_radius',
             [
                 'label' => __('Border Radius', self::$slug),
                 'type' => \Elementor\Controls_Manager::DIMENSIONS,
@@ -702,7 +736,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_responsive_control(
-            'text_padding',
+            'button_text_padding',
             [
                 'label' => __('Padding', self::$slug),
                 'type' => \Elementor\Controls_Manager::DIMENSIONS,
@@ -820,7 +854,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                     // add marker title
                     if (this.marker.marker_title) {
-                        tooltipContent += `<div class="marker-title">${this.marker.marker_title}</div>`;
+                        tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
                     }
 
                     // marker content
@@ -833,7 +867,15 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                     // add marker button
                     if (this.marker.show_button === 'yes' && this.marker.button_text) {
-                        tooltipContent += `<div class="marker-button"><a class="elementor-button" target="_blank" href='${this.marker.button_url}'>${this.marker.button_text}</a></div>`;
+                        tooltipContent += `<div class="marker-button">
+                                                <a class="elementor-button elementor-button-link" target="_blank" href='${this.marker.button_url}' role="button">
+                                                    <span class="elementor-button-content-wrapper">
+                                                        <span class="elementor-button-text">
+                                                            ${this.marker.button_text}
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>`;
                     }
 
                     tooltipContent += '</div>';
