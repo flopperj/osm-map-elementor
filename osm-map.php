@@ -415,6 +415,137 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->end_controls_section();
         // END Map Section
 
+        // START Marker Icon section
+        $this->start_controls_section(
+            'section_marker_icon_style',
+            [
+                'label' => __('Marker Icon', self::$slug),
+                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+            ]
+        );
+
+
+        $this->add_control(
+            'icon_type',
+            [
+                'label' => __('Icon Type', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT2,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'fontawesome' => __('Font Awesome', self::$slug),
+                    'custom_image' => __('Custom Image', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'fontawesome_icon',
+            [
+                'label' => __('Font Awesome Icon', self::$slug),
+                'type' => \Elementor\Controls_Manager::TEXT,
+                'default' => 'fa fa-circle',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'marker_background_color',
+            [
+                'label' => __('Background Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#368acc',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_color',
+            [
+                'label' => __('Icon Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#ffffff',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_size',
+            [
+                'label' => __('Icon Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 20,
+                        'step' => 1
+                    ]
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => 12,
+                ],
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        // add custom marker graphic
+        $this->start_controls_tabs('custom_icon', [
+            'condition' => [
+                'icon_type' => 'custom_image'
+            ]
+        ]);
+
+        $this->start_controls_tab(
+            'tab_custom_icon',
+            [
+                'label' => __('Main', self::$slug),
+            ]
+        );
+        $this->add_control(
+            'custom_icon_image',
+            [
+                'label' => __('Choose Image', self::$slug),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => \Elementor\Utils::get_placeholder_image_src(),
+                ],
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->start_controls_tab(
+            'tab_custom_icon_shadow',
+            [
+                'label' => __('Shadow', self::$slug),
+            ]
+        );
+        $this->add_control(
+            'custom_icon_shadow_image',
+            [
+                'label' => __('Choose Image', self::$slug),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => \Elementor\Utils::get_placeholder_image_src(),
+                ],
+            ]
+        );
+
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->end_controls_section();
+
 
         // START Marker Title Section
         $this->start_controls_section(
@@ -552,6 +683,39 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Typography', self::$slug),
                 'scheme' => \Elementor\Scheme_Typography::TYPOGRAPHY_1,
                 'selector' => '{{WRAPPER}} .marker-content .marker-description',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'content_padding',
+            [
+                'label' => __('Padding', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'default' => [
+                    'top' => 0,
+                    'bottom' => 5,
+                    'left' => 0,
+                    'right' => 0,
+                    'unit' => 'px'
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'content_margin',
+            [
+                'label' => __('Margin', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
             ]
         );
 
@@ -843,8 +1007,57 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                 // add available markers
                 const markers = jQuery(mapContainer).data('markers');
+                let markerIcon = null;
+                let markerOptions = {}
+
+                console.log(<?php echo json_encode($settings)?>);
+
+                <?php
+                $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
+                switch ($icon_type):
+                case 'fontawesome':
+                $fontawesome_icon = !empty($settings['fontawesome_icon']) ? $settings['fontawesome_icon'] : 'fa fa-circle';
+                $marker_background_color = !empty($settings['marker_background_color']) ? $settings['marker_background_color'] : null;
+                $icon_color = !empty($settings['icon_color']) ? $settings['icon_color'] : null;
+                $icon_size = !empty($settings['icon_size']['size']) ? $settings['icon_size']['size'] : 12;
+                ?>
+                markerOptions.icon = L.icon.fontAwesome({
+                    iconClasses: '<?php echo $fontawesome_icon; ?>',
+                    // marker/background style
+                    markerColor: '<?php echo $marker_background_color; ?>',
+                    markerFillOpacity: 1,
+                    markerStrokeWidth: 1,
+                    markerStrokeColor: '<?php echo $marker_background_color; ?>',
+                    // icon style
+                    iconColor: '<?php echo $icon_color; ?>',
+                    iconSize: <?php echo $icon_size; ?>,
+                    // iconXOffset: -2,
+                    // iconYOffset: 0
+                })
+                <?php
+                break;
+                case "custom_image":
+                ?>
+                <?php if(!empty($settings['custom_icon_image']['url'])): ?>
+                markerIcon = L.icon({
+                    iconUrl: '<?php echo $settings['custom_icon_image']['url']; ?>',
+                    shadowUrl: '<?php echo !empty($settings['custom_icon_shadow_image']['url']) ? $settings['custom_icon_shadow_image']['url'] : null; ?>',
+                    iconSize: [38, 95], // size of the icon
+                    shadowSize: [50, 64], // size of the shadow
+                    iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [4, 62],  // the same for the shadow
+                    popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+                });
+
+                markerOptions.icon = markerIcon
+                <?php endif; ?>
+                <?php break; ?>
+                <?php endswitch; ?>
+
+                console.log(markerOptions)
+
                 jQuery.each(markers, function () {
-                    const marker = L.marker([this.lat, this.lng]);
+                    const marker = L.marker([this.lat, this.lng], markerOptions);
 
                     // add marker to map
                     marker.addTo(map);
@@ -903,6 +1116,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $styles = [
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
+            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
         ];
 
         foreach ($styles as $handle => $path) {
@@ -935,6 +1149,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.js'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/js/mapbox-gl.js'),
             'leaflet-mapbox-gl' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet-mapbox-gl.js'),
+            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.js'),
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {
