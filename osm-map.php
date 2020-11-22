@@ -429,7 +429,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_type',
             [
                 'label' => __('Icon Type', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT2,
+                'type' => \Elementor\Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -511,6 +511,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Main', self::$slug),
             ]
         );
+
         $this->add_control(
             'custom_icon_image',
             [
@@ -521,6 +522,112 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 ],
             ]
         );
+
+        $this->add_control(
+            'icon_hr',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon size control
+        $this->add_control(
+            'custom_icon_image_size_type',
+            [
+                'label' => __('Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_width',
+            [
+                'label' => __('Width', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                        'step' => 1,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_image_size_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_height',
+            [
+                'label' => __('Height', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_image_size_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon size control
+
+        $this->add_control(
+            'icon_hr2',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon anchor control
+        $this->add_control(
+            'custom_icon_image_anchor_type',
+            [
+                'label' => __('Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_anchor_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_anchor_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon anchor control
+
         $this->end_controls_tab();
 
         $this->start_controls_tab(
@@ -540,9 +647,172 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
+
+        $this->add_control(
+            'icon_hr3',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon size control
+        $this->add_control(
+            'custom_icon_shadow_size_type',
+            [
+                'label' => __('Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_width',
+            [
+                'label' => __('Width', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                        'step' => 1,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_shadow_size_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_height',
+            [
+                'label' => __('Height', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_shadow_size_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon size control
+
+        $this->add_control(
+            'icon_hr4',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon anchor control
+        $this->add_control(
+            'custom_icon_shadow_anchor_type',
+            [
+                'label' => __('Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_shadow_anchor_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_shadow_anchor_type' => 'custom',
+
+                ]
+            ]
+        );
+        // end icon anchor control
+
         $this->end_controls_tab();
 
         $this->end_controls_tabs();
+
+        $this->add_control(
+            'icon_hr5',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'condition' => [
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        // popup anchor control
+        $this->add_control(
+            'custom_icon_image_popup_anchor_type',
+            [
+                'label' => __('Popup Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ],
+                'condition' => [
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+
+        $this->add_control(
+            'custom_icon_image_popup_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_popup_anchor_type' => 'custom',
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_popup_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_popup_anchor_type' => 'custom',
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        // end icon popup control
 
         $this->end_controls_section();
 
@@ -1010,8 +1280,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 let markerIcon = null;
                 let markerOptions = {}
 
-                console.log(<?php echo json_encode($settings)?>);
-
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
                 switch ($icon_type):
@@ -1039,22 +1307,65 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 case "custom_image":
                 ?>
                 <?php if(!empty($settings['custom_icon_image']['url'])): ?>
-                markerIcon = L.icon({
-                    iconUrl: '<?php echo $settings['custom_icon_image']['url']; ?>',
-                    shadowUrl: '<?php echo !empty($settings['custom_icon_shadow_image']['url']) ? $settings['custom_icon_shadow_image']['url'] : null; ?>',
-                    iconSize: [38, 95], // size of the icon
-                    shadowSize: [50, 64], // size of the shadow
-                    iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
-                    shadowAnchor: [4, 62],  // the same for the shadow
-                    popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
-                });
+                <?php
 
+                $icon_size = [
+                    'width' => !empty($settings['custom_icon_image_width']) ? $settings['custom_icon_image_width'] : null,
+                    'height' => !empty($settings['custom_icon_image_height']) ? $settings['custom_icon_image_height'] : null,
+                ];
+                $shadow_size = [
+                    'width' => !empty($settings['custom_icon_shadow_width']) ? $settings['custom_icon_shadow_width'] : null,
+                    'height' => !empty($settings['custom_icon_shadow_height']) ? $settings['custom_icon_shadow_height'] : null,
+                ];
+                $icon_anchor = [
+                    'xOffset' => isset($settings['custom_icon_image_anchor_x']) ? $settings['custom_icon_image_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_image_anchor_y']) ? $settings['custom_icon_image_anchor_y'] : 0
+                ];
+                $shadow_anchor = [
+                    'xOffset' => isset($settings['custom_icon_shadow_anchor_x']) ? $settings['custom_icon_shadow_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_shadow_anchor_y']) ? $settings['custom_icon_shadow_anchor_y'] : 0
+                ];
+                $popup_anchor = [
+                    'xOffset' => isset($settings['custom_icon_image_popup_anchor_x']) ? $settings['custom_icon_image_popup_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_image_popup_anchor_y']) ? $settings['custom_icon_image_popup_anchor_y'] : 0
+                ];
+
+                $icon_options = [
+                    'iconUrl' => $settings['custom_icon_image']['url'],
+                    'shadowUrl' => !empty($settings['custom_icon_shadow_image']['url']) ? $settings['custom_icon_shadow_image']['url'] : null
+                ];
+
+                // size of the icon
+                if (!empty($settings['custom_icon_image_size_type']) && $settings['custom_icon_image_size_type'] == 'custom' && !empty($icon_size['width']) && !empty($icon_size['height'])) {
+                    $icon_options['iconSize'] = [$icon_size['width'], $icon_size['height']];
+                }
+
+                // size of the shadow
+                if (!empty($settings['custom_icon_shadow_size_type']) && $settings['custom_icon_shadow_size_type'] == 'custom' && !empty($shadow_size['width']) && !empty($shadow_size['height'])) {
+                    $icon_options['shadowSize'] = [$shadow_size['width'], $shadow_size['height']];
+                }
+
+                // point of the icon which will correspond to marker's location
+                if (!empty($settings['custom_icon_image_anchor_type']) && $settings['custom_icon_image_anchor_type'] == 'custom' && is_numeric($icon_anchor['xOffset']) && is_numeric($icon_anchor['yOffset'])) {
+                    $icon_options['iconAnchor'] = [$icon_anchor['xOffset'], $icon_anchor['yOffset']];
+                }
+
+                // point of the icon which will correspond to marker's location
+                // the same for the shadow
+                if (!empty($settings['custom_icon_shadow_anchor_type']) && $settings['custom_icon_shadow_anchor_type'] == 'custom' && is_numeric($shadow_anchor['xOffset']) && is_numeric($shadow_anchor['yOffset'])) {
+                    $icon_options['shadowAnchor'] = [$shadow_anchor['xOffset'], $shadow_anchor['yOffset']];
+                }
+
+                //  point from which the popup should open relative to the iconAnchor
+                if (!empty($settings['custom_icon_image_popup_anchor_type']) && $settings['custom_icon_image_popup_anchor_type'] == 'custom' && is_numeric($popup_anchor['xOffset']) && is_numeric($popup_anchor['yOffset'])) {
+                    $icon_options['popupAnchor'] = [$popup_anchor['xOffset'], $popup_anchor['yOffset']];
+                }
+                ?>
+                markerIcon = L.icon(<?php echo json_encode($icon_options)?>);
                 markerOptions.icon = markerIcon
                 <?php endif; ?>
                 <?php break; ?>
                 <?php endswitch; ?>
-
-                console.log(markerOptions)
 
                 jQuery.each(markers, function () {
                     const marker = L.marker([this.lat, this.lng], markerOptions);
