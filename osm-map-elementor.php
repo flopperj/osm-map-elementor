@@ -49,6 +49,7 @@ add_action('admin_menu', function () {
                 'gmaps_key' => !empty($input['gmaps_key']) ? sanitize_text_field($input['gmaps_key']) : null,
                 'mapbox_token' => !empty($input['mapbox_token']) ? sanitize_text_field($input['mapbox_token']) : null,
                 'geoapify_key' => !empty($input['geoapify_key']) ? sanitize_text_field($input['geoapify_key']) : null,
+                'enable_fontawesome' => !empty($input['enable_fontawesome']) ? sanitize_text_field($input['enable_fontawesome']) : null
             ];
 
             // save the sanitized data
@@ -113,13 +114,29 @@ add_action('admin_menu', function () {
                     </div>
                 </div>
                 <div class="form-group">
+                    <div class="card">
+                        <div class="card-header" style="display: flex;align-items: center;">
+                            <h3 class="card-title">Font Awesome</h3>
+                            <!-- Rounded switch -->
+                            <label class="switch" style="margin-left: auto; margin-right: 20px;">
+                                <input type="checkbox" name="osm_widget[enable_fontawesome]"
+                                       value="1"
+                                       <?php echo !array_key_exists('enable_fontawesome', $osm_settings) || !empty($osm_settings['enable_fontawesome']) ? "checked='checked'" : null; ?>>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="card-content">
+                            <p><em><strong>Note:</strong> If you are having conflicts or already have Font Awesome loaded on your website, toggle the setting above to not load it again.</em></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
                     <button type="submit" class="osm-button">Save Changes</button>
                 </div>
             </form>
         </div>
 
         <?php
-
     });
 });
 

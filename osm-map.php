@@ -425,15 +425,14 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
 
-
         $this->add_control(
             'fontawesome_important_note',
             [
                 'label' => __('Important Note', self::$slug),
                 'type' => \Elementor\Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">To take advantage of Font Awesome Icons, please make sure that the library is loaded on your website. Need help getting Font Awesome? <a target="_blank" href="https://fontawesome.com/how-to-use/on-the-web/setup/hosting-font-awesome-yourself">Read this resource</a></div>', self::$slug),
+                'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
                 'condition' => [
-                        'icon_type' => 'fontawesome'
+                    'icon_type' => 'fontawesome'
                 ]
             ]
         );
@@ -533,7 +532,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Choose Image', self::$slug),
                 'type' => \Elementor\Controls_Manager::MEDIA,
                 'default' => [
-                    'url' => plugin_dir_url( __FILE__ ) . 'assets/leaflet/images/marker-icon.png',
+                    'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-icon.png',
                 ]
             ]
         );
@@ -657,7 +656,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Choose Image', self::$slug),
                 'type' => \Elementor\Controls_Manager::MEDIA,
                 'default' => [
-                    'url' => plugin_dir_url( __FILE__ ) . 'assets/leaflet/images/marker-shadow.png',
+                    'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-shadow.png',
                 ]
             ]
         );
@@ -1488,11 +1487,19 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      */
     private function __queue_assets()
     {
+        // grab global settings
+        $widget_settings = get_option('osm_widget');
+
         $styles = [
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
             'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
         ];
+
+        // load fontawesome
+        if (!array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
+            $styles['font-awesome'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
+        }
 
         foreach ($styles as $handle => $path) {
             wp_register_style($handle, $path);
@@ -1502,8 +1509,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         // queue admin js
         if (is_admin()) {
 
-            // grab global settings
-            $widget_settings = get_option('osm_widget');
 
             // queue google maps key if provided
             $admin_scripts = [
