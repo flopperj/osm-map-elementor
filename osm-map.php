@@ -425,6 +425,20 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
 
+
+        $this->add_control(
+            'fontawesome_important_note',
+            [
+                'label' => __('Important Note', self::$slug),
+                'type' => \Elementor\Controls_Manager::RAW_HTML,
+                'raw' => __('<div class="elementor-control-field-description">To take advantage of Font Awesome Icons, please make sure that the library is loaded on your website. Need help getting Font Awesome? <a target="_blank" href="https://fontawesome.com/how-to-use/on-the-web/setup/hosting-font-awesome-yourself">Read this resource</a></div>', self::$slug),
+                'condition' => [
+                        'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+
         $this->add_control(
             'icon_type',
             [
@@ -445,6 +459,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Font Awesome Icon', self::$slug),
                 'type' => \Elementor\Controls_Manager::TEXT,
                 'default' => 'fa fa-circle',
+                'placeholder' => __('fa fa-circle', self::$slug),
                 'condition' => [
                     'icon_type' => 'fontawesome'
                 ]
@@ -518,8 +533,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Choose Image', self::$slug),
                 'type' => \Elementor\Controls_Manager::MEDIA,
                 'default' => [
-                    'url' => \Elementor\Utils::get_placeholder_image_src(),
-                ],
+                    'url' => plugin_dir_url( __FILE__ ) . 'assets/leaflet/images/marker-icon.png',
+                ]
             ]
         );
 
@@ -595,7 +610,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Anchor', self::$slug),
                 'type' => \Elementor\Controls_Manager::SELECT,
-                'default' => '',
+                'default' => 'custom',
                 'options' => [
                     '' => __('Default', self::$slug),
                     'custom' => __('Custom', self::$slug),
@@ -608,7 +623,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('x Offset', self::$slug),
                 'type' => \Elementor\Controls_Manager::NUMBER,
-                'default' => 0,
+                'default' => 12.5,
                 'condition' => [
                     'custom_icon_image_anchor_type' => 'custom'
                 ]
@@ -620,7 +635,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('y Offset', self::$slug),
                 'type' => \Elementor\Controls_Manager::NUMBER,
-                'default' => 0,
+                'default' => 41,
                 'condition' => [
                     'custom_icon_image_anchor_type' => 'custom'
                 ]
@@ -642,8 +657,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Choose Image', self::$slug),
                 'type' => \Elementor\Controls_Manager::MEDIA,
                 'default' => [
-                    'url' => \Elementor\Utils::get_placeholder_image_src(),
-                ],
+                    'url' => plugin_dir_url( __FILE__ ) . 'assets/leaflet/images/marker-shadow.png',
+                ]
             ]
         );
 
@@ -1278,7 +1293,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 // add available markers
                 const markers = jQuery(mapContainer).data('markers');
                 let markerIcon = null;
-                let markerOptions = {}
+                let markerOptions = {};
 
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
@@ -1301,7 +1316,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     iconSize: <?php echo $icon_size; ?>,
                     // iconXOffset: -2,
                     // iconYOffset: 0
-                })
+                });
                 <?php
                 break;
                 case "custom_image":
@@ -1362,7 +1377,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 }
                 ?>
                 markerIcon = L.icon(<?php echo json_encode($icon_options)?>);
-                markerOptions.icon = markerIcon
+                markerOptions.icon = markerIcon;
                 <?php endif; ?>
                 <?php break; ?>
                 <?php endswitch; ?>
@@ -1426,7 +1441,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                  * Check whether we can render our map based on provided coordinates
                  * @type {boolean}
                  */
-                const canRenderMap = markers.filter(marker => {
+                const canRenderMap = markers.filter(function (marker) {
                     return !isNaN(marker.lat) && !isNaN(marker.lng)
                 }).length > 0;
 
