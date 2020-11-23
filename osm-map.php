@@ -1498,7 +1498,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
         // load fontawesome
         if (!array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
+            $styles['font-awesome-free'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
         }
 
         foreach ($styles as $handle => $path) {
