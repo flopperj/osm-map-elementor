@@ -478,6 +478,18 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_control(
+            'marker_stroke_color',
+            [
+                'label' => __('Stroke Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#346F9E',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
             'icon_color',
             [
                 'label' => __('Icon Color', self::$slug),
@@ -489,6 +501,50 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
+        // icon offset control
+        $this->add_control(
+            'icon_offset_type',
+            [
+                'label' => __('Icon Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ],
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_offset_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'icon_offset_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_offset_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'icon_offset_type' => 'custom',
+
+                ]
+            ]
+        );
+        // end icon offset control
+
+        // add icon size control
         $this->add_control(
             'icon_size',
             [
@@ -511,6 +567,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 ]
             ]
         );
+        // end icon size control
 
         // add custom marker graphic
         $this->start_controls_tabs('custom_icon', [
@@ -1300,22 +1357,34 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 case 'fontawesome':
                 $fontawesome_icon = !empty($settings['fontawesome_icon']) ? $settings['fontawesome_icon'] : 'fa fa-circle';
                 $marker_background_color = !empty($settings['marker_background_color']) ? $settings['marker_background_color'] : null;
+                $marker_stroke_color = !empty($settings['marker_stroke_color']) ? $settings['marker_stroke_color'] : null;
                 $icon_color = !empty($settings['icon_color']) ? $settings['icon_color'] : null;
                 $icon_size = !empty($settings['icon_size']['size']) ? $settings['icon_size']['size'] : 12;
-                ?>
-                markerOptions.icon = L.icon.fontAwesome({
-                    iconClasses: '<?php echo $fontawesome_icon; ?>',
+                $icon_offset = [
+                    'xOffset' => !empty($settings['icon_offset_x']) ? $settings['icon_offset_x'] : 0,
+                    'yOffset' => !empty($settings['icon_offset_y']) ? $settings['icon_offset_y'] : 0
+                ];
+
+                $fa_icon_options = [
+                    'iconClasses' => $fontawesome_icon,
                     // marker/background style
-                    markerColor: '<?php echo $marker_background_color; ?>',
-                    markerFillOpacity: 1,
-                    markerStrokeWidth: 1,
-                    markerStrokeColor: '<?php echo $marker_background_color; ?>',
+                    'markerColor' => $marker_background_color,
+                    'markerFillOpacity' => 1,
+                    'markerStrokeWidth' => 1,
+                    'markerStrokeColor' => $marker_stroke_color,
                     // icon style
-                    iconColor: '<?php echo $icon_color; ?>',
-                    iconSize: <?php echo $icon_size; ?>,
-                    // iconXOffset: -2,
-                    // iconYOffset: 0
-                });
+                    'iconColor' => $icon_color,
+                    'iconSize' => $icon_size
+                ];
+
+                // update icon offset
+                if (!empty($settings['icon_offset_type']) && $settings['icon_offset_type'] == 'custom') {
+                    $fa_icon_options['iconXOffset'] = $icon_offset['xOffset'];
+                    $fa_icon_options['iconYOffset'] = $icon_offset['yOffset'];
+                }
+                ?>
+
+                markerOptions.icon = L.icon.fontAwesome(<?php echo json_encode($fa_icon_options); ?>);
                 <?php
                 break;
                 case "custom_image":
