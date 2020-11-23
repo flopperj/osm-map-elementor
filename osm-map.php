@@ -167,7 +167,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Coordinates', self::$slug),
                 'type' => \Elementor\Controls_Manager::TEXT,
-                'placeholder' => __('lat, long', self::$slug),
+                'placeholder' => __('lat, long', self::$slug)
             ]
         );
 
@@ -415,6 +415,421 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->end_controls_section();
         // END Map Section
 
+        // START Marker Icon section
+        $this->start_controls_section(
+            'section_marker_icon_style',
+            [
+                'label' => __('Marker Icon', self::$slug),
+                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+            ]
+        );
+
+
+        $this->add_control(
+            'fontawesome_important_note',
+            [
+                'label' => __('Important Note', self::$slug),
+                'type' => \Elementor\Controls_Manager::RAW_HTML,
+                'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+
+        $this->add_control(
+            'icon_type',
+            [
+                'label' => __('Icon Type', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'fontawesome' => __('Font Awesome', self::$slug),
+                    'custom_image' => __('Custom Image', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'fontawesome_icon',
+            [
+                'label' => __('Font Awesome Icon', self::$slug),
+                'type' => \Elementor\Controls_Manager::TEXT,
+                'default' => 'fa fa-circle',
+                'placeholder' => __('fa fa-circle', self::$slug),
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'marker_background_color',
+            [
+                'label' => __('Background Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#368acc',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_color',
+            [
+                'label' => __('Icon Color', self::$slug),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#ffffff',
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_size',
+            [
+                'label' => __('Icon Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 20,
+                        'step' => 1
+                    ]
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => 12,
+                ],
+                'condition' => [
+                    'icon_type' => 'fontawesome'
+                ]
+            ]
+        );
+
+        // add custom marker graphic
+        $this->start_controls_tabs('custom_icon', [
+            'condition' => [
+                'icon_type' => 'custom_image'
+            ]
+        ]);
+
+        $this->start_controls_tab(
+            'tab_custom_icon',
+            [
+                'label' => __('Main', self::$slug),
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image',
+            [
+                'label' => __('Choose Image', self::$slug),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-icon.png',
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'icon_hr',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon size control
+        $this->add_control(
+            'custom_icon_image_size_type',
+            [
+                'label' => __('Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_width',
+            [
+                'label' => __('Width', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                        'step' => 1,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_image_size_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_height',
+            [
+                'label' => __('Height', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_image_size_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon size control
+
+        $this->add_control(
+            'icon_hr2',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon anchor control
+        $this->add_control(
+            'custom_icon_image_anchor_type',
+            [
+                'label' => __('Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'custom',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 12.5,
+                'condition' => [
+                    'custom_icon_image_anchor_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 41,
+                'condition' => [
+                    'custom_icon_image_anchor_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon anchor control
+
+        $this->end_controls_tab();
+
+        $this->start_controls_tab(
+            'tab_custom_icon_shadow',
+            [
+                'label' => __('Shadow', self::$slug),
+            ]
+        );
+        $this->add_control(
+            'custom_icon_shadow_image',
+            [
+                'label' => __('Choose Image', self::$slug),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-shadow.png',
+                ]
+            ]
+        );
+
+
+        $this->add_control(
+            'icon_hr3',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon size control
+        $this->add_control(
+            'custom_icon_shadow_size_type',
+            [
+                'label' => __('Size', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_width',
+            [
+                'label' => __('Width', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                        'step' => 1,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_shadow_size_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_height',
+            [
+                'label' => __('Height', self::$slug),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 100,
+                    ]
+                ],
+                'condition' => [
+                    'custom_icon_shadow_size_type' => 'custom'
+                ]
+            ]
+        );
+        // end icon size control
+
+        $this->add_control(
+            'icon_hr4',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+            ]
+        );
+
+        // icon anchor control
+        $this->add_control(
+            'custom_icon_shadow_anchor_type',
+            [
+                'label' => __('Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_shadow_anchor_type' => 'custom'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_shadow_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_shadow_anchor_type' => 'custom',
+
+                ]
+            ]
+        );
+        // end icon anchor control
+
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->add_control(
+            'icon_hr5',
+            [
+                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'condition' => [
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        // popup anchor control
+        $this->add_control(
+            'custom_icon_image_popup_anchor_type',
+            [
+                'label' => __('Popup Anchor', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => '',
+                'options' => [
+                    '' => __('Default', self::$slug),
+                    'custom' => __('Custom', self::$slug),
+                ],
+                'condition' => [
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+
+        $this->add_control(
+            'custom_icon_image_popup_anchor_x',
+            [
+                'label' => __('x Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_popup_anchor_type' => 'custom',
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        $this->add_control(
+            'custom_icon_image_popup_anchor_y',
+            [
+                'label' => __('y Offset', self::$slug),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'default' => 0,
+                'condition' => [
+                    'custom_icon_image_popup_anchor_type' => 'custom',
+                    'icon_type' => 'custom_image'
+                ]
+            ]
+        );
+
+        // end icon popup control
+
+        $this->end_controls_section();
+
 
         // START Marker Title Section
         $this->start_controls_section(
@@ -552,6 +967,39 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Typography', self::$slug),
                 'scheme' => \Elementor\Scheme_Typography::TYPOGRAPHY_1,
                 'selector' => '{{WRAPPER}} .marker-content .marker-description',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'content_padding',
+            [
+                'label' => __('Padding', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'default' => [
+                    'top' => 0,
+                    'bottom' => 5,
+                    'left' => 0,
+                    'right' => 0,
+                    'unit' => 'px'
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_responsive_control(
+            'content_margin',
+            [
+                'label' => __('Margin', self::$slug),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-content .marker-description' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+                'separator' => 'before',
             ]
         );
 
@@ -843,31 +1291,127 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                 // add available markers
                 const markers = jQuery(mapContainer).data('markers');
-                jQuery.each(markers, function () {
-                    const marker = L.marker([this.lat, this.lng]);
+                let markerIcon = null;
+                let markerOptions = {};
 
-                    // add marker to map
-                    marker.addTo(map);
+                <?php
+                $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
+                switch ($icon_type):
+                case 'fontawesome':
+                $fontawesome_icon = !empty($settings['fontawesome_icon']) ? $settings['fontawesome_icon'] : 'fa fa-circle';
+                $marker_background_color = !empty($settings['marker_background_color']) ? $settings['marker_background_color'] : null;
+                $icon_color = !empty($settings['icon_color']) ? $settings['icon_color'] : null;
+                $icon_size = !empty($settings['icon_size']['size']) ? $settings['icon_size']['size'] : 12;
+                ?>
+                markerOptions.icon = L.icon.fontAwesome({
+                    iconClasses: '<?php echo $fontawesome_icon; ?>',
+                    // marker/background style
+                    markerColor: '<?php echo $marker_background_color; ?>',
+                    markerFillOpacity: 1,
+                    markerStrokeWidth: 1,
+                    markerStrokeColor: '<?php echo $marker_background_color; ?>',
+                    // icon style
+                    iconColor: '<?php echo $icon_color; ?>',
+                    iconSize: <?php echo $icon_size; ?>,
+                    // iconXOffset: -2,
+                    // iconYOffset: 0
+                });
+                <?php
+                break;
+                case "custom_image":
+                ?>
+                <?php if(!empty($settings['custom_icon_image']['url'])): ?>
+                <?php
 
-                    // prep tooltip content
-                    let tooltipContent = '<div class="marker-tooltip">';
+                $icon_size = [
+                    'width' => !empty($settings['custom_icon_image_width']) ? $settings['custom_icon_image_width'] : null,
+                    'height' => !empty($settings['custom_icon_image_height']) ? $settings['custom_icon_image_height'] : null,
+                ];
+                $shadow_size = [
+                    'width' => !empty($settings['custom_icon_shadow_width']) ? $settings['custom_icon_shadow_width'] : null,
+                    'height' => !empty($settings['custom_icon_shadow_height']) ? $settings['custom_icon_shadow_height'] : null,
+                ];
+                $icon_anchor = [
+                    'xOffset' => isset($settings['custom_icon_image_anchor_x']) ? $settings['custom_icon_image_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_image_anchor_y']) ? $settings['custom_icon_image_anchor_y'] : 0
+                ];
+                $shadow_anchor = [
+                    'xOffset' => isset($settings['custom_icon_shadow_anchor_x']) ? $settings['custom_icon_shadow_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_shadow_anchor_y']) ? $settings['custom_icon_shadow_anchor_y'] : 0
+                ];
+                $popup_anchor = [
+                    'xOffset' => isset($settings['custom_icon_image_popup_anchor_x']) ? $settings['custom_icon_image_popup_anchor_x'] : 0,
+                    'yOffset' => isset($settings['custom_icon_image_popup_anchor_y']) ? $settings['custom_icon_image_popup_anchor_y'] : 0
+                ];
 
-                    // add marker title
-                    if (this.marker.marker_title) {
-                        tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
-                    }
+                $icon_options = [
+                    'iconUrl' => $settings['custom_icon_image']['url'],
+                    'shadowUrl' => !empty($settings['custom_icon_shadow_image']['url']) ? $settings['custom_icon_shadow_image']['url'] : null
+                ];
 
-                    // marker content
-                    tooltipContent += '<div class="marker-content">';
+                // size of the icon
+                if (!empty($settings['custom_icon_image_size_type']) && $settings['custom_icon_image_size_type'] == 'custom' && !empty($icon_size['width']) && !empty($icon_size['height'])) {
+                    $icon_options['iconSize'] = [$icon_size['width'], $icon_size['height']];
+                }
 
-                    // add marker description
-                    if (this.marker.marker_description) {
-                        tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
-                    }
+                // size of the shadow
+                if (!empty($settings['custom_icon_shadow_size_type']) && $settings['custom_icon_shadow_size_type'] == 'custom' && !empty($shadow_size['width']) && !empty($shadow_size['height'])) {
+                    $icon_options['shadowSize'] = [$shadow_size['width'], $shadow_size['height']];
+                }
 
-                    // add marker button
-                    if (this.marker.show_button === 'yes' && this.marker.button_text) {
-                        tooltipContent += `<div class="marker-button">
+                // point of the icon which will correspond to marker's location
+                if (!empty($settings['custom_icon_image_anchor_type']) && $settings['custom_icon_image_anchor_type'] == 'custom' && is_numeric($icon_anchor['xOffset']) && is_numeric($icon_anchor['yOffset'])) {
+                    $icon_options['iconAnchor'] = [$icon_anchor['xOffset'], $icon_anchor['yOffset']];
+                }
+
+                // point of the icon which will correspond to marker's location
+                // the same for the shadow
+                if (!empty($settings['custom_icon_shadow_anchor_type']) && $settings['custom_icon_shadow_anchor_type'] == 'custom' && is_numeric($shadow_anchor['xOffset']) && is_numeric($shadow_anchor['yOffset'])) {
+                    $icon_options['shadowAnchor'] = [$shadow_anchor['xOffset'], $shadow_anchor['yOffset']];
+                }
+
+                //  point from which the popup should open relative to the iconAnchor
+                if (!empty($settings['custom_icon_image_popup_anchor_type']) && $settings['custom_icon_image_popup_anchor_type'] == 'custom' && is_numeric($popup_anchor['xOffset']) && is_numeric($popup_anchor['yOffset'])) {
+                    $icon_options['popupAnchor'] = [$popup_anchor['xOffset'], $popup_anchor['yOffset']];
+                }
+                ?>
+                markerIcon = L.icon(<?php echo json_encode($icon_options)?>);
+                markerOptions.icon = markerIcon;
+                <?php endif; ?>
+                <?php break; ?>
+                <?php endswitch; ?>
+
+                /**
+                 * Helper to add markers to our map
+                 * @param {array}
+                 */
+                const buildMarkers = function (markers) {
+
+                    jQuery.each(markers, function () {
+                        const marker = L.marker([this.lat, this.lng], markerOptions);
+
+                        // add marker to map
+                        marker.addTo(map);
+
+                        // prep tooltip content
+                        let tooltipContent = '<div class="marker-tooltip">';
+
+                        // add marker title
+                        if (this.marker.marker_title) {
+                            tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
+                        }
+
+                        // marker content
+                        tooltipContent += '<div class="marker-content">';
+
+                        // add marker description
+                        if (this.marker.marker_description) {
+                            tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
+                        }
+
+                        // add marker button
+                        if (this.marker.show_button === 'yes' && this.marker.button_text) {
+                            tooltipContent += `<div class="marker-button">
                                                 <a class="elementor-button elementor-button-link" target="_blank" href='${this.marker.button_url}' role="button">
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
@@ -876,20 +1420,63 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                                                     </span>
                                                 </a>
                                             </div>`;
-                    }
+                        }
 
-                    tooltipContent += '</div>';
-                    tooltipContent += '</div>';
+                        tooltipContent += '</div>';
+                        tooltipContent += '</div>';
 
-                    // add tooltip to marker
-                    if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
-                        marker.bindPopup(tooltipContent);
-                    }
-                });
+                        // add tooltip to marker
+                        if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
+                            marker.bindPopup(tooltipContent);
+                        }
+                    });
 
-                setTimeout(function () {
-                    map.invalidateSize();
-                }, 100)
+                    setTimeout(function () {
+                        map.invalidateSize();
+                    }, 100)
+                };
+
+                /**
+                 * Check whether we can render our map based on provided coordinates
+                 * @type {boolean}
+                 */
+                const canRenderMap = markers.filter(function (marker) {
+                    return !isNaN(marker.lat) && !isNaN(marker.lng)
+                }).length > 0;
+
+                // we want to make sure we have at least one marker visible
+                if (canRenderMap) {
+                    buildMarkers(markers);
+                } else {
+
+                    // get current user's coordinates for default render
+                    jQuery.get("https://ipinfo.io/json", function (response) {
+                        let [lat, lng] = response.loc.split(',');
+
+                        // update the markers with default coordinates
+                        markers.push({
+                            lat: lat,
+                            lng: lng,
+                            marker: {
+                                button_text: "",
+                                button_url: "",
+                                marker_coords: response.loc,
+                                marker_description: "",
+                                marker_location: "",
+                                marker_title: "",
+                                show_button: "no"
+                            }
+                        });
+
+                        // set center coordinates
+                        map.setView([lat, lng], zoom);
+
+                        // build our markers
+                        buildMarkers(markers);
+
+                    }, "jsonp");
+                }
+
             });
         </script>
         <?php
@@ -900,10 +1487,19 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      */
     private function __queue_assets()
     {
+        // grab global settings
+        $widget_settings = get_option('osm_widget');
+
         $styles = [
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
+            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
         ];
+
+        // load fontawesome
+        if (!array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
+            $styles['font-awesome-free'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
+        }
 
         foreach ($styles as $handle => $path) {
             wp_register_style($handle, $path);
@@ -913,8 +1509,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         // queue admin js
         if (is_admin()) {
 
-            // grab global settings
-            $widget_settings = get_option('osm_widget');
 
             // queue google maps key if provided
             $admin_scripts = [
@@ -935,6 +1529,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.js'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/js/mapbox-gl.js'),
             'leaflet-mapbox-gl' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet-mapbox-gl.js'),
+            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.js'),
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {

@@ -17,7 +17,10 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
       <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-3.jpg" width="500" height="auto" />
     - _Editing the markers:_ A marker's settings contains **Title, Location, Coordinates, Description, Button Text, and Button URL** fields. Of those fields, only the **Coordinates** field is required to render a marker on the map. If you have a Google Maps API key added, you'll be able to automatically populate the coordinates field without manually doing so.<br />
       <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-4.jpg" width="250" height="auto" />
+    - _**NEW:**_ Add custom marker icons. Available Icon types: **Default, Font Awesome** and **Custom Image**.<br />
+      <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-6.jpg" width="500" height="auto" />
     - Change Tiles from style section _(requires **Mapbox Access Token** and **Geoapify API Key**)_<br />
+    
       <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-5.jpg" width="500" height="auto" />
 ## Licence
 [GNU GENERAL PUBLIC LICENSE](https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/LICENSE.txt)
