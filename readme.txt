@@ -34,6 +34,7 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 3. Add multiple markers & style them accordingly
 4. Edit the marker's coordinates to render them in the map
 5. Choose from 14 different custom tiles
+6. NEW: Add custom marker icons. Available Icon types: Default, Font Awesome and Custom Image.
 
 
 == Changelog ==
