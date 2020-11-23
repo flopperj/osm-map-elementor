@@ -167,7 +167,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             [
                 'label' => __('Coordinates', self::$slug),
                 'type' => \Elementor\Controls_Manager::TEXT,
-                'placeholder' => __('lat, long', self::$slug),
+                'placeholder' => __('lat, long', self::$slug)
             ]
         );
 
@@ -1367,31 +1367,37 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 <?php break; ?>
                 <?php endswitch; ?>
 
-                jQuery.each(markers, function () {
-                    const marker = L.marker([this.lat, this.lng], markerOptions);
+                /**
+                 * Helper to add markers to our map
+                 * @param {array}
+                 */
+                const buildMarkers = function (markers) {
 
-                    // add marker to map
-                    marker.addTo(map);
+                    jQuery.each(markers, function () {
+                        const marker = L.marker([this.lat, this.lng], markerOptions);
 
-                    // prep tooltip content
-                    let tooltipContent = '<div class="marker-tooltip">';
+                        // add marker to map
+                        marker.addTo(map);
 
-                    // add marker title
-                    if (this.marker.marker_title) {
-                        tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
-                    }
+                        // prep tooltip content
+                        let tooltipContent = '<div class="marker-tooltip">';
 
-                    // marker content
-                    tooltipContent += '<div class="marker-content">';
+                        // add marker title
+                        if (this.marker.marker_title) {
+                            tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
+                        }
 
-                    // add marker description
-                    if (this.marker.marker_description) {
-                        tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
-                    }
+                        // marker content
+                        tooltipContent += '<div class="marker-content">';
 
-                    // add marker button
-                    if (this.marker.show_button === 'yes' && this.marker.button_text) {
-                        tooltipContent += `<div class="marker-button">
+                        // add marker description
+                        if (this.marker.marker_description) {
+                            tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
+                        }
+
+                        // add marker button
+                        if (this.marker.show_button === 'yes' && this.marker.button_text) {
+                            tooltipContent += `<div class="marker-button">
                                                 <a class="elementor-button elementor-button-link" target="_blank" href='${this.marker.button_url}' role="button">
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
@@ -1400,20 +1406,63 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                                                     </span>
                                                 </a>
                                             </div>`;
-                    }
+                        }
 
-                    tooltipContent += '</div>';
-                    tooltipContent += '</div>';
+                        tooltipContent += '</div>';
+                        tooltipContent += '</div>';
 
-                    // add tooltip to marker
-                    if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
-                        marker.bindPopup(tooltipContent);
-                    }
-                });
+                        // add tooltip to marker
+                        if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
+                            marker.bindPopup(tooltipContent);
+                        }
+                    });
 
-                setTimeout(function () {
-                    map.invalidateSize();
-                }, 100)
+                    setTimeout(function () {
+                        map.invalidateSize();
+                    }, 100)
+                };
+
+                /**
+                 * Check whether we can render our map based on provided coordinates
+                 * @type {boolean}
+                 */
+                const canRenderMap = markers.filter(marker => {
+                    return !isNaN(marker.lat) && !isNaN(marker.lng)
+                }).length > 0;
+
+                // we want to make sure we have at least one marker visible
+                if (canRenderMap) {
+                    buildMarkers(markers);
+                } else {
+
+                    // get current user's coordinates for default render
+                    jQuery.get("https://ipinfo.io/json", function (response) {
+                        let [lat, lng] = response.loc.split(',');
+
+                        // update the markers with default coordinates
+                        markers.push({
+                            lat: lat,
+                            lng: lng,
+                            marker: {
+                                button_text: "",
+                                button_url: "",
+                                marker_coords: response.loc,
+                                marker_description: "",
+                                marker_location: "",
+                                marker_title: "",
+                                show_button: "no"
+                            }
+                        });
+
+                        // set center coordinates
+                        map.setView([lat, lng], zoom);
+
+                        // build our markers
+                        buildMarkers(markers);
+
+                    }, "jsonp");
+                }
+
             });
         </script>
         <?php
