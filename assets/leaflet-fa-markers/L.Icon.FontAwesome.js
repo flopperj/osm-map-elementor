@@ -1,6 +1,7 @@
 L.Icon.FontAwesome = L.Icon.extend({
-    iconDiv: null,
+    markerContainer: null,
     markerSvg: null,
+    iconContainer: null,
     icon: null,
 
     options: {
@@ -25,7 +26,7 @@ L.Icon.FontAwesome = L.Icon.extend({
     setStyle: function (style) {
         Object.assign(this.options, style);
         const path = this.markerSvg.getElementsByTagName("path")[0];
-        const span = this.iconDiv.getElementsByTagName("span")[0];
+        const icon = this.markerContainer.getElementsByTagName("i")[0];
         if (style.hasOwnProperty("markerColor"))
             path.setAttribute("fill", style.markerColor);
         if (style.hasOwnProperty("markerFillOpacity"))
@@ -35,13 +36,13 @@ L.Icon.FontAwesome = L.Icon.extend({
         if (style.hasOwnProperty("markerStrokeWidth"))
             path.setAttribute("stroke-width", style.markerStrokeWidth);
         if (style.hasOwnProperty("iconXOffset"))
-            span.style.marginLeft = `${style.iconXOffset}px`;
+            icon.style.marginLeft = `${style.iconXOffset}px`;
         if (style.hasOwnProperty("iconYOffset"))
-            span.style.marginTop = `${style.iconYOffset}px`;
+            icon.style.marginTop = `${style.iconYOffset}px`;
         if (style.hasOwnProperty("iconColor"))
-            span.style.color = style.iconColor;
+            icon.style.color = style.iconColor;
         if (style.hasOwnProperty("iconSize"))
-            span.style.fontSize = `${style.iconSize}px`;
+            icon.style.fontSize = `${style.iconSize}px`;
     },
 
     /*------------------------------- PRIVATE -------------------------------*/
@@ -50,7 +51,10 @@ L.Icon.FontAwesome = L.Icon.extend({
         const options = this.options;
 
         // container div
-        this.iconDiv = L.DomUtil.create("div", "leaflet-fa-markers");
+        this.markerContainer = L.DomUtil.create("div", "leaflet-fa-markers");
+
+        // icon container div
+        this.iconContainer = L.DomUtil.create("div", 'icon-container');
 
         // feature icon
         this.icon = L.DomUtil.create(
@@ -93,9 +97,10 @@ L.Icon.FontAwesome = L.Icon.extend({
             `stroke-width="${strokeWidth}"` +
             "></path></svg>";
 
-        this.iconDiv.appendChild(this.markerSvg);
-        this.iconDiv.appendChild(this.icon);
-        return this.iconDiv;
+        this.iconContainer.appendChild(this.icon)
+        this.markerContainer.appendChild(this.markerSvg);
+        this.markerContainer.appendChild(this.iconContainer);
+        return this.markerContainer;
     }
 });
 

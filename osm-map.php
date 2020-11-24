@@ -1104,7 +1104,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'global' => [
                     'default' => Global_Typography::TYPOGRAPHY_ACCENT,
                 ],
-                'selector' => '{{WRAPPER}} .elementor-button',
+                'selector' => '{{WRAPPER}} .marker-button .elementor-button',
             ]
         );
 
@@ -1112,7 +1112,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             \Elementor\Group_Control_Text_Shadow::get_type(),
             [
                 'name' => 'button_text_shadow',
-                'selector' => '{{WRAPPER}} .elementor-button',
+                'selector' => '{{WRAPPER}} .marker-button .elementor-button',
             ]
         );
 
@@ -1134,7 +1134,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     'default' => Global_Colors::COLOR_SECONDARY
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button' => 'fill: {{VALUE}}; color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button' => 'fill: {{VALUE}}; color: {{VALUE}};',
                 ],
             ]
         );
@@ -1148,7 +1148,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     'default' => Global_Colors::COLOR_PRIMARY,
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button' => 'background-color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button' => 'background-color: {{VALUE}};',
                 ],
             ]
         );
@@ -1168,8 +1168,8 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Text Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button:hover, {{WRAPPER}} .elementor-button:focus' => 'color: {{VALUE}};',
-                    '{{WRAPPER}} .elementor-button:hover svg, {{WRAPPER}} .elementor-button:focus svg' => 'fill: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button:hover svg, {{WRAPPER}} .marker-button .elementor-button:focus svg' => 'fill: {{VALUE}};',
                 ],
             ]
         );
@@ -1180,7 +1180,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'label' => __('Background Color', self::$slug),
                 'type' => \Elementor\Controls_Manager::COLOR,
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button:hover, {{WRAPPER}} .elementor-button:focus' => 'background-color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'background-color: {{VALUE}};',
                 ],
             ]
         );
@@ -1194,7 +1194,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     'border_border!' => '',
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button:hover, {{WRAPPER}} .elementor-button:focus' => 'border-color: {{VALUE}};',
+                    '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'border-color: {{VALUE}};',
                 ],
             ]
         );
@@ -1215,7 +1215,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             \Elementor\Group_Control_Border::get_type(),
             [
                 'name' => 'button_border',
-                'selector' => '{{WRAPPER}} .elementor-button',
+                'selector' => '{{WRAPPER}} .marker-button .elementor-button',
                 'separator' => 'before',
             ]
         );
@@ -1227,7 +1227,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', '%'],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                    '{{WRAPPER}} .marker-button .elementor-button' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
                 ],
             ]
         );
@@ -1236,7 +1236,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             \Elementor\Group_Control_Box_Shadow::get_type(),
             [
                 'name' => 'button_box_shadow',
-                'selector' => '{{WRAPPER}} .elementor-button',
+                'selector' => '{{WRAPPER}} .marker-button .elementor-button',
             ]
         );
 
@@ -1247,7 +1247,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                    '{{WRAPPER}} .marker-button .elementor-button' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
                 ],
                 'separator' => 'before',
             ]
@@ -1260,7 +1260,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
-                    '{{WRAPPER}} .elementor-button' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                    '{{WRAPPER}} .marker-button .elementor-button' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
                 ],
                 'separator' => 'before',
             ]
@@ -1480,7 +1480,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                         // add marker button
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
-                            tooltipContent += `<div class="marker-button">
+                            tooltipContent += `<div class="marker-button elementor-button-wrapper">
                                                 <a class="elementor-button elementor-button-link" target="_blank" href='${this.marker.button_url}' role="button">
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
