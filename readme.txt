@@ -7,7 +7,7 @@ Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 5.0
 Tested up to: 5.5.1
 Requires PHP: 5.6
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
