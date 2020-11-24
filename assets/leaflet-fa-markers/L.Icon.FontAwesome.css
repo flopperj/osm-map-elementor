@@ -17,8 +17,9 @@
 .leaflet-fa-markers .icon-container{
   position: absolute;
   top: 8px;
-  left: calc(-50% + 1px);
-  right: -50%;
+  /*left: calc(-50% + 1px);*/
+  /*right: -50%;*/
+  width: 32px;
 }
 
 .leaflet-fa-markers .feature-icon {
