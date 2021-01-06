@@ -22,8 +22,8 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
     - Change Tiles from style section _(requires **Mapbox Access Token** and **Geoapify API Key**)_<br />
     
       <img src="https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/assets/screenshot-5.jpg" width="500" height="auto" />
-   
-   ##  Changelog
+          
+##  Changelog
 [LATEST CHANGES](https://github.com/flopperj/osm-map-elementor/wiki/Changelog)
 
 ## Licence
