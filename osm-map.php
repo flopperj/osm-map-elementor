@@ -1672,7 +1672,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
      * @param boolean $showHtml If set to true, the method prints the debug data in a screen-friendly way.
      * @param boolean $showFrom If set to true, the method prints from where the function was called.
      */
-    public function __debug($var = false, $showHtml = false, $showFrom = true)
+    private function __debug($var = false, $showHtml = false, $showFrom = true)
     {
         if ($showFrom) {
             $calledFrom = debug_backtrace();
