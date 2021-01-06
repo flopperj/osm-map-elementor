@@ -23,6 +23,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 {
 
     public static $slug = OSM_MAP_SLUG;
+    public static $ver = OSM_MAP_VERSION;
 
     /**
      * Widget OSM Map constructor.
@@ -208,6 +209,18 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::TEXT,
                 'input_type' => 'url',
                 'placeholder' => __('https://your-link.com', self::$slug),
+            ]
+        );
+
+        $repeater->add_control(
+            'marker_visible',
+            [
+                'label' => __('Show Marker', self::$slug),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'label_on' => __('Show', self::$slug),
+                'label_off' => __('Hide', self::$slug),
+                'return_value' => 'yes',
+                'default' => 'yes',
             ]
         );
 
@@ -1291,6 +1304,12 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         // get all marker coords to help calculate center
         $coords = [];
         foreach ($markers as $marker) {
+
+            // hide markers that have been toggled off
+            if (isset($marker['marker_visible']) && empty($marker['marker_visible'])) {
+                continue;
+            }
+
             $loc = explode(',', $marker['marker_coords']);
             if (!empty($loc) && sizeof($loc) == 2) {
                 $coords[] = [
@@ -1557,7 +1576,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     private function __queue_assets()
     {
         // grab global settings
-        $widget_settings = get_option('osm_widget');
+        $widget_settings = get_option('osm_widget', []);
 
         $styles = [
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
@@ -1566,7 +1585,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         ];
 
         // load fontawesome
-        if (!array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
+        if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
             $styles['font-awesome-free'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
         }
 
@@ -1575,9 +1594,13 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             wp_enqueue_style($handle);
         }
 
+        // queue jquery
+        add_action('wp_enqueue_scripts', function () {
+            wp_enqueue_script('jquery');
+        });
+
         // queue admin js
         if (is_admin()) {
-
 
             // queue google maps key if provided
             $admin_scripts = [
@@ -1585,9 +1608,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . (!empty($widget_settings['gmaps_key']) ? esc_textarea(__($widget_settings['gmaps_key'], self::$slug)) : null)
             ];
 
-            $dependencies = [];
+            $dependencies = ['jquery'];
             foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, '1.0', false);
+                wp_register_script($handle, $path, $dependencies, self::$ver, false);
                 wp_enqueue_script($handle);
                 $dependencies[] = $handle;
             }
@@ -1643,13 +1666,25 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     }
 
     /**
-     * Prints out data for debugging
-     * @param $data
+     * Prints out debug information about given variable.
+     *
+     * @param boolean $var Variable to show debug information for.
+     * @param boolean $showHtml If set to true, the method prints the debug data in a screen-friendly way.
+     * @param boolean $showFrom If set to true, the method prints from where the function was called.
      */
-    private function __debug($data)
+    public function __debug($var = false, $showHtml = false, $showFrom = true)
     {
-        echo "<pre>";
-        print_r($data);
-        echo "</pre>";
+        if ($showFrom) {
+            $calledFrom = debug_backtrace();
+            echo '<strong>' . substr($calledFrom[0]['file'], 1) . '</strong>';
+            echo ' (line <strong>' . $calledFrom[0]['line'] . '</strong>)';
+        }
+        echo "\n<pre class=\"fi-debug\">\n";
+
+        $var = print_r($var, true);
+        if ($showHtml) {
+            $var = str_replace('<', '&lt;', str_replace('>', '&gt;', $var));
+        }
+        echo $var . "\n</pre>\n";
     }
 }
