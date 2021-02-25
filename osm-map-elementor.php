@@ -2,9 +2,9 @@
 /**
  * Plugin Name:     OSM Map Widget for Elementor
  * Description:     A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
- * Author:          ACT Innovate, James Arama, Alex Hooten
+ * Author:          ACT Innovate
  * Author URI:      https://github.com/flopperj/elementor-osm-map
- * Version:         1.0.5
+ * Version:         1.0.6
  */
 
 namespace OSM_Map;
@@ -121,7 +121,7 @@ add_action('admin_menu', function () {
                             <label class="switch" style="margin-left: auto; margin-right: 20px;">
                                 <input type="checkbox" name="osm_widget[enable_fontawesome]"
                                        value="1"
-                                       <?php echo !array_key_exists('enable_fontawesome', $osm_settings) || !empty($osm_settings['enable_fontawesome']) ? "checked='checked'" : null; ?>>
+                                    <?php echo is_array($osm_settings) && !array_key_exists('enable_fontawesome', $osm_settings) || !empty($osm_settings['enable_fontawesome']) ? "checked='checked'" : null; ?>>
                                 <span class="slider round"></span>
                             </label>
                         </div>
