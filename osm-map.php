@@ -1571,7 +1571,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                         // add tooltip / popup to marker
                         if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
-                            let markerBehavior = this.marker.hasOwnProperty('marker_behavior') ? this.marker.marker_behavior : null
+                            let markerBehavior = this.marker.hasOwnProperty('marker_behavior') ? this.marker.marker_behavior : null;
                             switch (markerBehavior) {
                                 case 'popup':
                                     marker.bindPopup(tooltipContent);
