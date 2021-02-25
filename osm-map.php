@@ -1577,7 +1577,16 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                                     marker.bindPopup(tooltipContent);
                                     break;
                                 case 'tooltip':
-                                    marker.bindTooltip(tooltipContent);
+
+                                    let tooltipOptions = {};
+
+                                <?php if($icon_type == 'fontawesome'): ?>
+                                    // update offset for fontawesome markers
+                                    tooltipOptions.direction = "top";
+                                    tooltipOptions.offset = [0, -50];
+                                <?php  endif; ?>
+
+                                    marker.bindTooltip(tooltipContent, tooltipOptions);
                                     break;
 
                             }
