@@ -182,6 +182,20 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $repeater->add_control(
+            'marker_behavior',
+            [
+                'label' => __('Behavior', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'popup',
+                'options' => [
+                    'popup' => 'Popup',
+                    'tooltip' => 'Tooltip',
+                    'none' => 'None'
+                ]
+            ]
+        );
+
+        $repeater->add_control(
             'show_button',
             [
                 'label' => __('Show Button', self::$slug),
@@ -224,6 +238,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
+
         $this->start_controls_section(
             'section_map',
             [
@@ -243,7 +258,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'zoom',
             [
-                'label' => __('Zoom', self::$slug),
+                'label' => __('Zoom Level', self::$slug),
                 'type' => \Elementor\Controls_Manager::SLIDER,
                 'default' => [
                     'size' => 10,
@@ -255,6 +270,44 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     ],
                 ],
                 'separator' => 'before',
+            ]
+        );
+
+        $this->add_control(
+            'zoom_control',
+            [
+                'label' => __('Zoom Control', self::$slug),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'label_on' => __('Enable', self::$slug),
+                'label_off' => __('Disable', self::$slug),
+                'return_value' => 'yes',
+                'default' => 'yes'
+            ]
+        );
+
+        $this->add_control(
+            'scroll_zoom',
+            [
+                'label' => __('Scroll Zoom', self::$slug),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'label_on' => __('Enable', self::$slug),
+                'label_off' => __('Disable', self::$slug),
+                'return_value' => 'yes',
+                'default' => 'yes'
+            ]
+        );
+
+
+        $this->add_control(
+            'pan_control',
+            [
+                'label' => __('Pan Control', self::$slug),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'label_on' => __('Enable', self::$slug),
+                'label_off' => __('Disable', self::$slug),
+                'return_value' => 'yes',
+                'default' => 'yes',
+                'separator' => 'after'
             ]
         );
 
@@ -1326,8 +1379,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         echo '<div id="osm-map-' . $this->get_id() . '" 
         class="osm-map-container" 
         data-center="' . implode(',', $center_coords) . '" 
-        data-zoom="' . $settings['zoom']['size'] . '"
-        data-markers=\'' . json_encode($coords) . '\'></div>';
+        data-zoom="' . $settings['zoom']['size'] . '"></div>';
         ?>
         <script type="text/javascript">
             jQuery(window).ready(function () {
@@ -1342,7 +1394,11 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     L.DomUtil.get(mapId)._leaflet_id = null;
                 }
 
-                const map = L.map(mapId);
+                const map = L.map(mapId, {
+                    scrollWheelZoom: <?php echo !empty($settings['scroll_zoom']) ? 'true' : 'false'; ?>,
+                    zoomControl: <?php echo !empty($settings['zoom_control']) ? 'true' : 'false'; ?>,
+                    dragging: <?php echo !empty($settings['pan_control']) ? 'true' : 'false'; ?>
+                });
 
                 if (center) {
                     let centerCoords = center.split(',');
@@ -1366,7 +1422,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 <?php endif; ?>
 
                 // add available markers
-                const markers = jQuery(mapContainer).data('markers');
+                const markers = <?php echo json_encode($coords); ?>;
                 let markerIcon = null;
                 let markerOptions = {};
 
@@ -1513,9 +1569,27 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                         tooltipContent += '</div>';
                         tooltipContent += '</div>';
 
-                        // add tooltip to marker
+                        // add tooltip / popup to marker
                         if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
-                            marker.bindPopup(tooltipContent);
+                            let markerBehavior = this.marker.hasOwnProperty('marker_behavior') ? this.marker.marker_behavior : null;
+                            switch (markerBehavior) {
+                                case 'popup':
+                                    marker.bindPopup(tooltipContent);
+                                    break;
+                                case 'tooltip':
+
+                                    let tooltipOptions = {};
+
+                                <?php if($icon_type == 'fontawesome'): ?>
+                                    // update offset for fontawesome markers
+                                    tooltipOptions.direction = "top";
+                                    tooltipOptions.offset = [0, -50];
+                                <?php  endif; ?>
+
+                                    marker.bindTooltip(tooltipContent, tooltipOptions);
+                                    break;
+
+                            }
                         }
                     });
 
@@ -1582,6 +1656,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
             'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
+            'osm-map-elementor' => plugins_url('/osm-map-elementor/assets/css/osm-map-elementor.css')
         ];
 
         // load fontawesome
