@@ -157,3 +157,10 @@ add_action('admin_init', function () {
         }
     }
 });
+
+// queue jquery in header
+add_action('init', function(){
+    add_filter('wp_enqueue_scripts', function () {
+        wp_enqueue_script('jquery', false, [], false, false);
+    }, 1);
+}, 1);

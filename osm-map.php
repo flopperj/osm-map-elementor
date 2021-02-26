@@ -1380,8 +1380,13 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         class="osm-map-container" 
         data-center="' . implode(',', $center_coords) . '" 
         data-zoom="' . $settings['zoom']['size'] . '"></div>';
+
         ?>
         <script type="text/javascript">
+            <?php
+            // start output buffer
+            ob_start();
+            ?>
             jQuery(window).ready(function () {
                 "use strict";
                 const mapId = '<?php echo 'osm-map-' . $this->get_id(); ?>';
@@ -1390,7 +1395,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 const zoom = mapContainer.data('zoom');
 
                 // avoid recreating the html element
-                if (L.DomUtil.get(mapId) !== undefined) {
+                if (L.DomUtil.get(mapId) !== undefined && L.DomUtil.get(mapId)) {
                     L.DomUtil.get(mapId)._leaflet_id = null;
                 }
 
@@ -1641,8 +1646,26 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 }
 
             });
+            <?php
+            $markers_script = ob_get_clean();
+
+            // echo out the markers script while in admin mode.
+            // all required scripts will be loaded in header
+            echo is_admin() ? $markers_script : null;
+            ?>
         </script>
         <?php
+
+        // enqueue marker js only after all dependencies have been queued
+        if (!is_admin()) {
+            $this->__enqueue_inline_script('marker-' . $this->get_id(), $markers_script, [
+                'jquery',
+                'leaflet',
+                'mapbox-gl',
+                'leaflet-mapbox-gl',
+                'leaflet-fa-markers'
+            ], true);
+        }
     }
 
     /**
@@ -1670,11 +1693,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             wp_enqueue_style($handle);
         }
 
-        // queue jquery
-        add_action('wp_enqueue_scripts', function () {
-            wp_enqueue_script('jquery');
-        });
-
         // queue admin js
         if (is_admin()) {
 
@@ -1686,7 +1704,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
             $dependencies = ['jquery'];
             foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, self::$ver, false);
+                wp_register_script($handle, $path, $dependencies, self::$ver);
                 wp_enqueue_script($handle);
                 $dependencies[] = $handle;
             }
@@ -1701,10 +1719,63 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {
-            wp_register_script($handle, $path, $deps, '1.0', false);
+            wp_register_script($handle, $path, $deps, self::$ver);
             wp_enqueue_script($handle);
             $deps[] = $handle;
         }
+    }
+
+    /**
+     * Enqueue inline Javascript.
+     * @param string $handle Identifying name for script
+     * @param $js
+     * @param array $deps (optional) Array of script names on which this script depends
+     * @param bool $in_footer (optional) Whether to enqueue the script before </head> or before </body>
+     *
+     * @return null
+     * @see wp_enqueue_script().
+     *
+     * KNOWN BUG: Inline scripts cannot be enqueued before
+     *  any inline scripts it depends on, (unless they are
+     *  placed in header, and the dependant in footer).
+     */
+    private function __enqueue_inline_script($handle, $js, $deps = array(), $in_footer = false)
+    {
+        // Callback for printing inline script.
+        $cb = function () use ($handle, $js) {
+            // Ensure script is only included once.
+            if (wp_script_is($handle, 'done'))
+                return;
+            // Print script & mark it as included.
+            echo "<script type=\"text/javascript\" id=\"js-$handle\">\n$js\n</script>\n";
+            global $wp_scripts;
+            $wp_scripts->done[] = $handle;
+        };
+        // (`wp_print_scripts` is called in header and footer, but $cb has re-inclusion protection.)
+        $hook = $in_footer ? 'wp_print_footer_scripts' : 'wp_print_scripts';
+
+        // If no dependencies, simply hook into header or footer.
+        if (empty($deps)) {
+            add_action($hook, $cb);
+            return;
+        }
+
+        // Delay printing script until all dependencies have been included.
+        $cb_maybe = function () use ($deps, $in_footer, $cb, &$cb_maybe) {
+            foreach ($deps as &$dep) {
+                if (!wp_script_is($dep, 'done')) {
+                    // Dependencies not included in head, try again in footer.
+                    if (!$in_footer) {
+                        add_action('wp_print_footer_scripts', $cb_maybe, 11);
+                    } else {
+                        // Dependencies were not included in `wp_head` or `wp_footer`.
+                    }
+                    return;
+                }
+            }
+            call_user_func($cb);
+        };
+        add_action($hook, $cb_maybe, 0);
     }
 
     /**
