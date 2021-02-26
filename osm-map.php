@@ -1611,9 +1611,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     buildMarkers(markers);
                 } else {
 
-                    // set our default coordinates to San Francisco
-                    let lat = 37.7749295;
-                    let lng = -122.4194155;
+                    // set our default coordinates to Nairobi Kenya
+                    let lat = -1.2920659;
+                    let lng = 36.8219462;
 
                     // update the markers with default coordinates
                     markers.push({
