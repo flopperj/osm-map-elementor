@@ -1698,9 +1698,13 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
             // queue google maps key if provided
             $admin_scripts = [
-                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js'),
-                'google-maps' => 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . (!empty($widget_settings['gmaps_key']) ? esc_textarea(__($widget_settings['gmaps_key'], self::$slug)) : null)
+                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')
             ];
+
+            // add google maps API
+            if (!empty($widget_settings['gmaps_key'])) {
+                $admin_scripts['google-maps'] = 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . esc_textarea(__($widget_settings['gmaps_key'], self::$slug));
+            }
 
             $dependencies = ['jquery'];
             foreach ($admin_scripts as $handle => $path) {
