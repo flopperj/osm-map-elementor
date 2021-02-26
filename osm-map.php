@@ -1611,32 +1611,33 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     buildMarkers(markers);
                 } else {
 
-                    // get current user's coordinates for default render
-                    jQuery.get("https://ipinfo.io/json", function (response) {
-                        let [lat, lng] = response.loc.split(',');
+                    // set our default coordinates to San Francisco
+                    let lat = 37.7749295;
+                    let lng = -122.4194155;
 
-                        // update the markers with default coordinates
-                        markers.push({
-                            lat: lat,
-                            lng: lng,
-                            marker: {
-                                button_text: "",
-                                button_url: "",
-                                marker_coords: response.loc,
-                                marker_description: "",
-                                marker_location: "",
-                                marker_title: "",
-                                show_button: "no"
-                            }
-                        });
+                    // update the markers with default coordinates
+                    markers.push({
+                        lat: lat,
+                        lng: lng,
+                        marker: {
+                            button_text: "",
+                            button_url: "",
+                            marker_coords: {
+                                lat,
+                                lng
+                            },
+                            marker_description: "",
+                            marker_location: "",
+                            marker_title: "",
+                            show_button: "no"
+                        }
+                    });
 
-                        // set center coordinates
-                        map.setView([lat, lng], zoom);
+                    // set center coordinates
+                    map.setView([lat, lng], zoom);
 
-                        // build our markers
-                        buildMarkers(markers);
-
-                    }, "jsonp");
+                    // build our markers
+                    buildMarkers(markers);
                 }
 
             });
