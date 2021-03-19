@@ -1409,8 +1409,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 const hasMobileZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom_mobile') && displaySettings.zoom_mobile && displaySettings.zoom_mobile.hasOwnProperty('size');
                 let zoomLevel = hasDesktopZoomLevel ? displaySettings.zoom.size : 10;
 
-                // console.log(displaySettings);
-
                 // look at break points for different screen sizes
                 const viewPortWidth = jQuery('body').width();
                 const isTabletView = displaySettings &&
@@ -1430,11 +1428,6 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 } else if (hasMobileZoomLevel && isMobileView) {
                     zoomLevel = displaySettings.zoom_mobile.size;
                 }
-
-                // console.log(displaySettings.breakpoints);
-                // console.log(`isTablet=`, isTabletView, viewPortWidth);
-                // console.log(`isMobile=`, isMobileView);
-
 
                 // avoid recreating the html element
                 if (L.DomUtil.get(mapId) !== undefined && L.DomUtil.get(mapId)) {
