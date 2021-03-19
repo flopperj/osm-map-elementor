@@ -10,6 +10,7 @@ require_once('constants.php');
 
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
+use Elementor\Core\Responsive\Responsive;
 
 /**
  * OSM map widget.
@@ -255,19 +256,29 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ]
         );
 
-        $this->add_control(
+        $this->add_responsive_control(
             'zoom',
             [
                 'label' => __('Zoom Level', self::$slug),
                 'type' => \Elementor\Controls_Manager::SLIDER,
-                'default' => [
-                    'size' => 10,
-                ],
                 'range' => [
                     'px' => [
                         'min' => 1,
                         'max' => 20,
                     ],
+                ],
+                'devices' => ['desktop', 'tablet', 'mobile'],
+                'desktop_default' => [
+                    'size' => 10,
+                    'unit' => 'px',
+                ],
+                'tablet_default' => [
+                    'size' => 10,
+                    'unit' => 'px',
+                ],
+                'mobile_default' => [
+                    'size' => 10,
+                    'unit' => 'px',
                 ],
                 'separator' => 'before',
             ]
@@ -1345,6 +1356,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $global_settings = get_option('osm_widget');
         $settings = $this->get_settings_for_display();
         $markers = $this->get_settings_for_display('marker_list');
+        $settings['breakpoints'] = Responsive::get_breakpoints();
 
         if (0 === absint($settings['zoom']['size'])) {
             $settings['zoom']['size'] = 10;
@@ -1378,8 +1390,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
         echo '<div id="osm-map-' . $this->get_id() . '" 
         class="osm-map-container" 
-        data-center="' . implode(',', $center_coords) . '" 
-        data-zoom="' . $settings['zoom']['size'] . '"></div>';
+        data-center="' . implode(',', $center_coords) . '"></div>';
 
         ?>
         <script type="text/javascript">
@@ -1389,10 +1400,41 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             ?>
             jQuery(window).ready(function () {
                 "use strict";
+                const displaySettings = <?php echo json_encode($settings); ?>;
                 const mapId = '<?php echo 'osm-map-' . $this->get_id(); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
-                const zoom = mapContainer.data('zoom');
+                const hasDesktopZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom') && displaySettings.zoom && displaySettings.zoom.hasOwnProperty('size');
+                const hasTabletZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom_tablet') && displaySettings.zoom_tablet && displaySettings.zoom_tablet.hasOwnProperty('size');
+                const hasMobileZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom_mobile') && displaySettings.zoom_mobile && displaySettings.zoom_mobile.hasOwnProperty('size');
+                let zoomLevel = hasDesktopZoomLevel ? displaySettings.zoom.size : 10;
+
+                // console.log(displaySettings);
+
+                // look at break points for different screen sizes
+                const viewPortWidth = jQuery('body').width();
+                const isTabletView = displaySettings &&
+                    displaySettings.hasOwnProperty('breakpoints') && displaySettings.breakpoints &&
+                    displaySettings.breakpoints.hasOwnProperty('sm') &&
+                    displaySettings.breakpoints.hasOwnProperty('md') &&
+                    viewPortWidth > displaySettings.breakpoints.sm &&
+                    viewPortWidth <= displaySettings.breakpoints.md;
+                const isMobileView = displaySettings &&
+                    displaySettings.hasOwnProperty('breakpoints') && displaySettings.breakpoints &&
+                    displaySettings.breakpoints.hasOwnProperty('sm') &&
+                    viewPortWidth <= displaySettings.breakpoints.sm;
+
+                // check for tablet and mobile screen sizes
+                if (hasTabletZoomLevel && isTabletView) {
+                    zoomLevel = displaySettings.zoom_tablet.size;
+                } else if (hasMobileZoomLevel && isMobileView) {
+                    zoomLevel = displaySettings.zoom_mobile.size;
+                }
+
+                // console.log(displaySettings.breakpoints);
+                // console.log(`isTablet=`, isTabletView, viewPortWidth);
+                // console.log(`isMobile=`, isMobileView);
+
 
                 // avoid recreating the html element
                 if (L.DomUtil.get(mapId) !== undefined && L.DomUtil.get(mapId)) {
@@ -1407,7 +1449,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                 if (center) {
                     let centerCoords = center.split(',');
-                    map.setView(centerCoords, zoom);
+                    map.setView(centerCoords, zoomLevel);
                 }
 
                 <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'): ?>
@@ -1536,8 +1578,10 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                  */
                 const buildMarkers = function (markers) {
 
+                    let _markers = [];
                     jQuery.each(markers, function () {
                         const marker = L.marker([this.lat, this.lng], markerOptions);
+                        _markers.push(marker);
 
                         // add marker to map
                         marker.addTo(map);
@@ -1639,7 +1683,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                     });
 
                     // set center coordinates
-                    map.setView([lat, lng], zoom);
+                    map.setView([lat, lng], zoomLevel);
 
                     // build our markers
                     buildMarkers(markers);
