@@ -1714,15 +1714,15 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $widget_settings = get_option('osm_widget', []);
 
         $styles = [
-            'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.css'),
-            'mapbox-gl' => plugins_url('/osm-map-elementor/assets/css/mapbox-gl.css'),
-            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
-            'osm-map-elementor' => plugins_url('/osm-map-elementor/assets/css/osm-map-elementor.css')
+            'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.css'),
+            'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/mapbox-gl.css'),
+            'leaflet-fa-markers' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
+            'osm-map-elementor' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/osm-map-elementor.css')
         ];
 
         // load fontawesome
         if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/osm-map-elementor/assets/fontawesome-free-5.15.1/css/all.min.css');
+            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free-5.15.1/css/all.min.css');
         }
 
         foreach ($styles as $handle => $path) {
@@ -1735,7 +1735,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
             // queue google maps key if provided
             $admin_scripts = [
-                'osm-map-elementor-controls' => plugins_url('/osm-map-elementor/assets/js/osm-map-controls.js')
+                'osm-map-elementor-controls' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/osm-map-controls.js')
             ];
 
             // add google maps API
@@ -1753,10 +1753,10 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
         // queue widget view js
         $scripts = [
-            'leaflet' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet.js'),
-            'mapbox-gl' => plugins_url('/osm-map-elementor/assets/js/mapbox-gl.js'),
-            'leaflet-mapbox-gl' => plugins_url('/osm-map-elementor/assets/leaflet/leaflet-mapbox-gl.js'),
-            'leaflet-fa-markers' => plugins_url('/osm-map-elementor/assets/leaflet-fa-markers/L.Icon.FontAwesome.js'),
+            'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.js'),
+            'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/mapbox-gl.js'),
+            'leaflet-mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet-mapbox-gl.js'),
+            'leaflet-fa-markers' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet-fa-markers/L.Icon.FontAwesome.js'),
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {
