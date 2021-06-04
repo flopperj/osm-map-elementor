@@ -228,6 +228,22 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $repeater->add_control(
+            'button_url_target',
+            [
+                'label' => __('URL target', self::$slug),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => [
+                        '_self' => 'Same Window',
+                        '_blank' => 'New Window/Tab'
+                ],
+                'default' => '_blank',
+                'condition' => [
+                    'button_url!' => ''
+                ]
+            ]
+        );
+
+        $repeater->add_control(
             'marker_visible',
             [
                 'label' => __('Show Marker', self::$slug),
@@ -1266,7 +1282,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_hover_border_color',
             [
                 'label' => __('Border Color', self::$slug),
-                'type' => \Elementor\ Controls_Manager::COLOR,
+                'type' => \Elementor\Controls_Manager::COLOR,
                 'condition' => [
                     'border_border!' => '',
                 ],
@@ -1597,8 +1613,9 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
 
                         // add marker button
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
+                            let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? this.marker.button_url_target : '_blank';
                             tooltipContent += `<div class="marker-button elementor-button-wrapper">
-                                                <a class="elementor-button elementor-button-link" target="_blank" href='${this.marker.button_url}' role="button">
+                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href='${this.marker.button_url}' role="button">
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
                                                             ${this.marker.button_text}
