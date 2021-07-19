@@ -11,6 +11,14 @@ require_once('constants.php');
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
 use Elementor\Core\Responsive\Responsive;
+use Elementor\Core\Schemes\Typography;
+use Elementor\Widget_Base;
+use Elementor\Repeater;
+use Elementor\Controls_Manager;
+use Elementor\Group_Control_Typography;
+use Elementor\Group_Control_Text_Shadow;
+use Elementor\Group_Control_Border;
+use Elementor\Group_Control_Box_Shadow;
 
 /**
  * OSM map widget.
@@ -20,7 +28,7 @@ use Elementor\Core\Responsive\Responsive;
  * @package OSM_Map
  * @since 1.0.0
  */
-class Widget_OSM_Map extends \Elementor\Widget_Base
+class Widget_OSM_Map extends Widget_Base
 {
 
     public static $slug = OSM_MAP_SLUG;
@@ -144,13 +152,13 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
     private function __register_content_controls()
     {
 
-        $repeater = new \Elementor\Repeater();
+        $repeater = new Repeater();
 
         $repeater->add_control(
             'marker_title',
             [
                 'label' => __('Title', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Title', self::$slug),
             ]
         );
@@ -159,7 +167,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_location',
             [
                 'label' => __('Location', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Location', self::$slug),
             ]
         );
@@ -168,7 +176,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_coords',
             [
                 'label' => __('Coordinates', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'placeholder' => __('lat, long', self::$slug)
             ]
         );
@@ -177,7 +185,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_description',
             [
                 'label' => __('Description', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXTAREA,
+                'type' => Controls_Manager::TEXTAREA,
                 'placeholder' => __('Marker Description', self::$slug),
             ]
         );
@@ -186,7 +194,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_behavior',
             [
                 'label' => __('Behavior', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => 'popup',
                 'options' => [
                     'popup' => 'Popup',
@@ -200,7 +208,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'show_button',
             [
                 'label' => __('Show Button', self::$slug),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'type' => Controls_Manager::SWITCHER,
                 'label_on' => __('Show', self::$slug),
                 'label_off' => __('Hide', self::$slug),
                 'return_value' => 'yes',
@@ -212,7 +220,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_text',
             [
                 'label' => __('Button Text', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Button Text', self::$slug),
             ]
         );
@@ -221,7 +229,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_url',
             [
                 'label' => __('Button URL', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'input_type' => 'url',
                 'placeholder' => __('https://your-link.com', self::$slug),
             ]
@@ -231,7 +239,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_url_target',
             [
                 'label' => __('URL target', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'options' => [
                         '_self' => 'Same Window',
                         '_blank' => 'New Window/Tab'
@@ -247,7 +255,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_visible',
             [
                 'label' => __('Show Marker', self::$slug),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'type' => Controls_Manager::SWITCHER,
                 'label_on' => __('Show', self::$slug),
                 'label_off' => __('Hide', self::$slug),
                 'return_value' => 'yes',
@@ -267,7 +275,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'important_note',
             [
                 'label' => __('Important Note', self::$slug),
-                'type' => \Elementor\Controls_Manager::RAW_HTML,
+                'type' => Controls_Manager::RAW_HTML,
                 'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug)
             ]
         );
@@ -276,7 +284,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'zoom',
             [
                 'label' => __('Zoom Level', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'range' => [
                     'px' => [
                         'min' => 1,
@@ -304,7 +312,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'zoom_control',
             [
                 'label' => __('Zoom Control', self::$slug),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'type' => Controls_Manager::SWITCHER,
                 'label_on' => __('Enable', self::$slug),
                 'label_off' => __('Disable', self::$slug),
                 'return_value' => 'yes',
@@ -316,7 +324,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'scroll_zoom',
             [
                 'label' => __('Scroll Zoom', self::$slug),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'type' => Controls_Manager::SWITCHER,
                 'label_on' => __('Enable', self::$slug),
                 'label_off' => __('Disable', self::$slug),
                 'return_value' => 'yes',
@@ -329,7 +337,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'pan_control',
             [
                 'label' => __('Pan Control', self::$slug),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'type' => Controls_Manager::SWITCHER,
                 'label_on' => __('Enable', self::$slug),
                 'label_off' => __('Disable', self::$slug),
                 'return_value' => 'yes',
@@ -342,7 +350,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_list',
             [
                 'label' => __('Marker List', self::$slug),
-                'type' => \Elementor\Controls_Manager::REPEATER,
+                'type' => Controls_Manager::REPEATER,
                 'fields' => $repeater->get_controls(),
                 'default' => [
                     []
@@ -355,7 +363,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'view',
             [
                 'label' => __('View', self::$slug),
-                'type' => \Elementor\Controls_Manager::HIDDEN,
+                'type' => Controls_Manager::HIDDEN,
                 'default' => 'traditional',
             ]
         );
@@ -376,7 +384,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'section_map_style',
             [
                 'label' => __('Map', self::$slug),
-                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+                'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
 
@@ -386,7 +394,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
                 'important_note2',
                 [
                     'label' => __('Important Note', self::$slug),
-                    'type' => \Elementor\Controls_Manager::RAW_HTML,
+                    'type' => Controls_Manager::RAW_HTML,
                     'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
                     'separator' => 'after'
                 ]
@@ -397,7 +405,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'geoapify_tile',
             [
                 'label' => __('Tile', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => 'osm-carto',
                 'options' => [
                     'osm-carto' => __('OSM Carto (Free)', self::$slug),
@@ -421,7 +429,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'hr',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -429,7 +437,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'width',
             [
                 'label' => __('Width', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px', '%'],
                 'range' => [
                     'px' => [
@@ -456,7 +464,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'height',
             [
                 'label' => __('Height', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px', '%'],
                 'range' => [
                     'px' => [
@@ -481,7 +489,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'hr_2',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -489,7 +497,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'z_index',
             [
                 'label' => __('z-index', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'range' => [
                     '' => [
                         'min' => 0,
@@ -513,7 +521,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'section_marker_icon_style',
             [
                 'label' => __('Marker Icon', self::$slug),
-                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+                'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
 
@@ -522,7 +530,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'fontawesome_important_note',
             [
                 'label' => __('Important Note', self::$slug),
-                'type' => \Elementor\Controls_Manager::RAW_HTML,
+                'type' => Controls_Manager::RAW_HTML,
                 'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', self::$slug),
                 'condition' => [
                     'icon_type' => 'fontawesome'
@@ -535,7 +543,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_type',
             [
                 'label' => __('Icon Type', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -549,7 +557,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'fontawesome_icon',
             [
                 'label' => __('Font Awesome Icon', self::$slug),
-                'type' => \Elementor\Controls_Manager::TEXT,
+                'type' => Controls_Manager::TEXT,
                 'default' => 'fa fa-circle',
                 'placeholder' => __('fa fa-circle', self::$slug),
                 'condition' => [
@@ -562,7 +570,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_background_color',
             [
                 'label' => __('Background Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'default' => '#368acc',
                 'condition' => [
                     'icon_type' => 'fontawesome'
@@ -574,7 +582,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'marker_stroke_color',
             [
                 'label' => __('Stroke Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'default' => '#346F9E',
                 'condition' => [
                     'icon_type' => 'fontawesome'
@@ -586,7 +594,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_color',
             [
                 'label' => __('Icon Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'default' => '#ffffff',
                 'condition' => [
                     'icon_type' => 'fontawesome'
@@ -599,7 +607,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_offset_type',
             [
                 'label' => __('Icon Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -615,7 +623,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_offset_x',
             [
                 'label' => __('x Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'icon_offset_type' => 'custom'
@@ -627,7 +635,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_offset_y',
             [
                 'label' => __('y Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'icon_offset_type' => 'custom',
@@ -642,7 +650,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'icon_size',
             [
                 'label' => __('Icon Size', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
                     'px' => [
@@ -680,7 +688,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image',
             [
                 'label' => __('Choose Image', self::$slug),
-                'type' => \Elementor\Controls_Manager::MEDIA,
+                'type' => Controls_Manager::MEDIA,
                 'default' => [
                     'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-icon.png',
                 ]
@@ -690,7 +698,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'icon_hr',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -699,7 +707,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_size_type',
             [
                 'label' => __('Size', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -712,7 +720,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_width',
             [
                 'label' => __('Width', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
                     'px' => [
@@ -731,7 +739,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_height',
             [
                 'label' => __('Height', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
                     'px' => [
@@ -749,7 +757,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'icon_hr2',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -758,7 +766,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_anchor_type',
             [
                 'label' => __('Anchor', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => 'custom',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -771,7 +779,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_anchor_x',
             [
                 'label' => __('x Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 12.5,
                 'condition' => [
                     'custom_icon_image_anchor_type' => 'custom'
@@ -783,7 +791,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_anchor_y',
             [
                 'label' => __('y Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 41,
                 'condition' => [
                     'custom_icon_image_anchor_type' => 'custom'
@@ -804,7 +812,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_image',
             [
                 'label' => __('Choose Image', self::$slug),
-                'type' => \Elementor\Controls_Manager::MEDIA,
+                'type' => Controls_Manager::MEDIA,
                 'default' => [
                     'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-shadow.png',
                 ]
@@ -815,7 +823,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'icon_hr3',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -824,7 +832,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_size_type',
             [
                 'label' => __('Size', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -837,7 +845,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_width',
             [
                 'label' => __('Width', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
                     'px' => [
@@ -856,7 +864,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_height',
             [
                 'label' => __('Height', self::$slug),
-                'type' => \Elementor\Controls_Manager::SLIDER,
+                'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
                     'px' => [
@@ -874,7 +882,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'icon_hr4',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
             ]
         );
 
@@ -883,7 +891,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_anchor_type',
             [
                 'label' => __('Anchor', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -896,7 +904,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_anchor_x',
             [
                 'label' => __('x Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'custom_icon_shadow_anchor_type' => 'custom'
@@ -908,7 +916,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_shadow_anchor_y',
             [
                 'label' => __('y Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'custom_icon_shadow_anchor_type' => 'custom',
@@ -925,7 +933,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->add_control(
             'icon_hr5',
             [
-                'type' => \Elementor\Controls_Manager::DIVIDER,
+                'type' => Controls_Manager::DIVIDER,
                 'condition' => [
                     'icon_type' => 'custom_image'
                 ]
@@ -937,7 +945,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_popup_anchor_type',
             [
                 'label' => __('Popup Anchor', self::$slug),
-                'type' => \Elementor\Controls_Manager::SELECT,
+                'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
                     '' => __('Default', self::$slug),
@@ -954,7 +962,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_popup_anchor_x',
             [
                 'label' => __('x Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'custom_icon_image_popup_anchor_type' => 'custom',
@@ -967,7 +975,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'custom_icon_image_popup_anchor_y',
             [
                 'label' => __('y Offset', self::$slug),
-                'type' => \Elementor\Controls_Manager::NUMBER,
+                'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
                     'custom_icon_image_popup_anchor_type' => 'custom',
@@ -986,7 +994,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'section_marker_title_style',
             [
                 'label' => __('Marker Title', self::$slug),
-                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+                'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
 
@@ -994,7 +1002,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'title_color',
             [
                 'label' => __('Text Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_SECONDARY,
                 ],
@@ -1005,7 +1013,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Typography::get_type(),
+            Group_Control_Typography::get_type(),
             [
                 'name' => 'title_typography',
                 'global' => [
@@ -1016,7 +1024,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Text_Shadow::get_type(),
+            Group_Control_Text_Shadow::get_type(),
             [
                 'name' => 'title_text_shadow',
                 'selector' => '{{WRAPPER}} .marker-title .elementor-heading-title',
@@ -1027,7 +1035,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'title_padding',
             [
                 'label' => __('Padding', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
                     '{{WRAPPER}} .marker-title .elementor-heading-title' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
@@ -1040,7 +1048,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'title_margin',
             [
                 'label' => __('Margin', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'default' => [
                     'top' => 0,
@@ -1064,14 +1072,14 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'section_marker_content_style',
             [
                 'label' => __('Marker Content', self::$slug),
-                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+                'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
         $this->add_responsive_control(
             'content_align',
             [
                 'label' => __('Alignment', self::$slug),
-                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'type' => Controls_Manager::CHOOSE,
                 'options' => [
                     'left' => [
                         'title' => __('Left', self::$slug),
@@ -1100,7 +1108,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'content_text_color',
             [
                 'label' => __('Text Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-content .marker-description' => 'color: {{VALUE}};',
                 ],
@@ -1111,11 +1119,11 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Typography::get_type(),
+            Group_Control_Typography::get_type(),
             [
                 'name' => 'content_typography',
                 'label' => __('Typography', self::$slug),
-                'scheme' => \Elementor\Scheme_Typography::TYPOGRAPHY_1,
+                'scheme' => Typography::TYPOGRAPHY_1,
                 'selector' => '{{WRAPPER}} .marker-content .marker-description',
             ]
         );
@@ -1124,7 +1132,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'content_padding',
             [
                 'label' => __('Padding', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'default' => [
                     'top' => 0,
@@ -1144,7 +1152,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'content_margin',
             [
                 'label' => __('Margin', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
                     '{{WRAPPER}} .marker-content .marker-description' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
@@ -1161,7 +1169,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'section_style',
             [
                 'label' => __('Marker Button', self::$slug),
-                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+                'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
 
@@ -1169,7 +1177,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_align',
             [
                 'label' => __('Alignment', self::$slug),
-                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'type' => Controls_Manager::CHOOSE,
                 'options' => [
                     'left' => [
                         'title' => __('Left', self::$slug),
@@ -1191,7 +1199,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Typography::get_type(),
+            Group_Control_Typography::get_type(),
             [
                 'name' => 'button_typography',
                 'global' => [
@@ -1202,7 +1210,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Text_Shadow::get_type(),
+            Group_Control_Text_Shadow::get_type(),
             [
                 'name' => 'button_text_shadow',
                 'selector' => '{{WRAPPER}} .marker-button .elementor-button',
@@ -1222,7 +1230,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_text_color',
             [
                 'label' => __('Text Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_SECONDARY
                 ],
@@ -1236,7 +1244,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_background_color',
             [
                 'label' => __('Background Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_PRIMARY,
                 ],
@@ -1259,7 +1267,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_hover_color',
             [
                 'label' => __('Text Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'color: {{VALUE}};',
                     '{{WRAPPER}} .marker-button .elementor-button:hover svg, {{WRAPPER}} .marker-button .elementor-button:focus svg' => 'fill: {{VALUE}};',
@@ -1271,7 +1279,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_background_hover_color',
             [
                 'label' => __('Background Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'background-color: {{VALUE}};',
                 ],
@@ -1282,7 +1290,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_hover_border_color',
             [
                 'label' => __('Border Color', self::$slug),
-                'type' => \Elementor\Controls_Manager::COLOR,
+                'type' => Controls_Manager::COLOR,
                 'condition' => [
                     'border_border!' => '',
                 ],
@@ -1296,7 +1304,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_hover_animation',
             [
                 'label' => __('Hover Animation', self::$slug),
-                'type' => \Elementor\Controls_Manager::HOVER_ANIMATION,
+                'type' => Controls_Manager::HOVER_ANIMATION,
             ]
         );
 
@@ -1305,7 +1313,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         $this->end_controls_tabs();
 
         $this->add_group_control(
-            \Elementor\Group_Control_Border::get_type(),
+            Group_Control_Border::get_type(),
             [
                 'name' => 'button_border',
                 'selector' => '{{WRAPPER}} .marker-button .elementor-button',
@@ -1317,7 +1325,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_border_radius',
             [
                 'label' => __('Border Radius', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', '%'],
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
@@ -1326,7 +1334,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
         );
 
         $this->add_group_control(
-            \Elementor\Group_Control_Box_Shadow::get_type(),
+            Group_Control_Box_Shadow::get_type(),
             [
                 'name' => 'button_box_shadow',
                 'selector' => '{{WRAPPER}} .marker-button .elementor-button',
@@ -1337,7 +1345,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_text_padding',
             [
                 'label' => __('Padding', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
@@ -1350,7 +1358,7 @@ class Widget_OSM_Map extends \Elementor\Widget_Base
             'button_margin',
             [
                 'label' => __('Margin', self::$slug),
-                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
