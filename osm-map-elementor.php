@@ -4,7 +4,7 @@
  * Description:     A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
  * Author:          ACT Innovate
  * Author URI:      https://github.com/flopperj/elementor-osm-map
- * Version:         1.0.9
+ * Version:         1.0.10
  */
 
 namespace OSM_Map;
@@ -49,6 +49,9 @@ add_action('admin_menu', function () {
                 'gmaps_key' => !empty($input['gmaps_key']) ? sanitize_text_field($input['gmaps_key']) : null,
                 'mapbox_token' => !empty($input['mapbox_token']) ? sanitize_text_field($input['mapbox_token']) : null,
                 'geoapify_key' => !empty($input['geoapify_key']) ? sanitize_text_field($input['geoapify_key']) : null,
+                'osm_custom' => !empty($input['osm_custom']) ? sanitize_text_field($input['osm_custom']) : null,
+                'osm_custom_attribution' => !empty($input['osm_custom_attribution']) ? sanitize_text_field($input['osm_custom_attribution']) : null,
+                'osm_custom_attribution_url' => !empty($input['osm_custom_attribution_url']) ? sanitize_text_field($input['osm_custom_attribution_url']) : null,
                 'enable_fontawesome' => !empty($input['enable_fontawesome']) ? sanitize_text_field($input['enable_fontawesome']) : null
             ];
 
@@ -75,10 +78,10 @@ add_action('admin_menu', function () {
                             <h3 class="card-title">Google Maps API Key</h3>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> This setting is required if you wish to use Google Maps to
+                            <p><strong>Note:</strong> This setting is required if you wish to use Google Maps to
                                     lookup location coordinates. Need help to get a Google map API key? <a
                                             href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-                                            target="_blank">Read this resource</a>.</em></p>
+                                            target="_blank">Read this resource</a>.</p>
                             <input type="text" name="osm_widget[gmaps_key]"
                                    value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea(__($osm_settings['gmaps_key'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
@@ -90,10 +93,10 @@ add_action('admin_menu', function () {
                             <h3 class="card-title">Mapbox Access Token</h3>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Mapbox /
+                            <p><strong>Note:</strong> This setting is required if you wish to use custom Mapbox /
                                     Geoapify tiles. Need help to get a Mapbox Access Token? <a
                                             href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
-                                            target="_blank">Read this resource</a></em></p>
+                                            target="_blank">Read this resource</a></p>
                             <input type="text" name="osm_widget[mapbox_token]"
                                    value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea(__($osm_settings['mapbox_token'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
@@ -105,9 +108,9 @@ add_action('admin_menu', function () {
                             <h3 class="card-title">Geoapify API Key</h3>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> This setting is required if you wish to use custom Geoapify
+                            <p><strong>Note:</strong> This setting is required if you wish to use custom Geoapify
                                     tiles. Need help to get a Geoapify API key. <a
-                                            href="https://www.geoapify.com/maps-api/">Read this resource.</a></em></p>
+                                            href="https://www.geoapify.com/maps-api/">Read this resource.</a></p>
                             <input type="text" name="osm_widget[geoapify_key]"
                                    value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea(__($osm_settings['geoapify_key'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
@@ -126,7 +129,29 @@ add_action('admin_menu', function () {
                             </label>
                         </div>
                         <div class="card-content">
-                            <p><em><strong>Note:</strong> If you are having conflicts or already have Font Awesome loaded on your website, toggle the setting above to not load it again.</em></p>
+                            <p><strong>Note:</strong> If you are having conflicts or already have Font Awesome loaded on your website, toggle the setting above to not load it again.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Custom Map Tile URL</h3>
+                        </div>
+                        <div class="card-content">
+                            <p><strong>See more tile servers:</strong>
+                                <a href="http://wiki.openstreetmap.org/wiki/Tile_servers">here</a> 
+                                <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
+                            <input type="text" name="osm_widget[osm_custom]"
+                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_textarea(__($osm_settings['osm_custom'], OSM_MAP_SLUG)) : null; ?>"/>
+
+                            <br><p><strong>Additional Attribution</strong>
+                            <p>Organization</p>
+                            <input type="text" name="osm_widget[osm_custom_attribution]"
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_textarea(__($osm_settings['osm_custom_attribution'], OSM_MAP_SLUG)) : null; ?>"/>
+                            <p>URL</p>
+                            <input type="text" name="osm_widget[osm_custom_attribution_url]"
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_textarea(__($osm_settings['osm_custom_attribution_url'], OSM_MAP_SLUG)) : null; ?>"/>
                         </div>
                     </div>
                 </div>
