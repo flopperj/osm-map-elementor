@@ -422,6 +422,7 @@ class Widget_OSM_Map extends Widget_Base
                     'dark-matter-dark-purple' => __('Dark Matter Dark Purple', self::$slug),
                     'dark-matter-purple-roads' => __('Dark Matter Purple Roads', self::$slug),
                     'dark-matter-yellow-roads' => __('Dark Matter Yellow Roads', self::$slug),
+                    'custom-tile' => __('Custom Map Tile', self::$slug),
                 ]
             ]
         );
@@ -1468,21 +1469,32 @@ class Widget_OSM_Map extends Widget_Base
                     let centerCoords = center.split(',');
                     map.setView(centerCoords, zoomLevel);
                 }
-
-                <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'): ?>
+                
+                <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'):?>
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     maxZoom: 18
                 }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'custom-tile'):?>
+                L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea(__($global_settings['osm_custom'], self::$slug)) : null; ?>', {
+                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea(__($global_settings['osm_custom_attribution_url'], self::$slug)) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea(__($global_settings['osm_custom_attribution'], self::$slug)) : null; ?></a> | © OpenStreetMap <a href="https://www.openstreetmap.org/copyright" target="_blank">contributors</a>',
+                    maxZoom: 18
+                }).addTo(map);
+
                 <?php else: ?>
+
                 // the attribution is required for the Geoapify Free tariff plan
+
                 map.attributionControl.setPrefix('').addAttribution('Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | © OpenStreetMap <a href="https://www.openstreetmap.org/copyright" target="_blank">contributors</a>');
 
                 // install leaflet-mapbox-gl plugin
+
                 L.mapboxGL({
                     style: 'https://maps.geoapify.com/v1/styles/<?php echo $settings['geoapify_tile']; ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea(__($global_settings['geoapify_key'], self::$slug)) : null; ?>',
                     accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea(__($global_settings['mapbox_token'], self::$slug)) : 'no-token'; ?>'
                 }).addTo(map);
+
                 <?php endif; ?>
 
                 // add available markers
