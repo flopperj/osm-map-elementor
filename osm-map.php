@@ -199,6 +199,8 @@ class Widget_OSM_Map extends Widget_Base
                 'options' => [
                     'popup' => 'Popup',
                     'tooltip' => 'Tooltip',
+                    'static_close_on' => 'Static with close',
+                    'static_close_off' => 'Static without close',
                     'none' => 'None'
                 ]
             ]
@@ -332,7 +334,6 @@ class Widget_OSM_Map extends Widget_Base
             ]
         );
 
-
         $this->add_control(
             'pan_control',
             [
@@ -422,6 +423,9 @@ class Widget_OSM_Map extends Widget_Base
                     'dark-matter-dark-purple' => __('Dark Matter Dark Purple', self::$slug),
                     'dark-matter-purple-roads' => __('Dark Matter Purple Roads', self::$slug),
                     'dark-matter-yellow-roads' => __('Dark Matter Yellow Roads', self::$slug),
+                    'stamen-toner' => __('Stamen Toner (Free)', self::$slug),
+                    'stamen-terrain' => __('Stamen Terrain (Free)', self::$slug),
+                    'stamen-watercolor' => __('Stamen Watercolor (Free)', self::$slug),
                     'custom-tile' => __('Custom Map Tile', self::$slug),
                 ]
             ]
@@ -999,6 +1003,35 @@ class Widget_OSM_Map extends Widget_Base
             ]
         );
 
+        $this->add_responsive_control(
+            'title_align',
+            [
+                'label' => __('Alignment', self::$slug),
+                'type' => Controls_Manager::CHOOSE,
+                'options' => [
+                    'left' => [
+                        'title' => __('Left', self::$slug),
+                        'icon' => 'eicon-text-align-left',
+                    ],
+                    'center' => [
+                        'title' => __('Center', self::$slug),
+                        'icon' => 'eicon-text-align-center',
+                    ],
+                    'right' => [
+                        'title' => __('Right', self::$slug),
+                        'icon' => 'eicon-text-align-right',
+                    ],
+                    'justify' => [
+                        'title' => __('Justified', self::$slug),
+                        'icon' => 'eicon-text-align-justify',
+                    ],
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .marker-tooltip .marker-title' => 'text-align: {{VALUE}};',
+                ],
+            ]
+        );
+        
         $this->add_control(
             'title_color',
             [
@@ -1476,6 +1509,24 @@ class Widget_OSM_Map extends Widget_Base
                     maxZoom: 18
                 }).addTo(map);
 
+                <?php elseif( $settings['geoapify_tile'] == 'stamen-toner'):?>
+                L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
+                    attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+                    maxZoom: 18
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stamen-terrain'):?>
+                L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', {
+                    attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+                    maxZoom: 18
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stamen-watercolor'):?>
+                L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg', {
+                    attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.',
+                    maxZoom: 18
+                }).addTo(map);
+
                 <?php elseif( $settings['geoapify_tile'] == 'custom-tile'):?>
                 L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea(__($global_settings['osm_custom'], self::$slug)) : null; ?>', {
                     attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea(__($global_settings['osm_custom_attribution_url'], self::$slug)) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea(__($global_settings['osm_custom_attribution'], self::$slug)) : null; ?></a> | © OpenStreetMap <a href="https://www.openstreetmap.org/copyright" target="_blank">contributors</a>',
@@ -1655,6 +1706,15 @@ class Widget_OSM_Map extends Widget_Base
                                 case 'popup':
                                     marker.bindPopup(tooltipContent);
                                     break;
+
+                                case 'static_close_on':
+                                    marker.bindPopup(tooltipContent,{closeOnClick: false, autoClose: false, closeOnEscapeKey: false}).openPopup();
+                                    break;
+                                
+                                case 'static_close_off':
+                                    marker.bindPopup(tooltipContent,{closeOnClick: false, autoClose: false, closeButton: false, closeOnEscapeKey: false}).openPopup();
+                                    break;
+                                    
                                 case 'tooltip':
 
                                     let tooltipOptions = {};
