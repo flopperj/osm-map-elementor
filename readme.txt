@@ -1,5 +1,4 @@
 === OSM Map Widget for Elementor ===
-Contributors: garbowza, youngmedianetwork
 Plugin Name: OSM Map Widget for Elementor
 Version: 1.0.11
 Author: ACT Innovate
