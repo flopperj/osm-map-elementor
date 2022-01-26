@@ -6,7 +6,7 @@ Author URI: https://github.com/flopperj/osm-map-elementor
 Contributors: intelchip, garbowza, youngmedianetwork
 Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 5.0
-Tested up to: 5.8
+Tested up to: 5.9
 Requires PHP: 5.6
 Stable tag: 1.0.11
 License: GPLv3
