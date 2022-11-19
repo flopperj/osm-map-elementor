@@ -1,19 +1,19 @@
 === OSM Map Widget for Elementor ===
 Plugin Name: OSM Map Widget for Elementor
-Version: 1.0.11
-Author: ACT Innovate
-Author URI: https://github.com/flopperj/osm-map-elementor
-Contributors: intelchip, garbowza, youngmedianetwork
+Version: 1.1
+Author: Plugin Contributors
+Author URI: https://github.com/flopperj/osm-map-elementor/graphs/contributors
+Contributors: garbowza, intelchip, youngmedianetwork
 Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 5.0
-Tested up to: 5.9
+Tested up to: 6.1.1
 Requires PHP: 5.6
-Stable tag: 1.0.11
+Stable tag: 1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 == Description ==
-A free Elementor Map Widget that utilizes [Open Street Map](https://www.openstreetmap.org/). Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.0.5+
+A free Elementor Map Widget that utilizes [Open Street Map](https://www.openstreetmap.org/). Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.2+
 
 This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so feel free to contribute to it by:
 1. Adding a topic/issue [here](https://github.com/flopperj/osm-map-elementor/issues)

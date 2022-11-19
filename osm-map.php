@@ -136,7 +136,7 @@ class Widget_OSM_Map extends Widget_Base
      *
      * @access protected
      */
-    protected function _register_controls()
+    protected function register_controls()
     {
 
         // register content controls
@@ -160,6 +160,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Title', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Title', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -169,6 +172,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Location', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Location', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -177,7 +183,10 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Coordinates', self::$slug),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('lat, long', self::$slug)
+                'placeholder' => __('lat, long', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -187,6 +196,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Description', self::$slug),
                 'type' => Controls_Manager::TEXTAREA,
                 'placeholder' => __('Marker Description', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -224,6 +236,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Button Text', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Button Text', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -234,6 +249,9 @@ class Widget_OSM_Map extends Widget_Base
                 'type' => Controls_Manager::TEXT,
                 'input_type' => 'url',
                 'placeholder' => __('https://your-link.com', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -1819,7 +1837,7 @@ class Widget_OSM_Map extends Widget_Base
 
         // load fontawesome
         if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free-5.15.1/css/all.min.css');
+            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free-6.1.1/css/all.min.css');
         }
 
         foreach ($styles as $handle => $path) {
