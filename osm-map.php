@@ -160,6 +160,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Title', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Title', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -169,6 +172,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Location', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Marker Location', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -177,7 +183,10 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Coordinates', self::$slug),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('lat, long', self::$slug)
+                'placeholder' => __('lat, long', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -187,6 +196,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Description', self::$slug),
                 'type' => Controls_Manager::TEXTAREA,
                 'placeholder' => __('Marker Description', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -224,6 +236,9 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Button Text', self::$slug),
                 'type' => Controls_Manager::TEXT,
                 'placeholder' => __('Button Text', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
@@ -234,6 +249,9 @@ class Widget_OSM_Map extends Widget_Base
                 'type' => Controls_Manager::TEXT,
                 'input_type' => 'url',
                 'placeholder' => __('https://your-link.com', self::$slug),
+                'dynamic' => [
+                    'active' => true,
+                ],
             ]
         );
 
