@@ -17,7 +17,7 @@ require_once('constants.php');
 
 // The Widget_Base class is not available immediately after plugins are loaded, so
 // we delay the class' use until Elementor widgets are registered
-add_action('elementor/widgets/register', function () { //Deprecation elementor/widgets/widgets_registered
+add_action('elementor/widgets/register', function () { //Deprecation elementor/widgets/widgets_registered 3.5
     require_once('osm-map.php');
 
     $osm_map = new Widget_OSM_Map();
@@ -25,7 +25,7 @@ add_action('elementor/widgets/register', function () { //Deprecation elementor/w
     // Let Elementor know about our widget
     Plugin::instance()
         ->widgets_manager
-        ->register($osm_map); //Deprecation register_widget_type()
+        ->register($osm_map); //Deprecation register_widget_type() 3.5
 });
 
 
