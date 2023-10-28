@@ -10,7 +10,8 @@ require_once('constants.php');
 
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
-use Elementor\Core\Responsive\Responsive;
+use Elementor\Core\Breakpoints\Manager;
+//Use Breakpoints Manager via `Plugin::$instance->breakpoints`; //Deprecation Elementor\Core\Responsive\Responsive 3.6
 use Elementor\Core\Schemes\Typography;
 use Elementor\Widget_Base;
 use Elementor\Repeater;
@@ -1442,7 +1443,7 @@ class Widget_OSM_Map extends Widget_Base
         $global_settings = get_option('osm_widget');
         $settings = $this->get_settings_for_display();
         $markers = $this->get_settings_for_display('marker_list');
-        $settings['breakpoints'] = Responsive::get_breakpoints();
+        $settings['breakpoints'] = \Elementor\Plugin::$instance->breakpoints->get_breakpoints(); //Deprecation Responsive::get_breakpoints() 3.6
 
         if (0 === absint($settings['zoom']['size'])) {
             $settings['zoom']['size'] = 10;
