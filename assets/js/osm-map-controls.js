@@ -3,7 +3,7 @@
  */
 function initOSMEditorControls() {
     jQuery(window).on(
-        'elementor:init',
+        'elementor/init', //Deprecation elementor:init 3.5
         function () {
 
             /**

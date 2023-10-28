@@ -10,7 +10,8 @@ require_once('constants.php');
 
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
-use Elementor\Core\Responsive\Responsive;
+use Elementor\Core\Breakpoints\Manager;
+//Use Breakpoints Manager via `Plugin::$instance->breakpoints`; //Deprecation Elementor\Core\Responsive\Responsive 3.6
 use Elementor\Core\Schemes\Typography;
 use Elementor\Widget_Base;
 use Elementor\Repeater;
@@ -428,22 +429,32 @@ class Widget_OSM_Map extends Widget_Base
                 'default' => 'osm-carto',
                 'options' => [
                     'osm-carto' => __('OSM Carto (Free)', self::$slug),
-                    'osm-bright' => __('OSM Bright', self::$slug),
-                    'osm-bright-grey' => __('OSM Bright Grey', self::$slug),
-                    'osm-bright-smooth' => __('OSM Bright Smooth', self::$slug),
-                    'klokantech-basic' => __('Klokantech Basic', self::$slug),
-                    'positron' => __('Positron', self::$slug),
-                    'positron-blue' => __('Positron Blue', self::$slug),
-                    'positron-red' => __('Positron Red', self::$slug),
-                    'dark-matter' => __('Dark Matter', self::$slug),
-                    'dark-matter-brown' => __('Dark Matter Brown', self::$slug),
-                    'dark-matter-dark-grey' => __('Dark Matter Dark Grey', self::$slug),
-                    'dark-matter-dark-purple' => __('Dark Matter Dark Purple', self::$slug),
-                    'dark-matter-purple-roads' => __('Dark Matter Purple Roads', self::$slug),
-                    'dark-matter-yellow-roads' => __('Dark Matter Yellow Roads', self::$slug),
-                    'stamen-toner' => __('Stamen Toner (Free)', self::$slug),
-                    'stamen-terrain' => __('Stamen Terrain (Free)', self::$slug),
-                    'stamen-watercolor' => __('Stamen Watercolor (Free)', self::$slug),
+                    'osm-bright' => __('Geoapify - OSM Bright', self::$slug),
+                    'osm-bright-grey' => __('Geoapify - OSM Bright Grey', self::$slug),
+                    'osm-bright-smooth' => __('Geoapify - OSM Bright Smooth', self::$slug),
+                    'klokantech-basic' => __('Geoapify - Klokantech Basic', self::$slug),
+                    'osm-liberty' => __('Geoapify - OSM Liberty', self::$slug),
+                    'maptiler-3d' => __('Geoapify - MapTiler 3D', self::$slug),
+                    'toner' => __('Geoapify - Toner', self::$slug),
+                    'toner-grey' => __('Geoapify - Toner Grey', self::$slug),
+                    'positron' => __('Geoapify - Positron', self::$slug),
+                    'positron-blue' => __('Geoapify - Positron Blue', self::$slug),
+                    'positron-red' => __('Geoapify - Positron Red', self::$slug),
+                    'dark-matter' => __('Geoapify - Dark Matter', self::$slug),
+                    'dark-matter-brown' => __('Geoapify - Dark Matter Brown', self::$slug),
+                    'dark-matter-dark-grey' => __('Geoapify - Dark Matter Dark Grey', self::$slug),
+                    'dark-matter-dark-purple' => __('Geoapify - Dark Matter Dark Purple', self::$slug),
+                    'dark-matter-purple-roads' => __('Geoapify - Dark Matter Purple Roads', self::$slug),
+                    'dark-matter-yellow-roads' => __('Geoapify - Dark Matter Yellow Roads', self::$slug),
+                    'stadia-osm-bright' => __('Stadia - OSM Bright', self::$slug),
+                    'stadia-outdoors' => __('Stadia - Outdoors', self::$slug),
+                    'stadia-alidade-smooth' => __('Stadia - Alidade Smooth', self::$slug),
+                    'stadia-alidade-smooth-dark' => __('Stadia - Alidade Smooth Dark', self::$slug),
+                    'stadia-alidade-satellite' => __('Stadia - Alidade Satellite', self::$slug),
+                    'stadia-stamen-toner' => __('Stadia - Stamen Toner', self::$slug),
+                    'stadia-stamen-toner-lite' => __('Stadia - Stamen Toner Lite', self::$slug),
+                    'stadia-stamen-terrain' => __('Stadia - Stamen Terrain', self::$slug),
+                    'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', self::$slug),
                     'custom-tile' => __('Custom Map Tile', self::$slug),
                 ]
             ]
@@ -1432,7 +1443,7 @@ class Widget_OSM_Map extends Widget_Base
         $global_settings = get_option('osm_widget');
         $settings = $this->get_settings_for_display();
         $markers = $this->get_settings_for_display('marker_list');
-        $settings['breakpoints'] = Responsive::get_breakpoints();
+        $settings['breakpoints'] = \Elementor\Plugin::$instance->breakpoints->get_breakpoints(); //Deprecation Responsive::get_breakpoints() 3.6
 
         if (0 === absint($settings['zoom']['size'])) {
             $settings['zoom']['size'] = 10;
@@ -1523,40 +1534,75 @@ class Widget_OSM_Map extends Widget_Base
                 
                 <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'):?>
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxZoom: 18
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stamen-toner'):?>
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-osm-bright'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}@2x.png', {
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-outdoors'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}@2x.png', {
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-smooth'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}@2x.png', {
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-smooth-dark'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}@2x.png', {
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-satellite'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/data/satellite/{z}/{x}/{y}.jpg', {
+                    attribution: '&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-toner'):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}@2x.png', {
-                    attribution: 'Map tiles by &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/about" target="_blank">OpenStreetMap</a> contributors',
-                    maxZoom: 18
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stamen-terrain'):?>
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-toner-lite'):?>
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}@2x.png', {
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
+                }).addTo(map);
+
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-terrain'):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}@2x.png', {
-                    attribution: 'Map tiles by &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/about" target="_blank">OpenStreetMap</a> contributors',
-                    maxZoom: 18
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stamen-watercolor'):?>
+                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-watercolor'):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', {
-                    attribution: 'Map tiles by &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/about" target="_blank">OpenStreetMap</a> contributors',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 16
                 }).addTo(map);
 
                 <?php elseif( $settings['geoapify_tile'] == 'custom-tile'):?>
                 L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea(__($global_settings['osm_custom'], self::$slug)) : null; ?>', {
-                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea(__($global_settings['osm_custom_attribution_url'], self::$slug)) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea(__($global_settings['osm_custom_attribution'], self::$slug)) : null; ?></a> | © OpenStreetMap <a href="https://www.openstreetmap.org/copyright" target="_blank">contributors</a>',
-                    maxZoom: 18
+                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea(__($global_settings['osm_custom_attribution_url'], self::$slug)) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea(__($global_settings['osm_custom_attribution'], self::$slug)) : null; ?></a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    maxZoom: 20
                 }).addTo(map);
 
                 <?php else: ?>
 
                 // the attribution is required for the Geoapify Free tariff plan
 
-                map.attributionControl.setPrefix('').addAttribution('Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | © OpenStreetMap <a href="https://www.openstreetmap.org/copyright" target="_blank">contributors</a>');
-
+                map.attributionControl.setPrefix('').addAttribution('Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>');
                 // install leaflet-mapbox-gl plugin
 
                 L.mapboxGL({
@@ -1837,7 +1883,7 @@ class Widget_OSM_Map extends Widget_Base
 
         // load fontawesome
         if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free-6.1.1/css/all.min.css');
+            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css');
         }
 
         foreach ($styles as $handle => $path) {

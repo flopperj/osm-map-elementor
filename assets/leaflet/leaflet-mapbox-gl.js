@@ -50,6 +50,8 @@
             if (map.options.zoomAnimation) {
                 L.DomEvent.on(map._proxy, L.DomUtil.TRANSITION_END, this._transitionEnd, this);
             }
+            
+            map._addZoomLimit(this);
         },
 
         onRemove: function (map) {
@@ -58,9 +60,6 @@
             }
             var paneName = this.getPaneName();
             map.getPane(paneName).removeChild(this._container);
-            
-            this._glMap.remove();
-            this._glMap = null;
         },
 
         getEvents: function () {
@@ -127,10 +126,15 @@
                 attributionControl: false
             });
 
-            this._glMap = new mapboxgl.Map(options);
+            if (!this._glMap) this._glMap = new mapboxgl.Map(options);
+            else {
+                this._glMap.setCenter(options.center);
+                this._glMap.setZoom(options.zoom);
+            }
 
             // allow GL base map to pan beyond min/max latitudes
             this._glMap.transform.latRange = null;
+            this._transformGL(this._glMap);
 
             if (this._glMap._canvas.canvas) {
                 // older versions of mapbox-gl surfaced the canvas differently
@@ -152,6 +156,9 @@
         },
 
         _update: function (e) {
+            if (!this._map) {
+                return;
+            }
             // update the offset so we can correct for it later when we zoom
             this._offset = this._map.containerPointToLayerPoint([0, 0]);
 
@@ -167,18 +174,13 @@
 
             L.DomUtil.setPosition(container, topLeft);
 
-            var center = this._map.getCenter();
+            this._transformGL(gl);
 
-            // gl.setView([center.lat, center.lng], this._map.getZoom() - 1, 0);
-            // calling setView directly causes sync issues because it uses requestAnimFrame
+            var x_round = Math.round(size.x), y_round = Math.round(size.y);
 
-            var tr = gl.transform;
-            tr.center = mapboxgl.LngLat.convert([center.lng, center.lat]);
-            tr.zoom = this._map.getZoom() - 1;
-
-            if (gl.transform.width !== size.x || gl.transform.height !== size.y) {
-                container.style.width  = size.x + 'px';
-                container.style.height = size.y + 'px';
+            if (Math.round(gl.transform.width) !== x_round || Math.round(gl.transform.height) !== y_round) {
+                container.style.width  = x_round + 'px';
+                container.style.height = y_round + 'px';
                 if (gl._resize !== null && gl._resize !== undefined){
                     gl._resize();
                 } else {
@@ -192,6 +194,17 @@
                     gl.update();
                 }
             }
+        },
+
+        _transformGL: function (gl) {
+            var center = this._map.getCenter();
+
+            // gl.setView([center.lat, center.lng], this._map.getZoom() - 1, 0);
+            // calling setView directly causes sync issues because it uses requestAnimFrame
+
+            var tr = gl.transform;
+            tr.center = mapboxgl.LngLat.convert([center.lng, center.lat]);
+            tr.zoom = this._map.getZoom() - 1;
         },
 
         // update the map constantly during a pinch zoom
@@ -229,16 +242,12 @@
         },
 
         _zoomEnd: function () {
-            var scale = this._map.getZoomScale(this._map.getZoom()),
-                offset = this._map._latLngToNewLayerPoint(
-                    this._map.getBounds().getNorthWest(),
-                    this._map.getZoom(),
-                    this._map.getCenter()
-                );
+            var scale = this._map.getZoomScale(this._map.getZoom());
 
             L.DomUtil.setTransform(
                 this._glMap._actualCanvas,
-                offset.subtract(this._offset),
+                // https://github.com/mapbox/mapbox-gl-leaflet/pull/130
+                null,
                 scale
             );
 
