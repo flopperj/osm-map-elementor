@@ -1883,7 +1883,7 @@ class Widget_OSM_Map extends Widget_Base
 
         // load fontawesome
         if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free-6.1.1/css/all.min.css');
+            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css');
         }
 
         foreach ($styles as $handle => $path) {
