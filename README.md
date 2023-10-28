@@ -30,4 +30,5 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 
 ## Licence
 [GNU GENERAL PUBLIC LICENSE](https://raw.githubusercontent.com/flopperj/osm-map-elementor/master/LICENSE.txt)
-[OpenStreetMap](https://www.openstreetmap.org/copyright)
+
+[OpenStreetMap License](https://www.openstreetmap.org/copyright)
