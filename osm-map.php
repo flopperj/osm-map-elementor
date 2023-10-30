@@ -12,7 +12,6 @@ use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
 use Elementor\Core\Breakpoints\Manager;
 //Use Breakpoints Manager via `Plugin::$instance->breakpoints`; //Deprecation Elementor\Core\Responsive\Responsive 3.6
-use Elementor\Core\Schemes\Typography;
 use Elementor\Widget_Base;
 use Elementor\Repeater;
 use Elementor\Controls_Manager;
@@ -1186,7 +1185,9 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'name' => 'content_typography',
                 'label' => __('Typography', self::$slug),
-                'scheme' => Typography::TYPOGRAPHY_1,
+                'global' => [
+                    'default' => Global_Typography::TYPOGRAPHY_PRIMARY,
+                ],
                 'selector' => '{{WRAPPER}} .marker-content .marker-description',
             ]
         );
