@@ -1967,7 +1967,7 @@ class Widget_OSM_Map extends Widget_Base
             foreach ($deps as &$dep) {
                 if (!wp_script_is($dep, 'done')) {
                     // Dependencies not included in head, try again in footer.
-                    if (!$in_footer) {
+                    if ($in_footer) {
                         add_action('wp_print_footer_scripts', $cb_maybe, 11);
                     } else {
                         // Dependencies were not included in `wp_head` or `wp_footer`.

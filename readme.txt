@@ -1,14 +1,14 @@
 === OSM Map Widget for Elementor ===
 Plugin Name: OSM Map Widget for Elementor
-Version: 1.2.1
+Version: 1.2.2
 Author: Plugin Contributors
 Author URI: https://github.com/flopperj/osm-map-elementor/graphs/contributors
 Contributors: garbowza, intelchip, youngmedianetwork
 Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 6.0
-Tested up to: 6.4
+Tested up to: 6.4.3
 Requires PHP: 7.3
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
