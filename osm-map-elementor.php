@@ -4,7 +4,7 @@
  * Description:     A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
  * Author:          Plugin Contributors
  * Author URI:      https://github.com/flopperj/osm-map-elementor/graphs/contributors
- * Version:         1.2.2
+ * Version:         1.3.0
  */
 
 namespace OSM_Map;
