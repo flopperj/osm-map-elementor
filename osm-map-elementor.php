@@ -4,7 +4,7 @@
  * Description:     A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
  * Author:          Plugin Contributors
  * Author URI:      https://github.com/flopperj/osm-map-elementor/graphs/contributors
- * Version:         1.3.0
+ * Version:         1.3.1
  */
 
 namespace OSM_Map;
@@ -34,14 +34,13 @@ add_action('admin_menu', function () {
     add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'osm-map-elementor', function () {
 
         // queue admin styles
-        wp_register_style('osm-map-admin', plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/admin.css'));
+        wp_register_style('osm-map-admin', plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/admin.css'), [], OSM_MAP_VERSION);
         wp_enqueue_style('osm-map-admin');
 
         $action = !empty($_REQUEST['action']) && is_string($_REQUEST['action']) ? sanitize_key($_REQUEST['action']) : null;
 
         // grab settings, sanitize, validate and save them
-        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget'])) {
-
+        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget']) && wp_verify_nonce($_REQUEST['osm_settings_nonce'], 'osm_settings_action')) {
             $input = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
 
             // sanitize user input
@@ -59,7 +58,11 @@ add_action('admin_menu', function () {
             update_option('osm_widget', $osm_settings);
 
             // redirect to form with confirmation alert message
-            wp_redirect($_SERVER['HTTP_REFERER'] . '&action=settings_saved');
+            $redirect_url = admin_url('options-general.php');
+            wp_redirect(add_query_arg([
+                'page' => 'osm-map-elementor',
+                'action' => 'settings_saved',
+            ], $redirect_url));
         }
 
         $osm_settings = get_option('osm_widget');
@@ -69,9 +72,16 @@ add_action('admin_menu', function () {
             <h2>OSM Map Widget Settings</h2>
             <?php if (!empty($_REQUEST['action']) && sanitize_key($_REQUEST['action']) == 'settings_saved'): ?>
                 <div style="background-color: rgb(255, 251, 204);" id="alert-message" class="updated"><p>
-                        <strong><?php echo __('Settings saved') ?>.</strong></p></div>
+                        <strong><?php echo esc_html(__('Settings saved')) ?>.</strong></p></div>
             <?php endif; ?>
-            <form action="<?php echo $_SERVER['REQUEST_URI'] . '&action=save_settings'; ?>" method="post">
+            <form action="<?php
+            $form_action_url = admin_url('options-general.php');
+            echo esc_url(add_query_arg([
+                'page' => 'osm-map-elementor',
+                'action' => 'save_settings',
+            ], $form_action_url));
+            ?>" method="post">
+                <?php wp_nonce_field('osm_settings_action', 'osm_settings_nonce'); ?>
                 <div class="form-group">
                     <div class="card">
                         <div class="card-header">
@@ -188,6 +198,6 @@ add_action('admin_init', function () {
 // queue jquery in header
 add_action('init', function () {
     add_filter('wp_enqueue_scripts', function () {
-        wp_enqueue_script('jquery', false, [], false, false);
+        wp_enqueue_script('jquery', false, [], OSM_MAP_VERSION, false);
     }, 1);
 }, 1);
