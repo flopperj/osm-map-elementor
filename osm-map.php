@@ -260,8 +260,8 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('URL target', 'osm-map'),
                 'type' => Controls_Manager::SELECT,
                 'options' => [
-                        '_self' => 'Same Window',
-                        '_blank' => 'New Window/Tab'
+                    '_self' => 'Same Window',
+                    '_blank' => 'New Window/Tab'
                 ],
                 'default' => '_blank',
                 'condition' => [
@@ -1058,7 +1058,7 @@ class Widget_OSM_Map extends Widget_Base
                 ],
             ]
         );
-        
+
         $this->add_control(
             'title_color',
             [
@@ -1445,30 +1445,38 @@ class Widget_OSM_Map extends Widget_Base
         $markers = $this->get_settings_for_display('marker_list');
         $settings['breakpoints'] = \Elementor\Plugin::$instance->breakpoints->get_breakpoints();
 
-        if (0 === absint($settings['zoom']['size'])) {
+        // Ensure zoom settings exist and have proper defaults
+        if (!isset($settings['zoom']) || !is_array($settings['zoom'])) {
+            $settings['zoom'] = ['size' => 10];
+        } elseif (!isset($settings['zoom']['size']) || 0 === absint($settings['zoom']['size'])) {
             $settings['zoom']['size'] = 10;
         }
 
-        if (0 === absint($settings['height']['size'])) {
+        // Ensure height settings exist and have proper defaults
+        if (!isset($settings['height']) || !is_array($settings['height'])) {
+            $settings['height'] = ['size' => 200];
+        } elseif (!isset($settings['height']['size']) || 0 === absint($settings['height']['size'])) {
             $settings['height']['size'] = 200;
         }
 
         // get all marker coords to help calculate center
         $coords = [];
-        foreach ($markers as $marker) {
+        if (is_array($markers)) {
+            foreach ($markers as $marker) {
 
-            // hide markers that have been toggled off
-            if (isset($marker['marker_visible']) && empty($marker['marker_visible'])) {
-                continue;
-            }
+                // hide markers that have been toggled off
+                if (isset($marker['marker_visible']) && empty($marker['marker_visible'])) {
+                    continue;
+                }
 
-            $loc = explode(',', $marker['marker_coords']);
-            if (!empty($loc) && sizeof($loc) == 2) {
-                $coords[] = [
-                    'marker' => $marker,
-                    'lat' => $loc[0],
-                    'lng' => $loc[1]
-                ];
+                $loc = explode(',', $marker['marker_coords']);
+                if (!empty($loc) && sizeof($loc) == 2) {
+                    $coords[] = [
+                        'marker' => $marker,
+                        'lat' => $loc[0],
+                        'lng' => $loc[1]
+                    ];
+                }
             }
         }
 
@@ -1477,7 +1485,7 @@ class Widget_OSM_Map extends Widget_Base
 
         echo '<div id="' . esc_attr('osm-map-' . $this->get_id()) . '" 
         class="osm-map-container" 
-        data-center="' . implode(',', $center_coords) . '"></div>';
+        data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
 
         ?>
         <script type="text/javascript">
@@ -1488,9 +1496,38 @@ class Widget_OSM_Map extends Widget_Base
             jQuery(window).ready(function () {
                 "use strict";
                 const displaySettings = <?php echo wp_json_encode($settings); ?>;
-                const mapId = '<?php echo 'osm-map-' . $this->get_id(); ?>';
+                const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
+
+                // Security: HTML escaping functions to prevent XSS
+                const escapeHtml = function (text) {
+                    if (!text) return '';
+                    const map = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    };
+                    return text.toString().replace(/[&<>"']/g, function (m) {
+                        return map[m];
+                    });
+                };
+
+                // Security: URL escaping function to prevent XSS in href attributes
+                const escapeUrl = function (url) {
+                    if (!url) return '#';
+                    // Basic URL validation and escaping
+                    try {
+                        // If it's a valid URL, return it
+                        new URL(url);
+                        return url;
+                    } catch (e) {
+                        // If not a valid URL, escape it and return as javascript:void(0)
+                        return 'javascript:void(0)';
+                    }
+                };
                 const hasDesktopZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom') && displaySettings.zoom && displaySettings.zoom.hasOwnProperty('size');
                 const hasTabletZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom_tablet') && displaySettings.zoom_tablet && displaySettings.zoom_tablet.hasOwnProperty('size');
                 const hasMobileZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom_mobile') && displaySettings.zoom_mobile && displaySettings.zoom_mobile.hasOwnProperty('size');
@@ -1531,7 +1568,7 @@ class Widget_OSM_Map extends Widget_Base
                     let centerCoords = center.split(',');
                     map.setView(centerCoords, zoomLevel);
                 }
-                
+
                 <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'):?>
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -1606,7 +1643,7 @@ class Widget_OSM_Map extends Widget_Base
                 // install leaflet-mapbox-gl plugin
 
                 L.mapboxGL({
-                    style: 'https://maps.geoapify.com/v1/styles/<?php echo $settings['geoapify_tile']; ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea(__($global_settings['geoapify_key'], 'your-slug')) : null; ?>',
+                    style: 'https://maps.geoapify.com/v1/styles/<?php echo esc_js($settings['geoapify_tile']); ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea(__($global_settings['geoapify_key'], 'your-slug')) : null; ?>',
                     accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea(__($global_settings['mapbox_token'], 'your-slug')) : 'no-token'; ?>'
                 }).addTo(map);
 
@@ -1735,7 +1772,7 @@ class Widget_OSM_Map extends Widget_Base
 
                         // add marker title
                         if (this.marker.marker_title) {
-                            tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${this.marker.marker_title}</h5></div>`;
+                            tooltipContent += `<div class="marker-title"><h5 class="elementor-heading-title elementor-size-default">${escapeHtml(this.marker.marker_title)}</h5></div>`;
                         }
 
                         // marker content
@@ -1743,17 +1780,18 @@ class Widget_OSM_Map extends Widget_Base
 
                         // add marker description
                         if (this.marker.marker_description) {
-                            tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
+                            tooltipContent += `<div class="marker-description">${escapeHtml(this.marker.marker_description)}</div>`;
                         }
 
                         // add marker button
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
-                            let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? this.marker.button_url_target : '_blank';
+                            let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? escapeHtml(this.marker.button_url_target) : '_blank';
+                            let button_url = this.marker.button_url ? escapeUrl(this.marker.button_url) : '#';
                             tooltipContent += `<div class="marker-button elementor-button-wrapper">
-                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href='${this.marker.button_url}' role="button">
+                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href="${button_url}" role="button">
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
-                                                            ${this.marker.button_text}
+                                                            ${escapeHtml(this.marker.button_text)}
                                                         </span>
                                                     </span>
                                                 </a>
@@ -1772,13 +1810,22 @@ class Widget_OSM_Map extends Widget_Base
                                     break;
 
                                 case 'static_close_on':
-                                    marker.bindPopup(tooltipContent,{closeOnClick: false, autoClose: false, closeOnEscapeKey: false}).openPopup();
+                                    marker.bindPopup(tooltipContent, {
+                                        closeOnClick: false,
+                                        autoClose: false,
+                                        closeOnEscapeKey: false
+                                    }).openPopup();
                                     break;
-                                
+
                                 case 'static_close_off':
-                                    marker.bindPopup(tooltipContent,{closeOnClick: false, autoClose: false, closeButton: false, closeOnEscapeKey: false}).openPopup();
+                                    marker.bindPopup(tooltipContent, {
+                                        closeOnClick: false,
+                                        autoClose: false,
+                                        closeButton: false,
+                                        closeOnEscapeKey: false
+                                    }).openPopup();
                                     break;
-                                    
+
                                 case 'tooltip':
 
                                     let tooltipOptions = {};
@@ -1849,7 +1896,10 @@ class Widget_OSM_Map extends Widget_Base
 
             // echo out the markers script while in admin mode.
             // all required scripts will be loaded in header
-            echo is_admin() ? $markers_script : null;
+            if (is_admin()) {
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is intentionally JavaScript output
+                echo $markers_script;
+            }
             ?>
         </script>
         <?php
@@ -1887,7 +1937,7 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         foreach ($styles as $handle => $path) {
-            wp_register_style($handle, $path);
+            wp_register_style($handle, $path, [], self::$ver);
             wp_enqueue_style($handle);
         }
 
@@ -1906,7 +1956,7 @@ class Widget_OSM_Map extends Widget_Base
 
             $dependencies = ['jquery'];
             foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, self::$ver);
+                wp_register_script($handle, $path, $dependencies, self::$ver, true);
                 wp_enqueue_script($handle);
                 $dependencies[] = $handle;
             }
@@ -1921,7 +1971,7 @@ class Widget_OSM_Map extends Widget_Base
         ];
         $deps = [];
         foreach ($scripts as $handle => $path) {
-            wp_register_script($handle, $path, $deps, self::$ver);
+            wp_register_script($handle, $path, $deps, self::$ver, true);
             wp_enqueue_script($handle);
             $deps[] = $handle;
         }
@@ -1949,6 +1999,7 @@ class Widget_OSM_Map extends Widget_Base
             if (wp_script_is($handle, 'done'))
                 return;
             // Print script & mark it as included.
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is intentionally JavaScript output
             echo "<script type=\"text/javascript\" id=\"js-$handle\">\n$js\n</script>\n";
             global $wp_scripts;
             $wp_scripts->done[] = $handle;
@@ -2025,8 +2076,8 @@ class Widget_OSM_Map extends Widget_Base
     {
         if ($showFrom) {
             $calledFrom = debug_backtrace();
-            echo '<strong>' . substr($calledFrom[0]['file'], 1) . '</strong>';
-            echo ' (line <strong>' . $calledFrom[0]['line'] . '</strong>)';
+            echo '<strong>' . esc_html(substr($calledFrom[0]['file'], 1)) . '</strong>';
+            echo ' (line <strong>' . esc_html($calledFrom[0]['line']) . '</strong>)';
         }
         echo "\n<pre class=\"fi-debug\">\n";
 
@@ -2034,6 +2085,6 @@ class Widget_OSM_Map extends Widget_Base
         if ($showHtml) {
             $var = str_replace('<', '&lt;', str_replace('>', '&gt;', $var));
         }
-        echo $var . "\n</pre>\n";
+        echo esc_html($var) . "\n</pre>\n";
     }
 }
