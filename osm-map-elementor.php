@@ -40,8 +40,15 @@ add_action('admin_menu', function () {
         $action = !empty($_REQUEST['action']) && is_string($_REQUEST['action']) ? sanitize_key($_REQUEST['action']) : null;
 
         // grab settings, sanitize, validate and save them
-        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget']) && wp_verify_nonce($_REQUEST['osm_settings_nonce'], 'osm_settings_action')) {
-            $input = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
+        if (
+            $_SERVER['REQUEST_METHOD'] === 'POST'
+            && current_user_can('manage_options')
+            && !empty($action) && $action == 'save_settings'
+            && isset($_POST['osm_widget']) && is_array($_POST['osm_widget'])
+            && isset($_POST['osm_settings_nonce'])
+            && wp_verify_nonce($_POST['osm_settings_nonce'], 'osm_settings_action')
+        ) {
+            $input = isset($_POST['osm_widget']) ? wp_unslash($_POST['osm_widget']) : [];
 
             // sanitize user input
             $osm_settings = [
@@ -50,7 +57,7 @@ add_action('admin_menu', function () {
                 'geoapify_key' => !empty($input['geoapify_key']) ? sanitize_text_field($input['geoapify_key']) : null,
                 'osm_custom' => !empty($input['osm_custom']) ? sanitize_text_field($input['osm_custom']) : null,
                 'osm_custom_attribution' => !empty($input['osm_custom_attribution']) ? sanitize_text_field($input['osm_custom_attribution']) : null,
-                'osm_custom_attribution_url' => !empty($input['osm_custom_attribution_url']) ? sanitize_text_field($input['osm_custom_attribution_url']) : null,
+                'osm_custom_attribution_url' => !empty($input['osm_custom_attribution_url']) ? esc_url_raw($input['osm_custom_attribution_url']) : null,
                 'enable_fontawesome' => !empty($input['enable_fontawesome']) ? sanitize_text_field($input['enable_fontawesome']) : null
             ];
 
@@ -59,10 +66,11 @@ add_action('admin_menu', function () {
 
             // redirect to form with confirmation alert message
             $redirect_url = admin_url('options-general.php');
-            wp_redirect(add_query_arg([
+            wp_safe_redirect(add_query_arg([
                 'page' => 'osm-map-elementor',
                 'action' => 'settings_saved',
             ], $redirect_url));
+            exit;
         }
 
         $osm_settings = get_option('osm_widget');
@@ -91,9 +99,9 @@ add_action('admin_menu', function () {
                             <p><strong>Note:</strong> This setting is required if you wish to use Google Maps to
                                 lookup location coordinates. Need help to get a Google map API key? <a
                                         href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-                                        target="_blank">Read this resource</a>.</p>
+                                        target="_blank" rel="noopener noreferrer">Read this resource</a>.</p>
                             <input type="text" name="osm_widget[gmaps_key]"
-                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea(__($osm_settings['gmaps_key'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_attr($osm_settings['gmaps_key']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -106,9 +114,9 @@ add_action('admin_menu', function () {
                             <p><strong>Note:</strong> This setting is required if you wish to use custom Mapbox /
                                 Geoapify tiles. Need help to get a Mapbox Access Token? <a
                                         href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
-                                        target="_blank">Read this resource</a></p>
+                                        target="_blank" rel="noopener noreferrer">Read this resource</a></p>
                             <input type="text" name="osm_widget[mapbox_token]"
-                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea(__($osm_settings['mapbox_token'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_attr($osm_settings['mapbox_token']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -120,9 +128,9 @@ add_action('admin_menu', function () {
                         <div class="card-content">
                             <p><strong>Note:</strong> This setting is required if you wish to use custom Geoapify
                                 tiles. Need help to get a Geoapify API key. <a
-                                        href="https://www.geoapify.com/maps-api/">Read this resource.</a></p>
+                                        href="https://www.geoapify.com/maps-api/" target="_blank" rel="noopener noreferrer">Read this resource.</a></p>
                             <input type="text" name="osm_widget[geoapify_key]"
-                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea(__($osm_settings['geoapify_key'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_attr($osm_settings['geoapify_key']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -151,19 +159,19 @@ add_action('admin_menu', function () {
                         </div>
                         <div class="card-content">
                             <p><strong>See more tile servers:</strong>
-                                <a href="http://wiki.openstreetmap.org/wiki/Tile_servers">here</a>
+                                <a href="http://wiki.openstreetmap.org/wiki/Tile_servers" target="_blank" rel="noopener noreferrer">here</a>
                                 <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
-                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_textarea(__($osm_settings['osm_custom'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_attr($osm_settings['osm_custom']) : null; ?>"/>
 
                             <br>
                             <p><strong>Additional Attribution</strong>
                             <p>Organization</p>
                             <input type="text" name="osm_widget[osm_custom_attribution]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_textarea(__($osm_settings['osm_custom_attribution'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_attr($osm_settings['osm_custom_attribution']) : null; ?>"/>
                             <p>URL</p>
                             <input type="text" name="osm_widget[osm_custom_attribution_url]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_textarea(__($osm_settings['osm_custom_attribution_url'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_attr($osm_settings['osm_custom_attribution_url']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
