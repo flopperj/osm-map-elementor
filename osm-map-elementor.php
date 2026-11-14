@@ -37,48 +37,61 @@ add_action('elementor/widgets/register', function () {
 });
 
 
+function handle_settings_save()
+{
+    if (!isset($_SERVER['REQUEST_METHOD']) || 'POST' !== $_SERVER['REQUEST_METHOD']) {
+        return;
+    }
+
+    check_admin_referer('osm_settings_action', 'osm_settings_nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('You do not have permission to change these settings.', 'osm-map-elementor'), 403);
+    }
+
+    $input = isset($_POST['osm_widget']) && is_array($_POST['osm_widget'])
+        ? map_deep(wp_unslash($_POST['osm_widget']), 'sanitize_text_field')
+        : [];
+
+    // osm_custom keeps sanitize_text_field only: esc_url_raw would strip the {s}/{z}/{x}/{y} tile placeholders
+    $osm_settings = [
+        'gmaps_key' => !empty($input['gmaps_key']) ? $input['gmaps_key'] : null,
+        'mapbox_token' => !empty($input['mapbox_token']) ? $input['mapbox_token'] : null,
+        'geoapify_key' => !empty($input['geoapify_key']) ? $input['geoapify_key'] : null,
+        'osm_custom' => !empty($input['osm_custom']) ? $input['osm_custom'] : null,
+        'osm_custom_attribution' => !empty($input['osm_custom_attribution']) ? $input['osm_custom_attribution'] : null,
+        'osm_custom_attribution_url' => !empty($input['osm_custom_attribution_url']) ? esc_url_raw($input['osm_custom_attribution_url']) : null,
+        'enable_fontawesome' => !empty($input['enable_fontawesome']) ? $input['enable_fontawesome'] : null
+    ];
+
+    update_option('osm_widget', $osm_settings);
+
+    wp_safe_redirect(add_query_arg([
+        'page' => 'osm-map-elementor',
+        'action' => 'settings_saved',
+    ], admin_url('options-general.php')));
+    exit;
+}
+
 // Add global settings for our widget
 add_action('admin_menu', function () {
-    add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'osm-map-elementor', function () {
+    $page_hook = add_options_page('OSM Map Widget', 'OSM Map Widget', 'manage_options', 'osm-map-elementor', function () {
 
         // queue admin styles
         wp_register_style('osm-map-admin', plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/admin.css'), [], OSM_MAP_VERSION);
         wp_enqueue_style('osm-map-admin');
 
-        $action = !empty($_REQUEST['action']) && is_string($_REQUEST['action']) ? sanitize_key($_REQUEST['action']) : null;
-
-        // grab settings, sanitize, validate and save them
-        if (!empty($action) && $action == 'save_settings' && isset($_REQUEST['osm_widget']) && is_array($_REQUEST['osm_widget']) && wp_verify_nonce($_REQUEST['osm_settings_nonce'], 'osm_settings_action')) {
-            $input = isset($_REQUEST['osm_widget']) ? $_REQUEST['osm_widget'] : [];
-
-            // sanitize user input
-            $osm_settings = [
-                'gmaps_key' => !empty($input['gmaps_key']) ? sanitize_text_field($input['gmaps_key']) : null,
-                'mapbox_token' => !empty($input['mapbox_token']) ? sanitize_text_field($input['mapbox_token']) : null,
-                'geoapify_key' => !empty($input['geoapify_key']) ? sanitize_text_field($input['geoapify_key']) : null,
-                'osm_custom' => !empty($input['osm_custom']) ? sanitize_text_field($input['osm_custom']) : null,
-                'osm_custom_attribution' => !empty($input['osm_custom_attribution']) ? sanitize_text_field($input['osm_custom_attribution']) : null,
-                'osm_custom_attribution_url' => !empty($input['osm_custom_attribution_url']) ? sanitize_text_field($input['osm_custom_attribution_url']) : null,
-                'enable_fontawesome' => !empty($input['enable_fontawesome']) ? sanitize_text_field($input['enable_fontawesome']) : null
-            ];
-
-            // save the sanitized data
-            update_option('osm_widget', $osm_settings);
-
-            // redirect to form with confirmation alert message
-            $redirect_url = admin_url('options-general.php');
-            wp_redirect(add_query_arg([
-                'page' => 'osm-map-elementor',
-                'action' => 'settings_saved',
-            ], $redirect_url));
-        }
-
         $osm_settings = get_option('osm_widget');
+        $setting = static function ($key) use ($osm_settings) {
+            return is_array($osm_settings) && isset($osm_settings[$key]) ? (string) $osm_settings[$key] : '';
+        };
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only flag after a nonce-checked redirect
+        $settings_saved = isset($_GET['action']) && 'settings_saved' === sanitize_key(wp_unslash($_GET['action']));
 
         ?>
         <div id="osm-map-settings">
             <h2>OSM Map Widget Settings</h2>
-            <?php if (!empty($_REQUEST['action']) && sanitize_key($_REQUEST['action']) == 'settings_saved'): ?>
+            <?php if ($settings_saved): ?>
                 <div style="background-color: rgb(255, 251, 204);" id="alert-message" class="updated"><p>
                         <strong><?php echo esc_html__('Settings saved.', 'osm-map-elementor'); ?></strong></p></div>
             <?php endif; ?>
@@ -101,7 +114,7 @@ add_action('admin_menu', function () {
                                         href="https://developers.google.com/maps/documentation/javascript/get-api-key"
                                         target="_blank">Read this resource</a>.</p>
                             <input type="text" name="osm_widget[gmaps_key]"
-                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea($osm_settings['gmaps_key']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('gmaps_key')); ?>"/>
                         </div>
                     </div>
                 </div>
@@ -116,7 +129,7 @@ add_action('admin_menu', function () {
                                         href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
                                         target="_blank">Read this resource</a></p>
                             <input type="text" name="osm_widget[mapbox_token]"
-                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea($osm_settings['mapbox_token']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('mapbox_token')); ?>"/>
                         </div>
                     </div>
                 </div>
@@ -130,7 +143,7 @@ add_action('admin_menu', function () {
                                 tiles. Need help to get a Geoapify API key. <a
                                         href="https://www.geoapify.com/maps-api/">Read this resource.</a></p>
                             <input type="text" name="osm_widget[geoapify_key]"
-                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea($osm_settings['geoapify_key']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('geoapify_key')); ?>"/>
                         </div>
                     </div>
                 </div>
@@ -162,16 +175,16 @@ add_action('admin_menu', function () {
                                 <a href="http://wiki.openstreetmap.org/wiki/Tile_servers">here</a>
                                 <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
-                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_textarea($osm_settings['osm_custom']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('osm_custom')); ?>"/>
 
                             <br>
                             <p><strong>Additional Attribution</strong>
                             <p>Organization</p>
                             <input type="text" name="osm_widget[osm_custom_attribution]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_textarea($osm_settings['osm_custom_attribution']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('osm_custom_attribution')); ?>"/>
                             <p>URL</p>
                             <input type="text" name="osm_widget[osm_custom_attribution_url]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_textarea($osm_settings['osm_custom_attribution_url']) : null; ?>"/>
+                                   value="<?php echo esc_attr($setting('osm_custom_attribution_url')); ?>"/>
                         </div>
                     </div>
                 </div>
@@ -183,6 +196,7 @@ add_action('admin_menu', function () {
 
         <?php
     });
+    add_action('load-' . $page_hook, __NAMESPACE__ . '\\handle_settings_save');
 });
 
 // Require Elementor plugin to be installed and activated
@@ -197,6 +211,7 @@ add_action('admin_init', function () {
 
         deactivate_plugins(plugin_basename(__FILE__));
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- clears core's activation notice flag; no input is processed.
         if (isset($_GET['activate'])) {
             unset($_GET['activate']);
         }
@@ -204,8 +219,23 @@ add_action('admin_init', function () {
 });
 
 // queue jquery in header
-add_action('init', function () {
-    add_filter('wp_enqueue_scripts', function () {
-        wp_enqueue_script('jquery', false, [], OSM_MAP_VERSION, false);
-    }, 1);
-}, 1);
+function enqueue_jquery_in_head()
+{
+    wp_enqueue_script('jquery');
+}
+add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_jquery_in_head', 1);
+
+function render_elementor_version_notice($installed_version)
+{
+    if (!$installed_version || !current_user_can('update_plugins') || version_compare($installed_version, OSM_MAP_MIN_ELEMENTOR_VERSION, '>=')) {
+        return;
+    }
+
+    /* translators: %s: minimum supported Elementor version. */
+    $message = sprintf(__('OSM Map Widget for Elementor is tested with Elementor %s or newer. Please update Elementor.', 'osm-map-elementor'), OSM_MAP_MIN_ELEMENTOR_VERSION);
+    printf('<div class="notice notice-warning"><p>%s</p></div>', esc_html($message));
+}
+
+add_action('admin_notices', function () {
+    render_elementor_version_notice(defined('ELEMENTOR_VERSION') ? ELEMENTOR_VERSION : null);
+});
