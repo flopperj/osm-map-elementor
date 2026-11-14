@@ -229,8 +229,97 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertNull($google->ver);
     }
 
+    private function render_frontend(array $settings = [], $id = 'abc1234')
+    {
+        set_current_screen('front');
+        $widget = $this->make_widget($settings, $id);
+
+        ob_start();
+        $widget->render_content();
+
+        return ob_get_clean();
+    }
+
+    private function inline_scripts_after_markers_handle()
+    {
+        return implode("\n", (array) wp_scripts()->get_data('leaflet-fa-markers', 'after'));
+    }
+
+    public function test_frontend_render_attaches_the_script_to_the_vendor_handle_and_prints_no_script_tag()
+    {
+        $html = $this->render_frontend();
+
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringContainsString("mapId = 'osm-map-abc1234'", $this->inline_scripts_after_markers_handle());
+    }
+
+    public function test_admin_render_prints_exactly_one_identified_script_tag()
+    {
+        $html = $this->render_admin();
+
+        $this->assertSame(1, substr_count($html, '<script'));
+        $this->assertMatchesRegularExpression('/<script[^>]*id=["\']js-marker-abc1234["\']/', $html);
+        $this->assertStringContainsString("mapId = 'osm-map-abc1234'", $html);
+    }
+
+    public function test_two_frontend_instances_each_get_their_own_script()
+    {
+        $this->render_frontend([], 'abc1234');
+        $this->render_frontend([], 'def5678');
+
+        $scripts = $this->inline_scripts_after_markers_handle();
+
+        $this->assertStringContainsString("mapId = 'osm-map-abc1234'", $scripts);
+        $this->assertStringContainsString("mapId = 'osm-map-def5678'", $scripts);
+    }
+
+    public function test_plugin_does_not_hook_the_footer_script_printer()
+    {
+        $this->render_frontend();
+
+        $owners = [];
+        foreach (wp_filter_callbacks_for('wp_print_footer_scripts') as $callback) {
+            if ($callback instanceof Closure) {
+                $owners[] = (new ReflectionFunction($callback))->getFileName();
+            }
+        }
+
+        $this->assertNotContains(dirname(__DIR__) . '/osm-map.php', $owners);
+    }
+
+    public function test_vendor_script_chain_depends_on_jquery()
+    {
+        $this->render_frontend();
+
+        $this->assertContains('jquery', wp_scripts()->registered['leaflet']->deps);
+    }
+
+    public function test_script_uses_the_document_ready_form_and_a_protocol_allowlist_for_links()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString('jQuery(function () {', $js);
+        $this->assertStringNotContainsString('jQuery(window).ready', $js);
+        $this->assertStringContainsString("['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)", $js);
+        $this->assertStringNotContainsString("return 'javascript:void(0)'", $js);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));
     }
+}
+
+function wp_filter_callbacks_for($hook)
+{
+    $callbacks = [];
+    if (isset($GLOBALS['wp_filter'][$hook])) {
+        foreach ($GLOBALS['wp_filter'][$hook]->callbacks as $priority) {
+            foreach ($priority as $entry) {
+                $callbacks[] = $entry['function'];
+            }
+        }
+    }
+
+    return $callbacks;
 }

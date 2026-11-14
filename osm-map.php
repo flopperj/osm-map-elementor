@@ -1528,13 +1528,9 @@ class Widget_OSM_Map extends Widget_Base
         class="osm-map-container" 
         data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
 
+        ob_start();
         ?>
-        <script type="text/javascript">
-            <?php
-            // start output buffer
-            ob_start();
-            ?>
-            jQuery(window).ready(function () {
+            jQuery(function () {
                 "use strict";
                 const displaySettings = <?php echo wp_json_encode($settings); ?>;
                 const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
@@ -1559,14 +1555,11 @@ class Widget_OSM_Map extends Widget_Base
                 // Security: URL escaping function to prevent XSS in href attributes
                 const escapeUrl = function (url) {
                     if (!url) return '#';
-                    // Basic URL validation and escaping
                     try {
-                        // If it's a valid URL, return it
-                        new URL(url);
-                        return url;
+                        const parsed = new URL(url, window.location.href);
+                        return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol) ? escapeHtml(url) : '#';
                     } catch (e) {
-                        // If not a valid URL, escape it and return as javascript:void(0)
-                        return 'javascript:void(0)';
+                        return '#';
                     }
                 };
                 const hasDesktopZoomLevel = displaySettings && displaySettings.hasOwnProperty('zoom') && displaySettings.zoom && displaySettings.zoom.hasOwnProperty('size');
@@ -1932,28 +1925,13 @@ class Widget_OSM_Map extends Widget_Base
                 }
 
             });
-            <?php
-            $markers_script = ob_get_clean();
-
-            // echo out the markers script while in admin mode.
-            // all required scripts will be loaded in header
-            if (is_admin()) {
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is intentionally JavaScript output
-                echo $markers_script;
-            }
-            ?>
-        </script>
         <?php
+        $markers_script = ob_get_clean();
 
-        // enqueue marker js only after all dependencies have been queued
-        if (!is_admin()) {
-            $this->__enqueue_inline_script('marker-' . $this->get_id(), $markers_script, [
-                'jquery',
-                'leaflet',
-                'mapbox-gl',
-                'leaflet-mapbox-gl',
-                'leaflet-fa-markers'
-            ], true);
+        if (is_admin()) {
+            wp_print_inline_script_tag($markers_script, ['id' => 'js-marker-' . $this->get_id()]);
+        } else {
+            wp_add_inline_script('leaflet-fa-markers', $markers_script);
         }
     }
 
@@ -2015,66 +1993,12 @@ class Widget_OSM_Map extends Widget_Base
             'leaflet-mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet-mapbox-gl.js'),
             'leaflet-fa-markers' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet-fa-markers/L.Icon.FontAwesome.js'),
         ];
-        $deps = [];
+        $deps = ['jquery'];
         foreach ($scripts as $handle => $path) {
             wp_register_script($handle, $path, $deps, self::$ver, true);
             wp_enqueue_script($handle);
             $deps[] = $handle;
         }
-    }
-
-    /**
-     * Enqueue inline Javascript.
-     * @param string $handle Identifying name for script
-     * @param $js
-     * @param array $deps (optional) Array of script names on which this script depends
-     * @param bool $in_footer (optional) Whether to enqueue the script before </head> or before </body>
-     *
-     * @return null
-     * @see wp_enqueue_script().
-     *
-     * KNOWN BUG: Inline scripts cannot be enqueued before
-     *  any inline scripts it depends on, (unless they are
-     *  placed in header, and the dependant in footer).
-     */
-    private function __enqueue_inline_script($handle, $js, $deps = array(), $in_footer = false)
-    {
-        // Callback for printing inline script.
-        $cb = function () use ($handle, $js) {
-            // Ensure script is only included once.
-            if (wp_script_is($handle, 'done'))
-                return;
-            // Print script & mark it as included.
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is intentionally JavaScript output
-            echo "<script type=\"text/javascript\" id=\"js-$handle\">\n$js\n</script>\n";
-            global $wp_scripts;
-            $wp_scripts->done[] = $handle;
-        };
-        // (`wp_print_scripts` is called in header and footer, but $cb has re-inclusion protection.)
-        $hook = $in_footer ? 'wp_print_footer_scripts' : 'wp_print_scripts';
-
-        // If no dependencies, simply hook into header or footer.
-        if (empty($deps)) {
-            add_action($hook, $cb);
-            return;
-        }
-
-        // Delay printing script until all dependencies have been included.
-        $cb_maybe = function () use ($deps, $in_footer, $cb, &$cb_maybe) {
-            foreach ($deps as &$dep) {
-                if (!wp_script_is($dep, 'done')) {
-                    // Dependencies not included in head, try again in footer.
-                    if ($in_footer) {
-                        add_action('wp_print_footer_scripts', $cb_maybe, 11);
-                    } else {
-                        // Dependencies were not included in `wp_head` or `wp_footer`.
-                    }
-                    return;
-                }
-            }
-            call_user_func($cb);
-        };
-        add_action($hook, $cb_maybe, 0);
     }
 
     /**
