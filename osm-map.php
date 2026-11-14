@@ -10,7 +10,6 @@ require_once('constants.php');
 
 use Elementor\Core\Kits\Documents\Tabs\Global_Colors;
 use Elementor\Core\Kits\Documents\Tabs\Global_Typography;
-use Elementor\Core\Breakpoints\Manager;
 use Elementor\Widget_Base;
 use Elementor\Repeater;
 use Elementor\Controls_Manager;
@@ -126,6 +125,45 @@ class Widget_OSM_Map extends Widget_Base
     public function get_style_depends()
     {
         return ['leaflet'];
+    }
+
+    /**
+     * Tiles selectable in the widget; also the allowlist applied when rendering.
+     *
+     * @return string[]
+     */
+    private static function __tile_options()
+    {
+        return [
+            'osm-carto' => __('OSM Carto (Free)', 'osm-map-elementor'),
+            'osm-bright' => __('Geoapify - OSM Bright', 'osm-map-elementor'),
+            'osm-bright-grey' => __('Geoapify - OSM Bright Grey', 'osm-map-elementor'),
+            'osm-bright-smooth' => __('Geoapify - OSM Bright Smooth', 'osm-map-elementor'),
+            'klokantech-basic' => __('Geoapify - Klokantech Basic', 'osm-map-elementor'),
+            'osm-liberty' => __('Geoapify - OSM Liberty', 'osm-map-elementor'),
+            'maptiler-3d' => __('Geoapify - MapTiler 3D', 'osm-map-elementor'),
+            'toner' => __('Geoapify - Toner', 'osm-map-elementor'),
+            'toner-grey' => __('Geoapify - Toner Grey', 'osm-map-elementor'),
+            'positron' => __('Geoapify - Positron', 'osm-map-elementor'),
+            'positron-blue' => __('Geoapify - Positron Blue', 'osm-map-elementor'),
+            'positron-red' => __('Geoapify - Positron Red', 'osm-map-elementor'),
+            'dark-matter' => __('Geoapify - Dark Matter', 'osm-map-elementor'),
+            'dark-matter-brown' => __('Geoapify - Dark Matter Brown', 'osm-map-elementor'),
+            'dark-matter-dark-grey' => __('Geoapify - Dark Matter Dark Grey', 'osm-map-elementor'),
+            'dark-matter-dark-purple' => __('Geoapify - Dark Matter Dark Purple', 'osm-map-elementor'),
+            'dark-matter-purple-roads' => __('Geoapify - Dark Matter Purple Roads', 'osm-map-elementor'),
+            'dark-matter-yellow-roads' => __('Geoapify - Dark Matter Yellow Roads', 'osm-map-elementor'),
+            'stadia-osm-bright' => __('Stadia - OSM Bright', 'osm-map-elementor'),
+            'stadia-outdoors' => __('Stadia - Outdoors', 'osm-map-elementor'),
+            'stadia-alidade-smooth' => __('Stadia - Alidade Smooth', 'osm-map-elementor'),
+            'stadia-alidade-smooth-dark' => __('Stadia - Alidade Smooth Dark', 'osm-map-elementor'),
+            'stadia-alidade-satellite' => __('Stadia - Alidade Satellite', 'osm-map-elementor'),
+            'stadia-stamen-toner' => __('Stadia - Stamen Toner', 'osm-map-elementor'),
+            'stadia-stamen-toner-lite' => __('Stadia - Stamen Toner Lite', 'osm-map-elementor'),
+            'stadia-stamen-terrain' => __('Stadia - Stamen Terrain', 'osm-map-elementor'),
+            'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map-elementor'),
+            'custom-tile' => __('Custom Map Tile', 'osm-map-elementor'),
+        ];
     }
 
     /**
@@ -295,7 +333,12 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor')
+                'raw' => sprintf(
+                    '<div class="elementor-control-field-description">%s <a target="_blank" href="%s">%s</a></div>',
+                    esc_html__('To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings', 'osm-map-elementor'),
+                    esc_url(admin_url('options-general.php?page=osm-map-elementor')),
+                    esc_html__('here', 'osm-map-elementor')
+                )
             ]
         );
 
@@ -373,7 +416,7 @@ class Widget_OSM_Map extends Widget_Base
                 'default' => [
                     []
                 ],
-                'title_field' => '{{{ marker_title }}}'
+                'title_field' => '{{ marker_title }}'
             ]
         );
 
@@ -413,7 +456,12 @@ class Widget_OSM_Map extends Widget_Base
                 [
                     'label' => __('Important Note', 'osm-map-elementor'),
                     'type' => Controls_Manager::RAW_HTML,
-                    'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor'),
+                    'raw' => sprintf(
+                        '<div class="elementor-control-field-description">%s <a target="_blank" href="%s">%s</a></div>',
+                        esc_html__('To take advantage of custom tiles in markers, please update API keys in global settings', 'osm-map-elementor'),
+                        esc_url(admin_url('options-general.php?page=osm-map-elementor')),
+                        esc_html__('here', 'osm-map-elementor')
+                    ),
                     'separator' => 'after'
                 ]
             );
@@ -425,36 +473,7 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Tile', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'osm-carto',
-                'options' => [
-                    'osm-carto' => __('OSM Carto (Free)', 'osm-map-elementor'),
-                    'osm-bright' => __('Geoapify - OSM Bright', 'osm-map-elementor'),
-                    'osm-bright-grey' => __('Geoapify - OSM Bright Grey', 'osm-map-elementor'),
-                    'osm-bright-smooth' => __('Geoapify - OSM Bright Smooth', 'osm-map-elementor'),
-                    'klokantech-basic' => __('Geoapify - Klokantech Basic', 'osm-map-elementor'),
-                    'osm-liberty' => __('Geoapify - OSM Liberty', 'osm-map-elementor'),
-                    'maptiler-3d' => __('Geoapify - MapTiler 3D', 'osm-map-elementor'),
-                    'toner' => __('Geoapify - Toner', 'osm-map-elementor'),
-                    'toner-grey' => __('Geoapify - Toner Grey', 'osm-map-elementor'),
-                    'positron' => __('Geoapify - Positron', 'osm-map-elementor'),
-                    'positron-blue' => __('Geoapify - Positron Blue', 'osm-map-elementor'),
-                    'positron-red' => __('Geoapify - Positron Red', 'osm-map-elementor'),
-                    'dark-matter' => __('Geoapify - Dark Matter', 'osm-map-elementor'),
-                    'dark-matter-brown' => __('Geoapify - Dark Matter Brown', 'osm-map-elementor'),
-                    'dark-matter-dark-grey' => __('Geoapify - Dark Matter Dark Grey', 'osm-map-elementor'),
-                    'dark-matter-dark-purple' => __('Geoapify - Dark Matter Dark Purple', 'osm-map-elementor'),
-                    'dark-matter-purple-roads' => __('Geoapify - Dark Matter Purple Roads', 'osm-map-elementor'),
-                    'dark-matter-yellow-roads' => __('Geoapify - Dark Matter Yellow Roads', 'osm-map-elementor'),
-                    'stadia-osm-bright' => __('Stadia - OSM Bright', 'osm-map-elementor'),
-                    'stadia-outdoors' => __('Stadia - Outdoors', 'osm-map-elementor'),
-                    'stadia-alidade-smooth' => __('Stadia - Alidade Smooth', 'osm-map-elementor'),
-                    'stadia-alidade-smooth-dark' => __('Stadia - Alidade Smooth Dark', 'osm-map-elementor'),
-                    'stadia-alidade-satellite' => __('Stadia - Alidade Satellite', 'osm-map-elementor'),
-                    'stadia-stamen-toner' => __('Stadia - Stamen Toner', 'osm-map-elementor'),
-                    'stadia-stamen-toner-lite' => __('Stadia - Stamen Toner Lite', 'osm-map-elementor'),
-                    'stadia-stamen-terrain' => __('Stadia - Stamen Terrain', 'osm-map-elementor'),
-                    'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map-elementor'),
-                    'custom-tile' => __('Custom Map Tile', 'osm-map-elementor'),
-                ]
+                'options' => self::__tile_options()
             ]
         );
 
@@ -563,7 +582,14 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor'),
+                'raw' => sprintf(
+                    '<div class="elementor-control-field-description">%1$s <strong>%2$s</strong> %3$s <a target="_blank" href="%4$s">%5$s</a></div>',
+                    esc_html__('If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the', 'osm-map-elementor'),
+                    esc_html__('Font Awesome', 'osm-map-elementor'),
+                    esc_html__('setting in the global settings', 'osm-map-elementor'),
+                    esc_url(admin_url('options-general.php?page=osm-map-elementor')),
+                    esc_html__('here', 'osm-map-elementor')
+                ),
                 'condition' => [
                     'icon_type' => 'fontawesome'
                 ]
@@ -1443,7 +1469,11 @@ class Widget_OSM_Map extends Widget_Base
         $global_settings = get_option('osm_widget');
         $settings = $this->get_settings_for_display();
         $markers = $this->get_settings_for_display('marker_list');
-        $settings['breakpoints'] = \Elementor\Plugin::$instance->breakpoints->get_breakpoints();
+        $breakpoints_config = \Elementor\Plugin::$instance->breakpoints->get_breakpoints_config();
+        $settings['breakpoints'] = [
+            'sm' => (int)($breakpoints_config['mobile']['value'] ?? 767),
+            'md' => (int)($breakpoints_config['tablet']['value'] ?? 1024),
+        ];
 
         // Ensure zoom settings exist and have proper defaults
         if (!isset($settings['zoom']) || !is_array($settings['zoom'])) {
@@ -1469,16 +1499,27 @@ class Widget_OSM_Map extends Widget_Base
                     continue;
                 }
 
-                $loc = explode(',', $marker['marker_coords']);
-                if (!empty($loc) && sizeof($loc) == 2) {
-                    $coords[] = [
-                        'marker' => $marker,
-                        'lat' => $loc[0],
-                        'lng' => $loc[1]
-                    ];
+                $parsed = $this->__parse_marker_coords($marker['marker_coords'] ?? null);
+                if (null === $parsed) {
+                    continue;
                 }
+
+                $marker['button_url'] = !empty($marker['button_url']) ? esc_url_raw($marker['button_url'], ['http', 'https', 'mailto', 'tel']) : '';
+                $marker['button_url_target'] = in_array($marker['button_url_target'] ?? '', ['_self', '_blank'], true) ? $marker['button_url_target'] : '_blank';
+                $coords[] = [
+                    'marker' => $marker,
+                    'lat' => $parsed['lat'],
+                    'lng' => $parsed['lng']
+                ];
             }
         }
+
+        $custom_tile_url = !empty($global_settings['osm_custom']) ? $global_settings['osm_custom'] : '';
+        $custom_attribution = '<a href="' . esc_url(!empty($global_settings['osm_custom_attribution_url']) ? $global_settings['osm_custom_attribution_url'] : '') . '" target="_blank" rel="noopener">'
+            . esc_html(!empty($global_settings['osm_custom_attribution']) ? $global_settings['osm_custom_attribution'] : '')
+            . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+        $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
+        $geoapify_tile = array_key_exists($requested_tile, self::__tile_options()) ? $requested_tile : 'osm-carto';
 
         // get center coordinates for our map
         $center_coords = !empty($coords) ? $this->__get_center_coords($coords) : [];
@@ -1569,69 +1610,69 @@ class Widget_OSM_Map extends Widget_Base
                     map.setView(centerCoords, zoomLevel);
                 }
 
-                <?php if(empty($settings['geoapify_tile']) || $settings['geoapify_tile'] == 'osm-carto'):?>
+                <?php if('osm-carto' === $geoapify_tile):?>
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-osm-bright'):?>
+                <?php elseif( 'stadia-osm-bright' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-outdoors'):?>
+                <?php elseif( 'stadia-outdoors' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-smooth'):?>
+                <?php elseif( 'stadia-alidade-smooth' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-smooth-dark'):?>
+                <?php elseif( 'stadia-alidade-smooth-dark' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-alidade-satellite'):?>
+                <?php elseif( 'stadia-alidade-satellite' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/data/satellite/{z}/{x}/{y}.jpg', {
                     attribution: '&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-toner'):?>
+                <?php elseif( 'stadia-stamen-toner' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-toner-lite'):?>
+                <?php elseif( 'stadia-stamen-toner-lite' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-terrain'):?>
+                <?php elseif( 'stadia-stamen-terrain' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}@2x.png', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'stadia-stamen-watercolor'):?>
+                <?php elseif( 'stadia-stamen-watercolor' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', {
                     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 16
                 }).addTo(map);
 
-                <?php elseif( $settings['geoapify_tile'] == 'custom-tile'):?>
-                L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea($global_settings['osm_custom']) : null; ?>', {
-                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea($global_settings['osm_custom_attribution_url']) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea($global_settings['osm_custom_attribution']) : null; ?></a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                <?php elseif( 'custom-tile' === $geoapify_tile):?>
+                L.tileLayer(<?php echo wp_json_encode($custom_tile_url); ?>, {
+                    attribution: <?php echo wp_json_encode($custom_attribution); ?>,
                     maxZoom: 20
                 }).addTo(map);
 
@@ -1643,8 +1684,8 @@ class Widget_OSM_Map extends Widget_Base
                 // install leaflet-mapbox-gl plugin
 
                 L.mapboxGL({
-                    style: 'https://maps.geoapify.com/v1/styles/<?php echo esc_js($settings['geoapify_tile']); ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea($global_settings['geoapify_key']) : null; ?>',
-                    accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea($global_settings['mapbox_token']) : 'no-token'; ?>'
+                    style: <?php echo wp_json_encode(sprintf('https://maps.geoapify.com/v1/styles/%s/style.json?apiKey=%s', rawurlencode($geoapify_tile), rawurlencode(!empty($global_settings['geoapify_key']) ? $global_settings['geoapify_key'] : ''))); ?>,
+                    accessToken: <?php echo wp_json_encode(!empty($global_settings['mapbox_token']) ? $global_settings['mapbox_token'] : 'no-token'); ?>
                 }).addTo(map);
 
                 <?php endif; ?>
@@ -1951,12 +1992,17 @@ class Widget_OSM_Map extends Widget_Base
 
             // add google maps API
             if (!empty($widget_settings['gmaps_key'])) {
-                $admin_scripts['google-maps'] = 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . esc_textarea($widget_settings['gmaps_key']);
+                $admin_scripts['google-maps'] = add_query_arg([
+                    'libraries' => 'places',
+                    'callback' => 'initOSMEditorControls',
+                    'loading' => 'async',
+                    'key' => rawurlencode($widget_settings['gmaps_key']),
+                ], 'https://maps.googleapis.com/maps/api/js');
             }
 
             $dependencies = ['jquery'];
             foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, self::$ver, true);
+                wp_register_script($handle, $path, $dependencies, 'google-maps' === $handle ? null : self::$ver, true);
                 wp_enqueue_script($handle);
                 $dependencies[] = $handle;
             }
@@ -2032,6 +2078,32 @@ class Widget_OSM_Map extends Widget_Base
     }
 
     /**
+     * Parses a "lat,lng" string into floats, rejecting malformed or out-of-range values.
+     *
+     * @param mixed $raw
+     * @return array{lat: float, lng: float}|null
+     */
+    private function __parse_marker_coords($raw)
+    {
+        if (!is_string($raw)) {
+            return null;
+        }
+
+        $parts = array_map('trim', explode(',', $raw));
+        if (2 !== count($parts) || !is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            return null;
+        }
+
+        $lat = (float)$parts[0];
+        $lng = (float)$parts[1];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            return null;
+        }
+
+        return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    /**
      * Calculates center coordinates given a list of coordinates
      * @param $coords
      * @return float[]|int[]
@@ -2063,28 +2135,5 @@ class Widget_OSM_Map extends Widget_Base
         $lat = atan2($zsin, $sqrt);
 
         return array($lat * 180 / pi(), $lon * 180 / pi());
-    }
-
-    /**
-     * Prints out debug information about given variable.
-     *
-     * @param boolean $var Variable to show debug information for.
-     * @param boolean $showHtml If set to true, the method prints the debug data in a screen-friendly way.
-     * @param boolean $showFrom If set to true, the method prints from where the function was called.
-     */
-    private function __debug($var = false, $showHtml = false, $showFrom = true)
-    {
-        if ($showFrom) {
-            $calledFrom = debug_backtrace();
-            echo '<strong>' . esc_html(substr($calledFrom[0]['file'], 1)) . '</strong>';
-            echo ' (line <strong>' . esc_html($calledFrom[0]['line']) . '</strong>)';
-        }
-        echo "\n<pre class=\"fi-debug\">\n";
-
-        $var = print_r($var, true);
-        if ($showHtml) {
-            $var = str_replace('<', '&lt;', str_replace('>', '&gt;', $var));
-        }
-        echo esc_html($var) . "\n</pre>\n";
     }
 }
