@@ -48,7 +48,7 @@ class Widget_OSM_Map extends Widget_Base
         parent::__construct($data, $args);
 
         // add these scripts later
-        $this->__queue_assets();
+        $this->osm_queue_assets();
     }
 
     /**
@@ -132,7 +132,7 @@ class Widget_OSM_Map extends Widget_Base
      *
      * @return string[]
      */
-    private static function __tile_options()
+    private static function osm_tile_options()
     {
         return [
             'osm-carto' => __('OSM Carto (Free)', 'osm-map-elementor'),
@@ -177,16 +177,16 @@ class Widget_OSM_Map extends Widget_Base
     {
 
         // register content controls
-        $this->__register_content_controls();
+        $this->osm_register_content_controls();
 
         // register style controls
-        $this->__register_style_controls();
+        $this->osm_register_style_controls();
     }
 
     /**
      * Registers content controls
      */
-    private function __register_content_controls()
+    private function osm_register_content_controls()
     {
 
         $repeater = new Repeater();
@@ -435,7 +435,7 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * Registers style controls
      */
-    private function __register_style_controls()
+    private function osm_register_style_controls()
     {
 
         $global_settings = get_option('osm_widget');
@@ -473,7 +473,7 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Tile', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'osm-carto',
-                'options' => self::__tile_options()
+                'options' => self::osm_tile_options()
             ]
         );
 
@@ -1499,7 +1499,7 @@ class Widget_OSM_Map extends Widget_Base
                     continue;
                 }
 
-                $parsed = $this->__parse_marker_coords($marker['marker_coords'] ?? null);
+                $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
                 if (null === $parsed) {
                     continue;
                 }
@@ -1519,10 +1519,10 @@ class Widget_OSM_Map extends Widget_Base
             . esc_html(!empty($global_settings['osm_custom_attribution']) ? $global_settings['osm_custom_attribution'] : '')
             . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
         $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
-        $geoapify_tile = array_key_exists($requested_tile, self::__tile_options()) ? $requested_tile : 'osm-carto';
+        $geoapify_tile = array_key_exists($requested_tile, self::osm_tile_options()) ? $requested_tile : 'osm-carto';
 
         // get center coordinates for our map
-        $center_coords = !empty($coords) ? $this->__get_center_coords($coords) : [];
+        $center_coords = !empty($coords) ? $this->osm_get_center_coords($coords) : [];
 
         echo '<div id="' . esc_attr('osm-map-' . $this->get_id()) . '" 
         class="osm-map-container" 
@@ -1715,7 +1715,7 @@ class Widget_OSM_Map extends Widget_Base
                 ];
 
                 // update icon offset
-                if (!empty($settings['icon_offset_type']) && $settings['icon_offset_type'] == 'custom') {
+                if (!empty($settings['icon_offset_type']) && 'custom' === $settings['icon_offset_type']) {
                     $fa_icon_options['iconXOffset'] = $icon_offset['xOffset'];
                     $fa_icon_options['iconYOffset'] = $icon_offset['yOffset'];
                 }
@@ -1756,35 +1756,34 @@ class Widget_OSM_Map extends Widget_Base
                 ];
 
                 // size of the icon
-                if (!empty($settings['custom_icon_image_size_type']) && $settings['custom_icon_image_size_type'] == 'custom' && !empty($icon_size['width']) && !empty($icon_size['height'])) {
+                if (!empty($settings['custom_icon_image_size_type']) && 'custom' === $settings['custom_icon_image_size_type'] && !empty($icon_size['width']) && !empty($icon_size['height'])) {
                     $icon_options['iconSize'] = [$icon_size['width'], $icon_size['height']];
                 }
 
                 // size of the shadow
-                if (!empty($settings['custom_icon_shadow_size_type']) && $settings['custom_icon_shadow_size_type'] == 'custom' && !empty($shadow_size['width']) && !empty($shadow_size['height'])) {
+                if (!empty($settings['custom_icon_shadow_size_type']) && 'custom' === $settings['custom_icon_shadow_size_type'] && !empty($shadow_size['width']) && !empty($shadow_size['height'])) {
                     $icon_options['shadowSize'] = [$shadow_size['width'], $shadow_size['height']];
                 }
 
                 // point of the icon which will correspond to marker's location
-                if (!empty($settings['custom_icon_image_anchor_type']) && $settings['custom_icon_image_anchor_type'] == 'custom' && is_numeric($icon_anchor['xOffset']) && is_numeric($icon_anchor['yOffset'])) {
+                if (!empty($settings['custom_icon_image_anchor_type']) && 'custom' === $settings['custom_icon_image_anchor_type'] && is_numeric($icon_anchor['xOffset']) && is_numeric($icon_anchor['yOffset'])) {
                     $icon_options['iconAnchor'] = [$icon_anchor['xOffset'], $icon_anchor['yOffset']];
                 }
 
                 // point of the icon which will correspond to marker's location
                 // the same for the shadow
-                if (!empty($settings['custom_icon_shadow_anchor_type']) && $settings['custom_icon_shadow_anchor_type'] == 'custom' && is_numeric($shadow_anchor['xOffset']) && is_numeric($shadow_anchor['yOffset'])) {
+                if (!empty($settings['custom_icon_shadow_anchor_type']) && 'custom' === $settings['custom_icon_shadow_anchor_type'] && is_numeric($shadow_anchor['xOffset']) && is_numeric($shadow_anchor['yOffset'])) {
                     $icon_options['shadowAnchor'] = [$shadow_anchor['xOffset'], $shadow_anchor['yOffset']];
                 }
 
                 //  point from which the popup should open relative to the iconAnchor
-                if (!empty($settings['custom_icon_image_popup_anchor_type']) && $settings['custom_icon_image_popup_anchor_type'] == 'custom' && is_numeric($popup_anchor['xOffset']) && is_numeric($popup_anchor['yOffset'])) {
+                if (!empty($settings['custom_icon_image_popup_anchor_type']) && 'custom' === $settings['custom_icon_image_popup_anchor_type'] && is_numeric($popup_anchor['xOffset']) && is_numeric($popup_anchor['yOffset'])) {
                     $icon_options['popupAnchor'] = [$popup_anchor['xOffset'], $popup_anchor['yOffset']];
                 }
                 ?>
                 markerIcon = L.icon(<?php echo wp_json_encode($icon_options)?>);
                 markerOptions.icon = markerIcon;
                 <?php endif; ?>
-                <?php break; ?>
                 <?php endswitch; ?>
 
                 /**
@@ -1864,7 +1863,7 @@ class Widget_OSM_Map extends Widget_Base
 
                                     let tooltipOptions = {};
 
-                                <?php if($icon_type == 'fontawesome'): ?>
+                                <?php if('fontawesome' === $icon_type): ?>
                                     // update offset for fontawesome markers
                                     tooltipOptions.direction = "top";
                                     tooltipOptions.offset = [0, -50];
@@ -1938,7 +1937,7 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * queue assets needed by maps widget
      */
-    private function __queue_assets()
+    private function osm_queue_assets()
     {
         // grab global settings
         $widget_settings = get_option('osm_widget', []);
@@ -1951,7 +1950,7 @@ class Widget_OSM_Map extends Widget_Base
         ];
 
         // load fontawesome
-        if (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings) || !empty($widget_settings['enable_fontawesome'])) {
+        if ((!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings)) || !empty($widget_settings['enable_fontawesome'])) {
             $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css');
         }
 
@@ -2007,7 +2006,7 @@ class Widget_OSM_Map extends Widget_Base
      * @param mixed $raw
      * @return array{lat: float, lng: float}|null
      */
-    private function __parse_marker_coords($raw)
+    private function osm_parse_marker_coords($raw)
     {
         if (!is_string($raw)) {
             return null;
@@ -2032,7 +2031,7 @@ class Widget_OSM_Map extends Widget_Base
      * @param $coords
      * @return float[]|int[]
      */
-    private function __get_center_coords($coords)
+    private function osm_get_center_coords($coords)
     {
         $count_coords = count($coords);
         $xcos = 0.0;

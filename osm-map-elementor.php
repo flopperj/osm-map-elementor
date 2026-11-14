@@ -155,7 +155,7 @@ add_action('admin_menu', function () {
                             <label class="switch" style="margin-left: auto; margin-right: 20px;">
                                 <input type="checkbox" name="osm_widget[enable_fontawesome]"
                                        value="1"
-                                    <?php echo is_array($osm_settings) && !array_key_exists('enable_fontawesome', $osm_settings) || !empty($osm_settings['enable_fontawesome']) ? "checked='checked'" : null; ?>>
+                                    <?php echo (is_array($osm_settings) && !array_key_exists('enable_fontawesome', $osm_settings)) || !empty($osm_settings['enable_fontawesome']) ? "checked='checked'" : null; ?>>
                                 <span class="slider round"></span>
                             </label>
                         </div>
