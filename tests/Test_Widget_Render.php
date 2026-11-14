@@ -215,6 +215,17 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('href="' . $settings_url . '"', $controls['fontawesome_important_note']['raw']);
     }
 
+    public function test_admin_notes_render_the_link_inside_the_sentence()
+    {
+        $controls = $this->make_widget()->get_controls();
+        $link = '<a href="' . esc_url(admin_url('options-general.php?page=osm-map-elementor')) . '" target="_blank" rel="noopener">here</a>';
+
+        foreach (['important_note', 'important_note2', 'fontawesome_important_note'] as $id) {
+            $this->assertStringContainsString('in global settings ' . $link . '</div>', str_replace('in the global settings', 'in global settings', $controls[$id]['raw']));
+        }
+        $this->assertStringContainsString('toggle the <strong>Font Awesome</strong> setting', $controls['fontawesome_important_note']['raw']);
+    }
+
     public function test_google_maps_script_url_encodes_the_key_loads_async_and_has_no_version_query()
     {
         update_option('osm_widget', ['gmaps_key' => 'ab"c&d']);

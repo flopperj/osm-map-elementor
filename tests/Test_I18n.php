@@ -48,4 +48,26 @@ class Test_I18n extends WP_UnitTestCase
         $this->assertGreaterThan(0, $total);
         $this->assertSame($total, $compliant, 'Translation calls must use a literal string and the osm-map-elementor domain');
     }
+
+    public function test_widget_settings_notes_are_whole_sentences_not_fragments()
+    {
+        $source = file_get_contents(dirname(__DIR__) . '/osm-map.php');
+
+        $this->assertStringNotContainsString("esc_html__('here'", $source);
+        $this->assertStringContainsString("esc_html__('To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings %1\$shere%2\$s', 'osm-map-elementor')", $source);
+        $this->assertStringContainsString("esc_html__('To take advantage of custom tiles in markers, please update API keys in global settings %1\$shere%2\$s', 'osm-map-elementor')", $source);
+        $this->assertStringContainsString("esc_html__('If you\\'re having conflicts with the widget\\'s Font Awesome library, please toggle the %1\$sFont Awesome%2\$s setting in the global settings %3\$shere%4\$s', 'osm-map-elementor')", $source);
+    }
+
+    public function test_placeholder_translations_carry_a_translators_comment()
+    {
+        $source = file_get_contents(dirname(__DIR__) . '/osm-map.php');
+
+        $text = '\'(?:[^\'\\\\]|\\\\.)*%\\d\\$s';
+        $total = preg_match_all('/esc_html__\(\s*' . $text . '/', $source);
+        $commented = preg_match_all('/\/\* translators:[^*]*\*\/\s*esc_html__\(\s*' . $text . '/', $source);
+
+        $this->assertSame(3, $total);
+        $this->assertSame($total, $commented);
+    }
 }

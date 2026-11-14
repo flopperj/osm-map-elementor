@@ -183,6 +183,21 @@ class Widget_OSM_Map extends Widget_Base
         $this->osm_register_style_controls();
     }
 
+    private function osm_settings_note($message, array $leading_tags = [])
+    {
+        $link_open = '<a href="' . esc_url(admin_url('options-general.php?page=osm-map-elementor')) . '" target="_blank" rel="noopener">';
+
+        return '<div class="elementor-control-field-description">'
+            . wp_kses(
+                vsprintf($message, array_merge($leading_tags, [$link_open, '</a>'])),
+                [
+                    'a' => ['href' => true, 'target' => true, 'rel' => true],
+                    'strong' => [],
+                ]
+            )
+            . '</div>';
+    }
+
     /**
      * Registers content controls
      */
@@ -333,11 +348,9 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => sprintf(
-                    '<div class="elementor-control-field-description">%s <a target="_blank" href="%s">%s</a></div>',
-                    esc_html__('To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings', 'osm-map-elementor'),
-                    esc_url(admin_url('options-general.php?page=osm-map-elementor')),
-                    esc_html__('here', 'osm-map-elementor')
+                'raw' => $this->osm_settings_note(
+                    /* translators: 1: opening link tag to the plugin settings page, 2: closing link tag. */
+                    esc_html__('To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings %1$shere%2$s', 'osm-map-elementor')
                 )
             ]
         );
@@ -456,11 +469,9 @@ class Widget_OSM_Map extends Widget_Base
                 [
                     'label' => __('Important Note', 'osm-map-elementor'),
                     'type' => Controls_Manager::RAW_HTML,
-                    'raw' => sprintf(
-                        '<div class="elementor-control-field-description">%s <a target="_blank" href="%s">%s</a></div>',
-                        esc_html__('To take advantage of custom tiles in markers, please update API keys in global settings', 'osm-map-elementor'),
-                        esc_url(admin_url('options-general.php?page=osm-map-elementor')),
-                        esc_html__('here', 'osm-map-elementor')
+                    'raw' => $this->osm_settings_note(
+                        /* translators: 1: opening link tag to the plugin settings page, 2: closing link tag. */
+                        esc_html__('To take advantage of custom tiles in markers, please update API keys in global settings %1$shere%2$s', 'osm-map-elementor')
                     ),
                     'separator' => 'after'
                 ]
@@ -582,13 +593,10 @@ class Widget_OSM_Map extends Widget_Base
             [
                 'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => sprintf(
-                    '<div class="elementor-control-field-description">%1$s <strong>%2$s</strong> %3$s <a target="_blank" href="%4$s">%5$s</a></div>',
-                    esc_html__('If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the', 'osm-map-elementor'),
-                    esc_html__('Font Awesome', 'osm-map-elementor'),
-                    esc_html__('setting in the global settings', 'osm-map-elementor'),
-                    esc_url(admin_url('options-general.php?page=osm-map-elementor')),
-                    esc_html__('here', 'osm-map-elementor')
+                'raw' => $this->osm_settings_note(
+                    /* translators: 1: opening strong tag, 2: closing strong tag, 3: opening link tag to the plugin settings page, 4: closing link tag. */
+                    esc_html__('If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the %1$sFont Awesome%2$s setting in the global settings %3$shere%4$s', 'osm-map-elementor'),
+                    ['<strong>', '</strong>']
                 ),
                 'condition' => [
                     'icon_type' => 'fontawesome'
