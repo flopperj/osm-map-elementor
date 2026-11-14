@@ -9,6 +9,9 @@
     "phpcompatibility/phpcompatibility-wp": "^2.1"
   },
   "config": {
+    "platform": {
+      "php": "7.4.33"
+    },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
     }
