@@ -80,7 +80,7 @@ add_action('admin_menu', function () {
             <h2>OSM Map Widget Settings</h2>
             <?php if (!empty($_REQUEST['action']) && sanitize_key($_REQUEST['action']) == 'settings_saved'): ?>
                 <div style="background-color: rgb(255, 251, 204);" id="alert-message" class="updated"><p>
-                        <strong><?php echo esc_html(__('Settings saved')) ?>.</strong></p></div>
+                        <strong><?php echo esc_html__('Settings saved.', 'osm-map-elementor'); ?></strong></p></div>
             <?php endif; ?>
             <form action="<?php
             $form_action_url = admin_url('options-general.php');
@@ -101,7 +101,7 @@ add_action('admin_menu', function () {
                                         href="https://developers.google.com/maps/documentation/javascript/get-api-key"
                                         target="_blank">Read this resource</a>.</p>
                             <input type="text" name="osm_widget[gmaps_key]"
-                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea(__($osm_settings['gmaps_key'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['gmaps_key']) ? esc_textarea($osm_settings['gmaps_key']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -116,7 +116,7 @@ add_action('admin_menu', function () {
                                         href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
                                         target="_blank">Read this resource</a></p>
                             <input type="text" name="osm_widget[mapbox_token]"
-                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea(__($osm_settings['mapbox_token'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['mapbox_token']) ? esc_textarea($osm_settings['mapbox_token']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@ add_action('admin_menu', function () {
                                 tiles. Need help to get a Geoapify API key. <a
                                         href="https://www.geoapify.com/maps-api/">Read this resource.</a></p>
                             <input type="text" name="osm_widget[geoapify_key]"
-                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea(__($osm_settings['geoapify_key'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['geoapify_key']) ? esc_textarea($osm_settings['geoapify_key']) : null; ?>"/>
                         </div>
                     </div>
                 </div>
@@ -162,16 +162,16 @@ add_action('admin_menu', function () {
                                 <a href="http://wiki.openstreetmap.org/wiki/Tile_servers">here</a>
                                 <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
-                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_textarea(__($osm_settings['osm_custom'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom']) ? esc_textarea($osm_settings['osm_custom']) : null; ?>"/>
 
                             <br>
                             <p><strong>Additional Attribution</strong>
                             <p>Organization</p>
                             <input type="text" name="osm_widget[osm_custom_attribution]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_textarea(__($osm_settings['osm_custom_attribution'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution']) ? esc_textarea($osm_settings['osm_custom_attribution']) : null; ?>"/>
                             <p>URL</p>
                             <input type="text" name="osm_widget[osm_custom_attribution_url]"
-                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_textarea(__($osm_settings['osm_custom_attribution_url'], OSM_MAP_SLUG)) : null; ?>"/>
+                                   value="<?php echo !empty($osm_settings['osm_custom_attribution_url']) ? esc_textarea($osm_settings['osm_custom_attribution_url']) : null; ?>"/>
                         </div>
                     </div>
                 </div>

@@ -77,7 +77,7 @@ class Widget_OSM_Map extends Widget_Base
      */
     public function get_title()
     {
-        return __('OSM Map', 'osm-map');
+        return __('OSM Map', 'osm-map-elementor');
     }
 
     /**
@@ -156,9 +156,9 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_title',
             [
-                'label' => __('Title', 'osm-map'),
+                'label' => __('Title', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('Marker Title', 'osm-map'),
+                'placeholder' => __('Marker Title', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -168,9 +168,9 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_location',
             [
-                'label' => __('Location', 'osm-map'),
+                'label' => __('Location', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('Marker Location', 'osm-map'),
+                'placeholder' => __('Marker Location', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -180,9 +180,9 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_coords',
             [
-                'label' => __('Coordinates', 'osm-map'),
+                'label' => __('Coordinates', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('lat, long', 'osm-map'),
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -192,9 +192,9 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_description',
             [
-                'label' => __('Description', 'osm-map'),
+                'label' => __('Description', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXTAREA,
-                'placeholder' => __('Marker Description', 'osm-map'),
+                'placeholder' => __('Marker Description', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -204,7 +204,7 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_behavior',
             [
-                'label' => __('Behavior', 'osm-map'),
+                'label' => __('Behavior', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'popup',
                 'options' => [
@@ -220,10 +220,10 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'show_button',
             [
-                'label' => __('Show Button', 'osm-map'),
+                'label' => __('Show Button', 'osm-map-elementor'),
                 'type' => Controls_Manager::SWITCHER,
-                'label_on' => __('Show', 'osm-map'),
-                'label_off' => __('Hide', 'osm-map'),
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
                 'return_value' => 'yes',
                 'default' => 'no',
             ]
@@ -232,9 +232,9 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'button_text',
             [
-                'label' => __('Button Text', 'osm-map'),
+                'label' => __('Button Text', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
-                'placeholder' => __('Button Text', 'osm-map'),
+                'placeholder' => __('Button Text', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -244,10 +244,10 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'button_url',
             [
-                'label' => __('Button URL', 'osm-map'),
+                'label' => __('Button URL', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
                 'input_type' => 'url',
-                'placeholder' => __('https://your-link.com', 'osm-map'),
+                'placeholder' => __('https://your-link.com', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
                 ],
@@ -257,7 +257,7 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'button_url_target',
             [
-                'label' => __('URL target', 'osm-map'),
+                'label' => __('URL target', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'options' => [
                     '_self' => 'Same Window',
@@ -273,10 +273,10 @@ class Widget_OSM_Map extends Widget_Base
         $repeater->add_control(
             'marker_visible',
             [
-                'label' => __('Show Marker', 'osm-map'),
+                'label' => __('Show Marker', 'osm-map-elementor'),
                 'type' => Controls_Manager::SWITCHER,
-                'label_on' => __('Show', 'osm-map'),
-                'label_off' => __('Hide', 'osm-map'),
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
                 'return_value' => 'yes',
                 'default' => 'yes',
             ]
@@ -286,23 +286,23 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_map',
             [
-                'label' => __('Map', 'osm-map'),
+                'label' => __('Map', 'osm-map-elementor'),
             ]
         );
 
         $this->add_control(
             'important_note',
             [
-                'label' => __('Important Note', 'osm-map'),
+                'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map')
+                'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor')
             ]
         );
 
         $this->add_responsive_control(
             'zoom',
             [
-                'label' => __('Zoom Level', 'osm-map'),
+                'label' => __('Zoom Level', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'range' => [
                     'px' => [
@@ -330,10 +330,10 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'zoom_control',
             [
-                'label' => __('Zoom Control', 'osm-map'),
+                'label' => __('Zoom Control', 'osm-map-elementor'),
                 'type' => Controls_Manager::SWITCHER,
-                'label_on' => __('Enable', 'osm-map'),
-                'label_off' => __('Disable', 'osm-map'),
+                'label_on' => __('Enable', 'osm-map-elementor'),
+                'label_off' => __('Disable', 'osm-map-elementor'),
                 'return_value' => 'yes',
                 'default' => 'yes'
             ]
@@ -342,10 +342,10 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'scroll_zoom',
             [
-                'label' => __('Scroll Zoom', 'osm-map'),
+                'label' => __('Scroll Zoom', 'osm-map-elementor'),
                 'type' => Controls_Manager::SWITCHER,
-                'label_on' => __('Enable', 'osm-map'),
-                'label_off' => __('Disable', 'osm-map'),
+                'label_on' => __('Enable', 'osm-map-elementor'),
+                'label_off' => __('Disable', 'osm-map-elementor'),
                 'return_value' => 'yes',
                 'default' => 'yes'
             ]
@@ -354,10 +354,10 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'pan_control',
             [
-                'label' => __('Pan Control', 'osm-map'),
+                'label' => __('Pan Control', 'osm-map-elementor'),
                 'type' => Controls_Manager::SWITCHER,
-                'label_on' => __('Enable', 'osm-map'),
-                'label_off' => __('Disable', 'osm-map'),
+                'label_on' => __('Enable', 'osm-map-elementor'),
+                'label_off' => __('Disable', 'osm-map-elementor'),
                 'return_value' => 'yes',
                 'default' => 'yes',
                 'separator' => 'after'
@@ -367,7 +367,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'marker_list',
             [
-                'label' => __('Marker List', 'osm-map'),
+                'label' => __('Marker List', 'osm-map-elementor'),
                 'type' => Controls_Manager::REPEATER,
                 'fields' => $repeater->get_controls(),
                 'default' => [
@@ -380,7 +380,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'view',
             [
-                'label' => __('View', 'osm-map'),
+                'label' => __('View', 'osm-map-elementor'),
                 'type' => Controls_Manager::HIDDEN,
                 'default' => 'traditional',
             ]
@@ -401,7 +401,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_map_style',
             [
-                'label' => __('Map', 'osm-map'),
+                'label' => __('Map', 'osm-map-elementor'),
                 'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
@@ -411,9 +411,9 @@ class Widget_OSM_Map extends Widget_Base
             $this->add_control(
                 'important_note2',
                 [
-                    'label' => __('Important Note', 'osm-map'),
+                    'label' => __('Important Note', 'osm-map-elementor'),
                     'type' => Controls_Manager::RAW_HTML,
-                    'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map'),
+                    'raw' => __('<div class="elementor-control-field-description">To take advantage of custom tiles in markers, please update API keys in global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor'),
                     'separator' => 'after'
                 ]
             );
@@ -422,38 +422,38 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'geoapify_tile',
             [
-                'label' => __('Tile', 'osm-map'),
+                'label' => __('Tile', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'osm-carto',
                 'options' => [
-                    'osm-carto' => __('OSM Carto (Free)', 'osm-map'),
-                    'osm-bright' => __('Geoapify - OSM Bright', 'osm-map'),
-                    'osm-bright-grey' => __('Geoapify - OSM Bright Grey', 'osm-map'),
-                    'osm-bright-smooth' => __('Geoapify - OSM Bright Smooth', 'osm-map'),
-                    'klokantech-basic' => __('Geoapify - Klokantech Basic', 'osm-map'),
-                    'osm-liberty' => __('Geoapify - OSM Liberty', 'osm-map'),
-                    'maptiler-3d' => __('Geoapify - MapTiler 3D', 'osm-map'),
-                    'toner' => __('Geoapify - Toner', 'osm-map'),
-                    'toner-grey' => __('Geoapify - Toner Grey', 'osm-map'),
-                    'positron' => __('Geoapify - Positron', 'osm-map'),
-                    'positron-blue' => __('Geoapify - Positron Blue', 'osm-map'),
-                    'positron-red' => __('Geoapify - Positron Red', 'osm-map'),
-                    'dark-matter' => __('Geoapify - Dark Matter', 'osm-map'),
-                    'dark-matter-brown' => __('Geoapify - Dark Matter Brown', 'osm-map'),
-                    'dark-matter-dark-grey' => __('Geoapify - Dark Matter Dark Grey', 'osm-map'),
-                    'dark-matter-dark-purple' => __('Geoapify - Dark Matter Dark Purple', 'osm-map'),
-                    'dark-matter-purple-roads' => __('Geoapify - Dark Matter Purple Roads', 'osm-map'),
-                    'dark-matter-yellow-roads' => __('Geoapify - Dark Matter Yellow Roads', 'osm-map'),
-                    'stadia-osm-bright' => __('Stadia - OSM Bright', 'osm-map'),
-                    'stadia-outdoors' => __('Stadia - Outdoors', 'osm-map'),
-                    'stadia-alidade-smooth' => __('Stadia - Alidade Smooth', 'osm-map'),
-                    'stadia-alidade-smooth-dark' => __('Stadia - Alidade Smooth Dark', 'osm-map'),
-                    'stadia-alidade-satellite' => __('Stadia - Alidade Satellite', 'osm-map'),
-                    'stadia-stamen-toner' => __('Stadia - Stamen Toner', 'osm-map'),
-                    'stadia-stamen-toner-lite' => __('Stadia - Stamen Toner Lite', 'osm-map'),
-                    'stadia-stamen-terrain' => __('Stadia - Stamen Terrain', 'osm-map'),
-                    'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map'),
-                    'custom-tile' => __('Custom Map Tile', 'osm-map'),
+                    'osm-carto' => __('OSM Carto (Free)', 'osm-map-elementor'),
+                    'osm-bright' => __('Geoapify - OSM Bright', 'osm-map-elementor'),
+                    'osm-bright-grey' => __('Geoapify - OSM Bright Grey', 'osm-map-elementor'),
+                    'osm-bright-smooth' => __('Geoapify - OSM Bright Smooth', 'osm-map-elementor'),
+                    'klokantech-basic' => __('Geoapify - Klokantech Basic', 'osm-map-elementor'),
+                    'osm-liberty' => __('Geoapify - OSM Liberty', 'osm-map-elementor'),
+                    'maptiler-3d' => __('Geoapify - MapTiler 3D', 'osm-map-elementor'),
+                    'toner' => __('Geoapify - Toner', 'osm-map-elementor'),
+                    'toner-grey' => __('Geoapify - Toner Grey', 'osm-map-elementor'),
+                    'positron' => __('Geoapify - Positron', 'osm-map-elementor'),
+                    'positron-blue' => __('Geoapify - Positron Blue', 'osm-map-elementor'),
+                    'positron-red' => __('Geoapify - Positron Red', 'osm-map-elementor'),
+                    'dark-matter' => __('Geoapify - Dark Matter', 'osm-map-elementor'),
+                    'dark-matter-brown' => __('Geoapify - Dark Matter Brown', 'osm-map-elementor'),
+                    'dark-matter-dark-grey' => __('Geoapify - Dark Matter Dark Grey', 'osm-map-elementor'),
+                    'dark-matter-dark-purple' => __('Geoapify - Dark Matter Dark Purple', 'osm-map-elementor'),
+                    'dark-matter-purple-roads' => __('Geoapify - Dark Matter Purple Roads', 'osm-map-elementor'),
+                    'dark-matter-yellow-roads' => __('Geoapify - Dark Matter Yellow Roads', 'osm-map-elementor'),
+                    'stadia-osm-bright' => __('Stadia - OSM Bright', 'osm-map-elementor'),
+                    'stadia-outdoors' => __('Stadia - Outdoors', 'osm-map-elementor'),
+                    'stadia-alidade-smooth' => __('Stadia - Alidade Smooth', 'osm-map-elementor'),
+                    'stadia-alidade-smooth-dark' => __('Stadia - Alidade Smooth Dark', 'osm-map-elementor'),
+                    'stadia-alidade-satellite' => __('Stadia - Alidade Satellite', 'osm-map-elementor'),
+                    'stadia-stamen-toner' => __('Stadia - Stamen Toner', 'osm-map-elementor'),
+                    'stadia-stamen-toner-lite' => __('Stadia - Stamen Toner Lite', 'osm-map-elementor'),
+                    'stadia-stamen-terrain' => __('Stadia - Stamen Terrain', 'osm-map-elementor'),
+                    'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map-elementor'),
+                    'custom-tile' => __('Custom Map Tile', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -468,7 +468,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'width',
             [
-                'label' => __('Width', 'osm-map'),
+                'label' => __('Width', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px', '%'],
                 'range' => [
@@ -495,7 +495,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'height',
             [
-                'label' => __('Height', 'osm-map'),
+                'label' => __('Height', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px', '%'],
                 'range' => [
@@ -528,7 +528,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'z_index',
             [
-                'label' => __('z-index', 'osm-map'),
+                'label' => __('z-index', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'range' => [
                     '' => [
@@ -552,7 +552,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_marker_icon_style',
             [
-                'label' => __('Marker Icon', 'osm-map'),
+                'label' => __('Marker Icon', 'osm-map-elementor'),
                 'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
@@ -561,9 +561,9 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'fontawesome_important_note',
             [
-                'label' => __('Important Note', 'osm-map'),
+                'label' => __('Important Note', 'osm-map-elementor'),
                 'type' => Controls_Manager::RAW_HTML,
-                'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map'),
+                'raw' => __('<div class="elementor-control-field-description">If you\'re having conflicts with the widget\'s Font Awesome library, please toggle the <strong>Font Awesome</strong> setting in the global settings <a target="_blank" href="/wp-admin/options-general.php?page=osm-map-elementor">here</a></div>', 'osm-map-elementor'),
                 'condition' => [
                     'icon_type' => 'fontawesome'
                 ]
@@ -574,13 +574,13 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_type',
             [
-                'label' => __('Icon Type', 'osm-map'),
+                'label' => __('Icon Type', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'fontawesome' => __('Font Awesome', 'osm-map'),
-                    'custom_image' => __('Custom Image', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'fontawesome' => __('Font Awesome', 'osm-map-elementor'),
+                    'custom_image' => __('Custom Image', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -588,10 +588,10 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'fontawesome_icon',
             [
-                'label' => __('Font Awesome Icon', 'osm-map'),
+                'label' => __('Font Awesome Icon', 'osm-map-elementor'),
                 'type' => Controls_Manager::TEXT,
                 'default' => 'fa fa-circle',
-                'placeholder' => __('fa fa-circle', 'osm-map'),
+                'placeholder' => __('fa fa-circle', 'osm-map-elementor'),
                 'condition' => [
                     'icon_type' => 'fontawesome'
                 ]
@@ -601,7 +601,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'marker_background_color',
             [
-                'label' => __('Background Color', 'osm-map'),
+                'label' => __('Background Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'default' => '#368acc',
                 'condition' => [
@@ -613,7 +613,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'marker_stroke_color',
             [
-                'label' => __('Stroke Color', 'osm-map'),
+                'label' => __('Stroke Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'default' => '#346F9E',
                 'condition' => [
@@ -625,7 +625,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_color',
             [
-                'label' => __('Icon Color', 'osm-map'),
+                'label' => __('Icon Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'default' => '#ffffff',
                 'condition' => [
@@ -638,12 +638,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_offset_type',
             [
-                'label' => __('Icon Offset', 'osm-map'),
+                'label' => __('Icon Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ],
                 'condition' => [
                     'icon_type' => 'fontawesome'
@@ -654,7 +654,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_offset_x',
             [
-                'label' => __('x Offset', 'osm-map'),
+                'label' => __('x Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -666,7 +666,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_offset_y',
             [
-                'label' => __('y Offset', 'osm-map'),
+                'label' => __('y Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -681,7 +681,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'icon_size',
             [
-                'label' => __('Icon Size', 'osm-map'),
+                'label' => __('Icon Size', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
@@ -712,14 +712,14 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_tab(
             'tab_custom_icon',
             [
-                'label' => __('Main', 'osm-map'),
+                'label' => __('Main', 'osm-map-elementor'),
             ]
         );
 
         $this->add_control(
             'custom_icon_image',
             [
-                'label' => __('Choose Image', 'osm-map'),
+                'label' => __('Choose Image', 'osm-map-elementor'),
                 'type' => Controls_Manager::MEDIA,
                 'default' => [
                     'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-icon.png',
@@ -738,12 +738,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_size_type',
             [
-                'label' => __('Size', 'osm-map'),
+                'label' => __('Size', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -751,7 +751,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_width',
             [
-                'label' => __('Width', 'osm-map'),
+                'label' => __('Width', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
@@ -770,7 +770,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_height',
             [
-                'label' => __('Height', 'osm-map'),
+                'label' => __('Height', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
@@ -797,12 +797,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_anchor_type',
             [
-                'label' => __('Anchor', 'osm-map'),
+                'label' => __('Anchor', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'custom',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -810,7 +810,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_anchor_x',
             [
-                'label' => __('x Offset', 'osm-map'),
+                'label' => __('x Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 12.5,
                 'condition' => [
@@ -822,7 +822,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_anchor_y',
             [
-                'label' => __('y Offset', 'osm-map'),
+                'label' => __('y Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 41,
                 'condition' => [
@@ -837,13 +837,13 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_tab(
             'tab_custom_icon_shadow',
             [
-                'label' => __('Shadow', 'osm-map'),
+                'label' => __('Shadow', 'osm-map-elementor'),
             ]
         );
         $this->add_control(
             'custom_icon_shadow_image',
             [
-                'label' => __('Choose Image', 'osm-map'),
+                'label' => __('Choose Image', 'osm-map-elementor'),
                 'type' => Controls_Manager::MEDIA,
                 'default' => [
                     'url' => plugin_dir_url(__FILE__) . 'assets/leaflet/images/marker-shadow.png',
@@ -863,12 +863,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_size_type',
             [
-                'label' => __('Size', 'osm-map'),
+                'label' => __('Size', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -876,7 +876,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_width',
             [
-                'label' => __('Width', 'osm-map'),
+                'label' => __('Width', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
@@ -895,7 +895,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_height',
             [
-                'label' => __('Height', 'osm-map'),
+                'label' => __('Height', 'osm-map-elementor'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => ['px'],
                 'range' => [
@@ -922,12 +922,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_anchor_type',
             [
-                'label' => __('Anchor', 'osm-map'),
+                'label' => __('Anchor', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ]
             ]
         );
@@ -935,7 +935,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_anchor_x',
             [
-                'label' => __('x Offset', 'osm-map'),
+                'label' => __('x Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -947,7 +947,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_shadow_anchor_y',
             [
-                'label' => __('y Offset', 'osm-map'),
+                'label' => __('y Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -976,12 +976,12 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_popup_anchor_type',
             [
-                'label' => __('Popup Anchor', 'osm-map'),
+                'label' => __('Popup Anchor', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => '',
                 'options' => [
-                    '' => __('Default', 'osm-map'),
-                    'custom' => __('Custom', 'osm-map'),
+                    '' => __('Default', 'osm-map-elementor'),
+                    'custom' => __('Custom', 'osm-map-elementor'),
                 ],
                 'condition' => [
                     'icon_type' => 'custom_image'
@@ -993,7 +993,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_popup_anchor_x',
             [
-                'label' => __('x Offset', 'osm-map'),
+                'label' => __('x Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -1006,7 +1006,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'custom_icon_image_popup_anchor_y',
             [
-                'label' => __('y Offset', 'osm-map'),
+                'label' => __('y Offset', 'osm-map-elementor'),
                 'type' => Controls_Manager::NUMBER,
                 'default' => 0,
                 'condition' => [
@@ -1025,7 +1025,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_marker_title_style',
             [
-                'label' => __('Marker Title', 'osm-map'),
+                'label' => __('Marker Title', 'osm-map-elementor'),
                 'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
@@ -1033,23 +1033,23 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'title_align',
             [
-                'label' => __('Alignment', 'osm-map'),
+                'label' => __('Alignment', 'osm-map-elementor'),
                 'type' => Controls_Manager::CHOOSE,
                 'options' => [
                     'left' => [
-                        'title' => __('Left', 'osm-map'),
+                        'title' => __('Left', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-left',
                     ],
                     'center' => [
-                        'title' => __('Center', 'osm-map'),
+                        'title' => __('Center', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-center',
                     ],
                     'right' => [
-                        'title' => __('Right', 'osm-map'),
+                        'title' => __('Right', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-right',
                     ],
                     'justify' => [
-                        'title' => __('Justified', 'osm-map'),
+                        'title' => __('Justified', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-justify',
                     ],
                 ],
@@ -1062,7 +1062,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'title_color',
             [
-                'label' => __('Text Color', 'osm-map'),
+                'label' => __('Text Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_SECONDARY,
@@ -1095,7 +1095,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'title_padding',
             [
-                'label' => __('Padding', 'osm-map'),
+                'label' => __('Padding', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
@@ -1108,7 +1108,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'title_margin',
             [
-                'label' => __('Margin', 'osm-map'),
+                'label' => __('Margin', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'default' => [
@@ -1132,30 +1132,30 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_marker_content_style',
             [
-                'label' => __('Marker Content', 'osm-map'),
+                'label' => __('Marker Content', 'osm-map-elementor'),
                 'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
         $this->add_responsive_control(
             'content_align',
             [
-                'label' => __('Alignment', 'osm-map'),
+                'label' => __('Alignment', 'osm-map-elementor'),
                 'type' => Controls_Manager::CHOOSE,
                 'options' => [
                     'left' => [
-                        'title' => __('Left', 'osm-map'),
+                        'title' => __('Left', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-left',
                     ],
                     'center' => [
-                        'title' => __('Center', 'osm-map'),
+                        'title' => __('Center', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-center',
                     ],
                     'right' => [
-                        'title' => __('Right', 'osm-map'),
+                        'title' => __('Right', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-right',
                     ],
                     'justify' => [
-                        'title' => __('Justified', 'osm-map'),
+                        'title' => __('Justified', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-justify',
                     ],
                 ],
@@ -1168,7 +1168,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'content_text_color',
             [
-                'label' => __('Text Color', 'osm-map'),
+                'label' => __('Text Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-content .marker-description' => 'color: {{VALUE}};',
@@ -1183,7 +1183,7 @@ class Widget_OSM_Map extends Widget_Base
             Group_Control_Typography::get_type(),
             [
                 'name' => 'content_typography',
-                'label' => __('Typography', 'osm-map'),
+                'label' => __('Typography', 'osm-map-elementor'),
                 'global' => [
                     'default' => Global_Typography::TYPOGRAPHY_PRIMARY,
                 ],
@@ -1194,7 +1194,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'content_padding',
             [
-                'label' => __('Padding', 'osm-map'),
+                'label' => __('Padding', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'default' => [
@@ -1214,7 +1214,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'content_margin',
             [
-                'label' => __('Margin', 'osm-map'),
+                'label' => __('Margin', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
@@ -1231,7 +1231,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_section(
             'section_style',
             [
-                'label' => __('Marker Button', 'osm-map'),
+                'label' => __('Marker Button', 'osm-map-elementor'),
                 'tab' => Controls_Manager::TAB_STYLE,
             ]
         );
@@ -1239,19 +1239,19 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'button_align',
             [
-                'label' => __('Alignment', 'osm-map'),
+                'label' => __('Alignment', 'osm-map-elementor'),
                 'type' => Controls_Manager::CHOOSE,
                 'options' => [
                     'left' => [
-                        'title' => __('Left', 'osm-map'),
+                        'title' => __('Left', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-left',
                     ],
                     'center' => [
-                        'title' => __('Center', 'osm-map'),
+                        'title' => __('Center', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-center',
                     ],
                     'right' => [
-                        'title' => __('Right', 'osm-map'),
+                        'title' => __('Right', 'osm-map-elementor'),
                         'icon' => 'eicon-text-align-right',
                     ]
                 ],
@@ -1285,14 +1285,14 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_tab(
             'tab_button_normal',
             [
-                'label' => __('Normal', 'osm-map'),
+                'label' => __('Normal', 'osm-map-elementor'),
             ]
         );
 
         $this->add_control(
             'button_text_color',
             [
-                'label' => __('Text Color', 'osm-map'),
+                'label' => __('Text Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_SECONDARY
@@ -1306,7 +1306,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'button_background_color',
             [
-                'label' => __('Background Color', 'osm-map'),
+                'label' => __('Background Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'global' => [
                     'default' => Global_Colors::COLOR_PRIMARY,
@@ -1322,14 +1322,14 @@ class Widget_OSM_Map extends Widget_Base
         $this->start_controls_tab(
             'tab_button_hover',
             [
-                'label' => __('Hover', 'osm-map'),
+                'label' => __('Hover', 'osm-map-elementor'),
             ]
         );
 
         $this->add_control(
             'button_hover_color',
             [
-                'label' => __('Text Color', 'osm-map'),
+                'label' => __('Text Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'color: {{VALUE}};',
@@ -1341,7 +1341,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'button_background_hover_color',
             [
-                'label' => __('Background Color', 'osm-map'),
+                'label' => __('Background Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .marker-button .elementor-button:hover, {{WRAPPER}} .marker-button .elementor-button:focus' => 'background-color: {{VALUE}};',
@@ -1352,7 +1352,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'button_hover_border_color',
             [
-                'label' => __('Border Color', 'osm-map'),
+                'label' => __('Border Color', 'osm-map-elementor'),
                 'type' => Controls_Manager::COLOR,
                 'condition' => [
                     'border_border!' => '',
@@ -1366,7 +1366,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'button_hover_animation',
             [
-                'label' => __('Hover Animation', 'osm-map'),
+                'label' => __('Hover Animation', 'osm-map-elementor'),
                 'type' => Controls_Manager::HOVER_ANIMATION,
             ]
         );
@@ -1387,7 +1387,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_control(
             'button_border_radius',
             [
-                'label' => __('Border Radius', 'osm-map'),
+                'label' => __('Border Radius', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', '%'],
                 'selectors' => [
@@ -1407,7 +1407,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'button_text_padding',
             [
-                'label' => __('Padding', 'osm-map'),
+                'label' => __('Padding', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
@@ -1420,7 +1420,7 @@ class Widget_OSM_Map extends Widget_Base
         $this->add_responsive_control(
             'button_margin',
             [
-                'label' => __('Margin', 'osm-map'),
+                'label' => __('Margin', 'osm-map-elementor'),
                 'type' => Controls_Manager::DIMENSIONS,
                 'size_units' => ['px', 'em', '%'],
                 'selectors' => [
@@ -1630,8 +1630,8 @@ class Widget_OSM_Map extends Widget_Base
                 }).addTo(map);
 
                 <?php elseif( $settings['geoapify_tile'] == 'custom-tile'):?>
-                L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea(__($global_settings['osm_custom'], 'your-slug')) : null; ?>', {
-                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea(__($global_settings['osm_custom_attribution_url'], 'your-slug')) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea(__($global_settings['osm_custom_attribution'], 'your-slug')) : null; ?></a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                L.tileLayer('<?php echo !empty($global_settings['osm_custom']) ? esc_textarea($global_settings['osm_custom']) : null; ?>', {
+                    attribution: '<a href="<?php echo !empty($global_settings['osm_custom_attribution_url']) ? esc_textarea($global_settings['osm_custom_attribution_url']) : null; ?>" target="_blank"><?php echo !empty($global_settings['osm_custom_attribution']) ? esc_textarea($global_settings['osm_custom_attribution']) : null; ?></a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
@@ -1643,8 +1643,8 @@ class Widget_OSM_Map extends Widget_Base
                 // install leaflet-mapbox-gl plugin
 
                 L.mapboxGL({
-                    style: 'https://maps.geoapify.com/v1/styles/<?php echo esc_js($settings['geoapify_tile']); ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea(__($global_settings['geoapify_key'], 'your-slug')) : null; ?>',
-                    accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea(__($global_settings['mapbox_token'], 'your-slug')) : 'no-token'; ?>'
+                    style: 'https://maps.geoapify.com/v1/styles/<?php echo esc_js($settings['geoapify_tile']); ?>/style.json?apiKey=<?php echo !empty($global_settings['geoapify_key']) ? esc_textarea($global_settings['geoapify_key']) : null; ?>',
+                    accessToken: '<?php echo !empty($global_settings['mapbox_token']) ? esc_textarea($global_settings['mapbox_token']) : 'no-token'; ?>'
                 }).addTo(map);
 
                 <?php endif; ?>
@@ -1951,7 +1951,7 @@ class Widget_OSM_Map extends Widget_Base
 
             // add google maps API
             if (!empty($widget_settings['gmaps_key'])) {
-                $admin_scripts['google-maps'] = 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . esc_textarea(__($widget_settings['gmaps_key'], 'your-slug'));
+                $admin_scripts['google-maps'] = 'https://maps.googleapis.com/maps/api/js?libraries=places&callback=initOSMEditorControls&key=' . esc_textarea($widget_settings['gmaps_key']);
             }
 
             $dependencies = ['jquery'];
