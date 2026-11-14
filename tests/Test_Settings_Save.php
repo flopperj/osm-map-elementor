@@ -177,6 +177,15 @@ class Test_Settings_Save extends WP_UnitTestCase
         $this->assertNotFalse(has_action('load-' . $page_hook, 'OSM_Map\handle_settings_save'));
     }
 
+    public function test_user_without_manage_options_gets_no_settings_page_load_hook()
+    {
+        wp_set_current_user(self::factory()->user->create(['role' => 'subscriber']));
+
+        do_action('admin_menu');
+
+        $this->assertFalse(has_action('load-', 'OSM_Map\handle_settings_save'));
+    }
+
     public function test_settings_page_escapes_saved_values_in_attributes()
     {
         update_option('osm_widget', ['gmaps_key' => '"><script>alert(1)</script>']);

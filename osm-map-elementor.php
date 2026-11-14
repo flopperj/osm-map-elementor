@@ -196,7 +196,9 @@ add_action('admin_menu', function () {
 
         <?php
     });
-    add_action('load-' . $page_hook, __NAMESPACE__ . '\\handle_settings_save');
+    if ($page_hook) {
+        add_action('load-' . $page_hook, __NAMESPACE__ . '\\handle_settings_save');
+    }
 });
 
 // Require Elementor plugin to be installed and activated
