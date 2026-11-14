@@ -7,3 +7,10 @@
 *.iml
 out
 gen
+
+.DS_Store
+/vendor/
+/node_modules/
+/build/
+.wp-env.override.json
+.phpunit.result.cache
