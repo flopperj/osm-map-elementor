@@ -62,9 +62,9 @@ class Test_Plugin_Headers extends WP_UnitTestCase
         $this->assertSame('7.1', $this->readme_field('Tested up to'));
     }
 
-    public function test_readme_stable_tag_stays_on_the_released_version_until_publication()
+    public function test_readme_stable_tag_matches_the_plugin_version()
     {
-        $this->assertSame('1.3.1', $this->readme_field('Stable tag'));
+        $this->assertSame(OSM_MAP_VERSION, $this->readme_field('Stable tag'));
     }
 
     public function test_constants_file_refuses_direct_access()
