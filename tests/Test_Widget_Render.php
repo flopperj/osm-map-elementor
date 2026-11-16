@@ -315,11 +315,16 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringNotContainsString("return 'javascript:void(0)'", $js);
     }
 
-    private function new_tab_links_without_noopener($html)
+    private function new_tab_links($html)
     {
         preg_match_all('/<a\b[^>]*target="_blank"[^>]*>/', stripslashes($html), $links);
 
-        return array_values(array_filter($links[0], function ($link) {
+        return $links[0];
+    }
+
+    private function links_without_noopener(array $links)
+    {
+        return array_values(array_filter($links, function ($link) {
             return !preg_match('/\brel="[^"]*\bnoopener\b/', $link);
         }));
     }
@@ -334,14 +339,19 @@ class Test_Widget_Render extends WP_UnitTestCase
         $options = new ReflectionMethod(get_class($this->make_widget()), 'osm_tile_options');
         $options->setAccessible(true);
 
+        $tiles_without_links = [];
         $missing = [];
         foreach (array_keys($options->invoke(null)) as $tile) {
-            $links = $this->new_tab_links_without_noopener($this->render_admin(['geoapify_tile' => $tile]));
-            if ($links) {
-                $missing[$tile] = $links;
+            $links = $this->new_tab_links($this->render_admin(['geoapify_tile' => $tile]));
+            if (!$links) {
+                $tiles_without_links[] = $tile;
+            }
+            if ($this->links_without_noopener($links)) {
+                $missing[$tile] = $this->links_without_noopener($links);
             }
         }
 
+        $this->assertSame([], $tiles_without_links, 'Every tile renders at least one attribution link that opens a new tab');
         $this->assertSame([], $missing);
     }
 
