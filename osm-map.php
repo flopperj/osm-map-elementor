@@ -1523,9 +1523,9 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         $custom_tile_url = !empty($global_settings['osm_custom']) ? $global_settings['osm_custom'] : '';
-        $custom_attribution = '<a href="' . esc_url(!empty($global_settings['osm_custom_attribution_url']) ? $global_settings['osm_custom_attribution_url'] : '') . '" target="_blank" rel="noopener">'
+        $custom_attribution = '<a href="' . esc_url(!empty($global_settings['osm_custom_attribution_url']) ? $global_settings['osm_custom_attribution_url'] : '') . '" target="_blank" rel="noopener noreferrer">'
             . esc_html(!empty($global_settings['osm_custom_attribution']) ? $global_settings['osm_custom_attribution'] : '')
-            . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+            . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
         $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
         $geoapify_tile = array_key_exists($requested_tile, self::osm_tile_options()) ? $requested_tile : 'osm-carto';
 
@@ -1613,61 +1613,61 @@ class Widget_OSM_Map extends Widget_Base
 
                 <?php if('osm-carto' === $geoapify_tile):?>
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-osm-bright' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-outdoors' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-alidade-smooth' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-alidade-smooth-dark' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-alidade-satellite' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/data/satellite/{z}/{x}/{y}.jpg', {
-                    attribution: '&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-stamen-toner' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank" rel="noopener noreferrer">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-stamen-toner-lite' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank" rel="noopener noreferrer">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-stamen-terrain' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}@2x.png', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank" rel="noopener noreferrer">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
 
                 <?php elseif( 'stadia-stamen-watercolor' === $geoapify_tile):?>
                 L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', {
-                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+                    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> | &copy; <a href="https://stamen.com/" target="_blank" rel="noopener noreferrer">Stamen Design</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 16
                 }).addTo(map);
 
@@ -1681,7 +1681,7 @@ class Widget_OSM_Map extends Widget_Base
 
                 // the attribution is required for the Geoapify Free tariff plan
 
-                map.attributionControl.setPrefix('').addAttribution('Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>');
+                map.attributionControl.setPrefix('').addAttribution('Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a> | &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>');
                 // install leaflet-mapbox-gl plugin
 
                 L.mapboxGL({
@@ -1828,8 +1828,9 @@ class Widget_OSM_Map extends Widget_Base
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
                             let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? escapeHtml(this.marker.button_url_target) : '_blank';
                             let button_url = this.marker.button_url ? escapeUrl(this.marker.button_url) : '#';
+                            const button_rel = button_url_target === '_blank' ? ' rel="noopener"' : '';
                             tooltipContent += `<div class="marker-button elementor-button-wrapper">
-                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href="${button_url}" role="button">
+                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href="${button_url}" role="button"${button_rel}>
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
                                                             ${escapeHtml(this.marker.button_text)}

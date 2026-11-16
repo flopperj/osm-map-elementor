@@ -315,6 +315,55 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringNotContainsString("return 'javascript:void(0)'", $js);
     }
 
+    private function new_tab_links($html)
+    {
+        preg_match_all('/<a\b[^>]*target="_blank"[^>]*>/', stripslashes($html), $links);
+
+        return $links[0];
+    }
+
+    private function links_without_noopener(array $links)
+    {
+        return array_values(array_filter($links, function ($link) {
+            return !preg_match('/\brel="[^"]*\bnoopener\b/', $link);
+        }));
+    }
+
+    public function test_tile_attribution_links_that_open_a_new_tab_use_noopener()
+    {
+        update_option('osm_widget', [
+            'osm_custom' => 'https://t.example.com/{z}/{x}/{y}.png',
+            'osm_custom_attribution' => 'Example',
+            'osm_custom_attribution_url' => 'https://example.com/',
+        ]);
+        $options = new ReflectionMethod(get_class($this->make_widget()), 'osm_tile_options');
+        $options->setAccessible(true);
+
+        $tiles_without_links = [];
+        $missing = [];
+        foreach (array_keys($options->invoke(null)) as $tile) {
+            $links = $this->new_tab_links($this->render_admin(['geoapify_tile' => $tile]));
+            if (!$links) {
+                $tiles_without_links[] = $tile;
+            }
+            if ($this->links_without_noopener($links)) {
+                $missing[$tile] = $this->links_without_noopener($links);
+            }
+        }
+
+        $this->assertSame([], $tiles_without_links, 'Every tile renders at least one attribution link that opens a new tab');
+        $this->assertSame([], $missing);
+    }
+
+    public function test_marker_button_gets_noopener_only_when_it_opens_a_new_tab()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString("const button_rel = button_url_target === '_blank' ? ' rel=\"noopener\"' : '';", $js);
+        $this->assertStringContainsString('role="button"${button_rel}>', $js);
+        $this->assertDoesNotMatchRegularExpression('/elementor-button-link[^`]*noreferrer/', $js);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

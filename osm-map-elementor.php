@@ -2,7 +2,7 @@
 /**
  * Plugin Name:                OSM Map Widget for Elementor
  * Description:                A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
- * Version:                    1.4.0
+ * Version:                    1.4.1
  * Requires at least:          6.8
  * Requires PHP:               7.4
  * Requires Plugins:           elementor
@@ -112,7 +112,7 @@ add_action('admin_menu', function () {
                             <p><strong>Note:</strong> This setting is required if you wish to use Google Maps to
                                 lookup location coordinates. Need help to get a Google map API key? <a
                                         href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-                                        target="_blank">Read this resource</a>.</p>
+                                        target="_blank" rel="noopener noreferrer">Read this resource</a>.</p>
                             <input type="text" name="osm_widget[gmaps_key]"
                                    value="<?php echo esc_attr($setting('gmaps_key')); ?>"/>
                         </div>
@@ -127,7 +127,7 @@ add_action('admin_menu', function () {
                             <p><strong>Note:</strong> This setting is required if you wish to use custom Mapbox /
                                 Geoapify tiles. Need help to get a Mapbox Access Token? <a
                                         href="https://docs.mapbox.com/help/how-mapbox-works/access-tokens/"
-                                        target="_blank">Read this resource</a></p>
+                                        target="_blank" rel="noopener noreferrer">Read this resource</a></p>
                             <input type="text" name="osm_widget[mapbox_token]"
                                    value="<?php echo esc_attr($setting('mapbox_token')); ?>"/>
                         </div>
@@ -141,7 +141,7 @@ add_action('admin_menu', function () {
                         <div class="card-content">
                             <p><strong>Note:</strong> This setting is required if you wish to use custom Geoapify
                                 tiles. Need help to get a Geoapify API key. <a
-                                        href="https://www.geoapify.com/maps-api/">Read this resource.</a></p>
+                                        href="https://www.geoapify.com/maps-api/" target="_blank" rel="noopener noreferrer">Read this resource.</a></p>
                             <input type="text" name="osm_widget[geoapify_key]"
                                    value="<?php echo esc_attr($setting('geoapify_key')); ?>"/>
                         </div>
@@ -172,7 +172,7 @@ add_action('admin_menu', function () {
                         </div>
                         <div class="card-content">
                             <p><strong>See more tile servers:</strong>
-                                <a href="http://wiki.openstreetmap.org/wiki/Tile_servers">here</a>
+                                <a href="http://wiki.openstreetmap.org/wiki/Tile_servers" target="_blank" rel="noopener noreferrer">here</a>
                                 <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
                                    value="<?php echo esc_attr($setting('osm_custom')); ?>"/>

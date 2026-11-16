@@ -205,6 +205,18 @@ class Test_Settings_Save extends WP_UnitTestCase
         $this->assertStringContainsString('Settings saved.', $html);
     }
 
+    public function test_external_settings_page_links_open_a_new_tab_with_noopener()
+    {
+        $html = $this->render_settings_page();
+
+        preg_match_all('/<a\b[^>]*href="https?:\/\/[^"]*"[^>]*>/', $html, $links);
+        $this->assertNotEmpty($links[0]);
+        foreach ($links[0] as $link) {
+            $this->assertStringContainsString('target="_blank"', $link);
+            $this->assertStringContainsString('rel="noopener noreferrer"', $link);
+        }
+    }
+
     public function test_settings_page_tolerates_an_unset_option()
     {
         $html = $this->render_settings_page();
