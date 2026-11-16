@@ -1523,9 +1523,9 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         $custom_tile_url = !empty($global_settings['osm_custom']) ? $global_settings['osm_custom'] : '';
-        $custom_attribution = '<a href="' . esc_url(!empty($global_settings['osm_custom_attribution_url']) ? $global_settings['osm_custom_attribution_url'] : '') . '" target="_blank" rel="noopener">'
+        $custom_attribution = '<a href="' . esc_url(!empty($global_settings['osm_custom_attribution_url']) ? $global_settings['osm_custom_attribution_url'] : '') . '" target="_blank" rel="noopener noreferrer">'
             . esc_html(!empty($global_settings['osm_custom_attribution']) ? $global_settings['osm_custom_attribution'] : '')
-            . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+            . '</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
         $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
         $geoapify_tile = array_key_exists($requested_tile, self::osm_tile_options()) ? $requested_tile : 'osm-carto';
 
@@ -1828,8 +1828,9 @@ class Widget_OSM_Map extends Widget_Base
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
                             let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? escapeHtml(this.marker.button_url_target) : '_blank';
                             let button_url = this.marker.button_url ? escapeUrl(this.marker.button_url) : '#';
+                            const button_rel = button_url_target === '_blank' ? ' rel="noopener"' : '';
                             tooltipContent += `<div class="marker-button elementor-button-wrapper">
-                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href="${button_url}" role="button" rel="noopener noreferrer">
+                                                <a class="elementor-button elementor-button-link" target="${button_url_target}" href="${button_url}" role="button"${button_rel}>
                                                     <span class="elementor-button-content-wrapper">
                                                         <span class="elementor-button-text">
                                                             ${escapeHtml(this.marker.button_text)}
