@@ -32,6 +32,18 @@ class Widget_OSM_Map extends Widget_Base
     public static $slug = OSM_MAP_SLUG;
     public static $ver = OSM_MAP_VERSION;
 
+    private const OSM_MARKER_SIZE_MIN = 25;
+    private const OSM_MARKER_SIZE_MAX = 200;
+    // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
+    private const OSM_DEFAULT_ICON_GEOMETRY = [
+        'iconSize' => [25, 41],
+        'iconAnchor' => [12, 41],
+        'popupAnchor' => [1, -34],
+        'tooltipAnchor' => [16, -28],
+        'shadowSize' => [41, 41],
+    ];
+    private const OSM_FA_MARKER_TOP = -50;
+
     /**
      * Widget OSM Map constructor.
      *
@@ -616,6 +628,30 @@ class Widget_OSM_Map extends Widget_Base
                     'fontawesome' => __('Font Awesome', 'osm-map-elementor'),
                     'custom_image' => __('Custom Image', 'osm-map-elementor'),
                 ]
+            ]
+        );
+
+        $this->add_control(
+            'marker_size',
+            [
+                'label' => __('Marker Size', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['%'],
+                'range' => [
+                    '%' => [
+                        'min' => self::OSM_MARKER_SIZE_MIN,
+                        'max' => self::OSM_MARKER_SIZE_MAX,
+                        'step' => 5,
+                    ],
+                ],
+                'default' => [
+                    'unit' => '%',
+                    'size' => 100,
+                ],
+                'description' => __('Scales the whole marker, including its icon and where its popup or tooltip opens.', 'osm-map-elementor'),
+                'condition' => [
+                    'icon_type' => ['', 'fontawesome'],
+                ],
             ]
         );
 
@@ -1698,6 +1734,7 @@ class Widget_OSM_Map extends Widget_Base
 
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
+                $marker_scale = $this->osm_marker_scale($settings['marker_size'] ?? null);
                 switch ($icon_type):
                 case 'fontawesome':
                 $fontawesome_icon = !empty($settings['fontawesome_icon']) ? $settings['fontawesome_icon'] : 'fa fa-circle';
@@ -1727,9 +1764,17 @@ class Widget_OSM_Map extends Widget_Base
                     $fa_icon_options['iconXOffset'] = $icon_offset['xOffset'];
                     $fa_icon_options['iconYOffset'] = $icon_offset['yOffset'];
                 }
+
+                if (1.0 !== $marker_scale) {
+                    $fa_icon_options['markerScale'] = $marker_scale;
+                    $fa_icon_options['popupAnchor'] = self::osm_scale_point([0, self::OSM_FA_MARKER_TOP], $marker_scale);
+                }
+                $fa_tooltip_offset = self::osm_scale_point([0, self::OSM_FA_MARKER_TOP], $marker_scale);
                 ?>
 
-                markerOptions.icon = L.icon.fontAwesome(<?php echo wp_json_encode($fa_icon_options); ?>);
+                const markerIconOptions = <?php echo wp_json_encode($fa_icon_options); ?>;
+                const markerTooltipOffset = <?php echo wp_json_encode($fa_tooltip_offset); ?>;
+                markerOptions.icon = L.icon.fontAwesome(markerIconOptions);
                 <?php
                 break;
                 case "custom_image":
@@ -1791,6 +1836,21 @@ class Widget_OSM_Map extends Widget_Base
                 ?>
                 markerIcon = L.icon(<?php echo wp_json_encode($icon_options)?>);
                 markerOptions.icon = markerIcon;
+                <?php endif; ?>
+                <?php
+                break;
+                default:
+                if (1.0 !== $marker_scale):
+                    $default_icon_options = array_map(function ($point) use ($marker_scale) {
+                        return self::osm_scale_point($point, $marker_scale);
+                    }, self::OSM_DEFAULT_ICON_GEOMETRY);
+                    // L.Icon.Default only picks the 2x image on retina screens and prefixes this file name with its image path
+                    if ($marker_scale > 1.0) {
+                        $default_icon_options['iconUrl'] = 'marker-icon-2x.png';
+                    }
+                ?>
+                const markerIconOptions = <?php echo wp_json_encode($default_icon_options); ?>;
+                markerOptions.icon = new L.Icon.Default(markerIconOptions);
                 <?php endif; ?>
                 <?php endswitch; ?>
 
@@ -1875,7 +1935,7 @@ class Widget_OSM_Map extends Widget_Base
                                 <?php if('fontawesome' === $icon_type): ?>
                                     // update offset for fontawesome markers
                                     tooltipOptions.direction = "top";
-                                    tooltipOptions.offset = [0, -50];
+                                    tooltipOptions.offset = markerTooltipOffset;
                                 <?php  endif; ?>
 
                                     marker.bindTooltip(tooltipContent, tooltipOptions);
@@ -2007,6 +2067,29 @@ class Widget_OSM_Map extends Widget_Base
             wp_enqueue_script($handle);
             $deps[] = $handle;
         }
+    }
+
+    /**
+     * @param mixed $setting Elementor slider value.
+     */
+    private function osm_marker_scale($setting): float
+    {
+        if (!is_array($setting) || !isset($setting['size']) || !is_numeric($setting['size'])) {
+            return 1.0;
+        }
+
+        $percent = max(self::OSM_MARKER_SIZE_MIN, min(self::OSM_MARKER_SIZE_MAX, (float) $setting['size']));
+
+        return $percent / 100;
+    }
+
+    /**
+     * @param int[] $point
+     * @return int[]
+     */
+    private static function osm_scale_point(array $point, float $scale): array
+    {
+        return [(int) round($point[0] * $scale), (int) round($point[1] * $scale)];
     }
 
     /**

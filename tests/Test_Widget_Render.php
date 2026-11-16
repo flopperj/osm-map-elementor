@@ -364,6 +364,257 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertDoesNotMatchRegularExpression('/elementor-button-link[^`]*noreferrer/', $js);
     }
 
+    private function script_declares($html, $name)
+    {
+        return 1 === preg_match('/^\s*const ' . preg_quote($name, '/') . ' = /m', $html);
+    }
+
+    private function default_marker_geometry(array $options)
+    {
+        unset($options['iconUrl']);
+
+        return $options;
+    }
+
+    private function default_marker_html($size)
+    {
+        return $this->render_admin([
+            'marker_list' => [$this->marker()],
+            'marker_size' => ['unit' => '%', 'size' => $size],
+        ]);
+    }
+
+    private function font_awesome_marker_html(array $overrides = [])
+    {
+        return $this->render_admin(array_merge([
+            'marker_list' => [$this->marker()],
+            'icon_type' => 'fontawesome',
+        ], $overrides));
+    }
+
+    public function test_marker_size_control_targets_default_and_font_awesome_markers()
+    {
+        $control = $this->make_widget()->get_controls('marker_size');
+
+        $this->assertSame('slider', $control['type']);
+        $this->assertSame(['%'], $control['size_units']);
+        $this->assertEquals(['min' => 25, 'max' => 200, 'step' => 5], $control['range']['%']);
+        $this->assertSame('%', $control['default']['unit']);
+        $this->assertSame(100, $control['default']['size']);
+        $this->assertSame(['icon_type' => ['', 'fontawesome']], $control['condition']);
+    }
+
+    public function test_default_marker_without_a_saved_size_renders_leaflets_default_icon()
+    {
+        $html = $this->render_admin(['marker_list' => [$this->marker()]]);
+
+        $this->assertFalse($this->script_declares($html, 'markerIconOptions'));
+        $this->assertStringNotContainsString('L.Icon.Default', $html);
+    }
+
+    public function test_default_marker_at_full_size_renders_leaflets_default_icon()
+    {
+        $html = $this->default_marker_html(100);
+
+        $this->assertFalse($this->script_declares($html, 'markerIconOptions'));
+        $this->assertStringNotContainsString('L.Icon.Default', $html);
+    }
+
+    public function scaled_default_geometry()
+    {
+        return [
+            '150 percent' => [150, [
+                'iconSize' => [38, 62],
+                'iconAnchor' => [18, 62],
+                'popupAnchor' => [2, -51],
+                'tooltipAnchor' => [24, -42],
+                'shadowSize' => [62, 62],
+            ]],
+            '50 percent' => [50, [
+                'iconSize' => [13, 21],
+                'iconAnchor' => [6, 21],
+                'popupAnchor' => [1, -17],
+                'tooltipAnchor' => [8, -14],
+                'shadowSize' => [21, 21],
+            ]],
+            '200 percent' => [200, [
+                'iconSize' => [50, 82],
+                'iconAnchor' => [24, 82],
+                'popupAnchor' => [2, -68],
+                'tooltipAnchor' => [32, -56],
+                'shadowSize' => [82, 82],
+            ]],
+        ];
+    }
+
+    /**
+     * @dataProvider scaled_default_geometry
+     */
+    public function test_default_marker_geometry_scales_with_marker_size($size, array $expected)
+    {
+        $html = $this->default_marker_html($size);
+
+        $this->assertSame($expected, $this->default_marker_geometry($this->js_value($html, 'markerIconOptions')));
+        $this->assertStringContainsString('markerOptions.icon = new L.Icon.Default(markerIconOptions);', $html);
+    }
+
+    public function clamped_and_defaulted_sizes()
+    {
+        $minimum = [
+            'iconSize' => [6, 10],
+            'iconAnchor' => [3, 10],
+            'popupAnchor' => [0, -9],
+            'tooltipAnchor' => [4, -7],
+            'shadowSize' => [10, 10],
+        ];
+        $maximum = [
+            'iconSize' => [50, 82],
+            'iconAnchor' => [24, 82],
+            'popupAnchor' => [2, -68],
+            'tooltipAnchor' => [32, -56],
+            'shadowSize' => [82, 82],
+        ];
+
+        return [
+            'below the minimum' => [['unit' => '%', 'size' => 10], $minimum],
+            'above the maximum' => [['unit' => '%', 'size' => 500], $maximum],
+            'negative' => [['unit' => '%', 'size' => -40], $minimum],
+            'numeric string' => [['unit' => '%', 'size' => '25'], $minimum],
+            'non numeric' => [['unit' => '%', 'size' => 'abc'], null],
+            'empty string' => [['unit' => '%', 'size' => ''], null],
+            'null size' => [['unit' => '%', 'size' => null], null],
+            'missing size key' => [['unit' => '%'], null],
+            'not an array' => ['150', null],
+        ];
+    }
+
+    /**
+     * @dataProvider clamped_and_defaulted_sizes
+     */
+    public function test_marker_size_is_clamped_and_defaulted_on_the_server($saved, $expected)
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->marker()],
+            'marker_size' => $saved,
+        ]);
+
+        if (null === $expected) {
+            $this->assertFalse($this->script_declares($html, 'markerIconOptions'));
+            return;
+        }
+
+        $options = $this->default_marker_geometry($this->js_value($html, 'markerIconOptions'));
+        $this->assertSame($expected, $options);
+        array_walk_recursive($options, function ($value) {
+            $this->assertIsInt($value);
+        });
+    }
+
+    public function test_default_marker_below_full_size_keeps_leaflets_image_choice()
+    {
+        $options = $this->js_value($this->default_marker_html(50), 'markerIconOptions');
+
+        $this->assertSame(['iconSize', 'iconAnchor', 'popupAnchor', 'tooltipAnchor', 'shadowSize'], array_keys($options));
+    }
+
+    public function test_default_marker_above_full_size_uses_the_high_resolution_image_file_name()
+    {
+        $options = $this->js_value($this->default_marker_html(150), 'markerIconOptions');
+
+        $this->assertSame(['iconSize', 'iconAnchor', 'popupAnchor', 'tooltipAnchor', 'shadowSize', 'iconUrl'], array_keys($options));
+        $this->assertSame('marker-icon-2x.png', $options['iconUrl']);
+    }
+
+    public function test_font_awesome_marker_options_are_unchanged_at_full_size()
+    {
+        $html = $this->font_awesome_marker_html();
+
+        $this->assertSame([
+            'iconClasses' => 'fa fa-circle',
+            'markerColor' => '#368acc',
+            'markerFillOpacity' => 1,
+            'markerStrokeWidth' => 1,
+            'markerStrokeColor' => '#346F9E',
+            'iconColor' => '#ffffff',
+            'iconSize' => 12,
+        ], $this->js_value($html, 'markerIconOptions'));
+        $this->assertSame([0, -50], $this->js_value($html, 'markerTooltipOffset'));
+    }
+
+    public function scaled_font_awesome_markers()
+    {
+        return [
+            '150 percent' => [150, 1.5, [0, -75]],
+            '50 percent' => [50, 0.5, [0, -25]],
+        ];
+    }
+
+    /**
+     * @dataProvider scaled_font_awesome_markers
+     */
+    public function test_font_awesome_marker_scale_and_anchors_follow_marker_size($size, $scale, array $anchor)
+    {
+        $unscaled = $this->js_value($this->font_awesome_marker_html(), 'markerIconOptions');
+        $html = $this->font_awesome_marker_html(['marker_size' => ['unit' => '%', 'size' => $size]]);
+        $options = $this->js_value($html, 'markerIconOptions');
+
+        $this->assertSame($scale, $options['markerScale']);
+        $this->assertSame($anchor, $options['popupAnchor']);
+        $this->assertSame($anchor, $this->js_value($html, 'markerTooltipOffset'));
+        unset($options['markerScale'], $options['popupAnchor']);
+        $this->assertSame($unscaled, $options);
+    }
+
+    public function test_font_awesome_tooltip_uses_the_scaled_offset()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->marker(['marker_behavior' => 'tooltip'])],
+            'icon_type' => 'fontawesome',
+            'marker_size' => ['unit' => '%', 'size' => 150],
+        ]);
+
+        $this->assertStringContainsString('tooltipOptions.offset = markerTooltipOffset;', $html);
+        $this->assertStringNotContainsString('[0, -50]', $html);
+    }
+
+    public function test_font_awesome_icon_size_option_is_passed_through_unscaled()
+    {
+        $html = $this->font_awesome_marker_html([
+            'icon_size' => ['unit' => 'px', 'size' => 18],
+            'marker_size' => ['unit' => '%', 'size' => 200],
+        ]);
+        $options = $this->js_value($html, 'markerIconOptions');
+
+        $this->assertSame(18, $options['iconSize']);
+        $this->assertEquals(2, $options['markerScale']);
+    }
+
+    public function test_frontend_render_carries_the_scaled_font_awesome_options()
+    {
+        $this->render_frontend([
+            'marker_list' => [$this->marker()],
+            'icon_type' => 'fontawesome',
+            'marker_size' => ['unit' => '%', 'size' => 150],
+        ]);
+
+        $this->assertStringContainsString('"markerScale":1.5', $this->inline_scripts_after_markers_handle());
+    }
+
+    public function test_custom_image_marker_ignores_a_stale_marker_size()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->marker()],
+            'icon_type' => 'custom_image',
+            'custom_icon_image' => ['url' => 'https://example.com/pin.png'],
+            'marker_size' => ['unit' => '%', 'size' => 150],
+        ]);
+
+        $this->assertStringContainsString('L.icon(', $html);
+        $this->assertStringNotContainsString('L.Icon.Default', $html);
+        $this->assertFalse($this->script_declares($html, 'markerIconOptions'));
+        $this->assertSame(0, substr_count($html, 'const markerIconOptions'));
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

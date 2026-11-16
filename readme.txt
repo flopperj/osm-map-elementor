@@ -1,6 +1,6 @@
 === OSM Map Widget for Elementor ===
 Plugin Name: OSM Map Widget for Elementor
-Version: 1.4.1
+Version: 1.5.0
 Author: Plugin Contributors
 Author URI: https://github.com/flopperj/osm-map-elementor/graphs/contributors
 Contributors: garbowza, intelchip, youngmedianetwork
@@ -8,7 +8,7 @@ Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -64,6 +64,9 @@ Used only in the Elementor editor, and only when a Google Maps API key is saved 
 When a custom map tile URL is configured in the plugin settings, the visitor's browser requests tiles from that server, and its terms and privacy policy apply.
 
 == Changelog ==
+= 1.5.0 =
+* NEW: Marker Size setting for the Default and Font Awesome marker icons. It scales the whole marker from 25% to 200%, and popups and tooltips follow the new size. Existing maps keep their current marker size. The Font Awesome Icon Size setting now scales together with the pin. Thanks to @xanhcloud24.
+
 = 1.4.1 =
 * IMPROVEMENT: Links that open in a new tab, such as map attributions and settings page links, now use rel="noopener noreferrer". The marker button uses rel="noopener" when it opens a new tab. Thanks to @frapsd.
 
@@ -97,6 +100,9 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 For older versions, see the [full changelog](https://github.com/flopperj/osm-map-elementor/wiki/Changelog).
 
 == Upgrade Notice ==
+= 1.5.0 =
+Adds a Marker Size setting for the Default and Font Awesome markers.
+
 = 1.4.1 =
 Links that open in a new tab now use rel="noopener".
 

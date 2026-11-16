@@ -21,6 +21,11 @@ L.Icon.FontAwesome = L.Icon.extend({
         return div;
     },
 
+    // L.Icon's createShadow calls _createIcon, which this class overrides, so it would add a second pin
+    createShadow: function () {
+        return null;
+    },
+
     /*------------------------------- PUBLIC -------------------------------*/
 
     setStyle: function (style) {
@@ -52,6 +57,12 @@ L.Icon.FontAwesome = L.Icon.extend({
 
         // container div
         this.markerContainer = L.DomUtil.create("div", "leaflet-fa-markers");
+
+        // scale around the pin tip so the tip stays on the coordinate
+        if (typeof options.markerScale === "number" && options.markerScale !== 1) {
+            this.markerContainer.style.transform = `scale(${options.markerScale})`;
+            this.markerContainer.style.transformOrigin = "16px 51px";
+        }
 
         // icon container div
         this.iconContainer = L.DomUtil.create("div", 'icon-container');
