@@ -21,6 +21,11 @@ L.Icon.FontAwesome = L.Icon.extend({
         return div;
     },
 
+    // L.Icon's createShadow calls _createIcon, which this class overrides, so it would add a second pin
+    createShadow: function () {
+        return null;
+    },
+
     /*------------------------------- PUBLIC -------------------------------*/
 
     setStyle: function (style) {

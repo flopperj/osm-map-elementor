@@ -38,4 +38,11 @@ class Test_Vendored_Marker_Geometry extends WP_UnitTestCase
         $this->assertStringContainsString('options.markerScale', $library);
         $this->assertStringContainsString('transformOrigin = "16px 51px"', $library);
     }
+
+    public function test_font_awesome_marker_has_no_shadow_copy_of_the_pin()
+    {
+        $library = $this->asset('leaflet-fa-markers/L.Icon.FontAwesome.js');
+
+        $this->assertMatchesRegularExpression('/createShadow: function \(\) \{\s+return null;\s+\}/', $library);
+    }
 }
