@@ -23,7 +23,6 @@ class Test_Plugin_Headers extends WP_UnitTestCase
         $this->assertSame('6.8', $data['RequiresWP']);
         $this->assertSame('7.4', $data['RequiresPHP']);
         $this->assertSame('elementor', $data['RequiresPlugins']);
-        $this->assertSame('1.4.0', $data['Version']);
         $this->assertSame('GPLv3', $this->raw_header('License'));
     }
 
@@ -37,8 +36,20 @@ class Test_Plugin_Headers extends WP_UnitTestCase
 
     public function test_version_constant_matches_plugin_header()
     {
-        $this->assertSame('1.4.0', OSM_MAP_VERSION);
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', OSM_MAP_VERSION);
         $this->assertSame(OSM_MAP_VERSION, get_plugin_data($this->plugin_file(), false, false)['Version']);
+    }
+
+    public function test_readme_version_matches_the_plugin_version()
+    {
+        $this->assertSame(OSM_MAP_VERSION, $this->readme_field('Version'));
+    }
+
+    public function test_readme_changelog_has_an_entry_for_the_plugin_version()
+    {
+        $readme = file_get_contents(dirname(__DIR__) . '/readme.txt');
+
+        $this->assertMatchesRegularExpression('/== Changelog ==\s+= ' . preg_quote(OSM_MAP_VERSION, '/') . ' =\n\* /', $readme);
     }
 
     public function test_plugin_header_has_elementor_tested_up_to_but_no_wordpress_tested_up_to()
