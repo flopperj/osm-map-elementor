@@ -369,6 +369,13 @@ class Test_Widget_Render extends WP_UnitTestCase
         return 1 === preg_match('/^\s*const ' . preg_quote($name, '/') . ' = /m', $html);
     }
 
+    private function default_marker_geometry(array $options)
+    {
+        unset($options['iconUrl']);
+
+        return $options;
+    }
+
     private function default_marker_html($size)
     {
         return $this->render_admin([
@@ -447,7 +454,7 @@ class Test_Widget_Render extends WP_UnitTestCase
     {
         $html = $this->default_marker_html($size);
 
-        $this->assertSame($expected, $this->js_value($html, 'markerIconOptions'));
+        $this->assertSame($expected, $this->default_marker_geometry($this->js_value($html, 'markerIconOptions')));
         $this->assertStringContainsString('markerOptions.icon = new L.Icon.Default(markerIconOptions);', $html);
     }
 
@@ -496,18 +503,26 @@ class Test_Widget_Render extends WP_UnitTestCase
             return;
         }
 
-        $options = $this->js_value($html, 'markerIconOptions');
+        $options = $this->default_marker_geometry($this->js_value($html, 'markerIconOptions'));
         $this->assertSame($expected, $options);
         array_walk_recursive($options, function ($value) {
             $this->assertIsInt($value);
         });
     }
 
-    public function test_default_marker_icon_options_carry_no_image_urls()
+    public function test_default_marker_below_full_size_keeps_leaflets_image_choice()
+    {
+        $options = $this->js_value($this->default_marker_html(50), 'markerIconOptions');
+
+        $this->assertSame(['iconSize', 'iconAnchor', 'popupAnchor', 'tooltipAnchor', 'shadowSize'], array_keys($options));
+    }
+
+    public function test_default_marker_above_full_size_uses_the_high_resolution_image_file_name()
     {
         $options = $this->js_value($this->default_marker_html(150), 'markerIconOptions');
 
-        $this->assertSame(['iconSize', 'iconAnchor', 'popupAnchor', 'tooltipAnchor', 'shadowSize'], array_keys($options));
+        $this->assertSame(['iconSize', 'iconAnchor', 'popupAnchor', 'tooltipAnchor', 'shadowSize', 'iconUrl'], array_keys($options));
+        $this->assertSame('marker-icon-2x.png', $options['iconUrl']);
     }
 
     public function test_font_awesome_marker_options_are_unchanged_at_full_size()
@@ -562,7 +577,7 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringNotContainsString('[0, -50]', $html);
     }
 
-    public function test_font_awesome_glyph_size_is_independent_of_marker_size()
+    public function test_font_awesome_icon_size_option_is_passed_through_unscaled()
     {
         $html = $this->font_awesome_marker_html([
             'icon_size' => ['unit' => 'px', 'size' => 18],

@@ -1844,6 +1844,10 @@ class Widget_OSM_Map extends Widget_Base
                     $default_icon_options = array_map(function ($point) use ($marker_scale) {
                         return self::osm_scale_point($point, $marker_scale);
                     }, self::OSM_DEFAULT_ICON_GEOMETRY);
+                    // L.Icon.Default only picks the 2x image on retina screens and prefixes this file name with its image path
+                    if ($marker_scale > 1.0) {
+                        $default_icon_options['iconUrl'] = 'marker-icon-2x.png';
+                    }
                 ?>
                 const markerIconOptions = <?php echo wp_json_encode($default_icon_options); ?>;
                 markerOptions.icon = new L.Icon.Default(markerIconOptions);
