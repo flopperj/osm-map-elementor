@@ -1550,6 +1550,8 @@ class Widget_OSM_Map extends Widget_Base
 
                 $marker['button_url'] = !empty($marker['button_url']) ? esc_url_raw($marker['button_url'], ['http', 'https', 'mailto', 'tel']) : '';
                 $marker['button_url_target'] = in_array($marker['button_url_target'] ?? '', ['_self', '_blank'], true) ? $marker['button_url_target'] : '_blank';
+                // The popup inserts the description as HTML, so this is its only sanitization.
+                $marker['marker_description'] = isset($marker['marker_description']) && is_string($marker['marker_description']) ? wp_kses_post($marker['marker_description']) : '';
                 $coords[] = [
                     'marker' => $marker,
                     'lat' => $parsed['lat'],
@@ -1881,7 +1883,7 @@ class Widget_OSM_Map extends Widget_Base
 
                         // add marker description
                         if (this.marker.marker_description) {
-                            tooltipContent += `<div class="marker-description">${escapeHtml(this.marker.marker_description)}</div>`;
+                            tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
                         }
 
                         // add marker button

@@ -139,6 +139,102 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertSame('_self', $this->markers_for(['button_url_target' => '_self'])[0]['marker']['button_url_target']);
     }
 
+    public function test_marker_description_keeps_post_safe_html()
+    {
+        $html = '<strong>Bold</strong> <em>i</em><br><p>Para</p><a href="https://example.com/" target="_blank">Link</a>';
+
+        $this->assertSame($html, $this->markers_for(['marker_description' => $html])[0]['marker']['marker_description']);
+    }
+
+    public function unsafe_descriptions()
+    {
+        return [
+            'script element' => ['<script>alert(1)</script>Hi', '<script'],
+            'event handler' => ['<img src="x" onerror="alert(1)">', 'onerror'],
+            'script url' => ['<a href="javascript:alert(1)">x</a>', 'javascript:'],
+        ];
+    }
+
+    /**
+     * @dataProvider unsafe_descriptions
+     */
+    public function test_marker_description_strips_scripts_event_handlers_and_script_urls($description, $forbidden)
+    {
+        $this->assertStringNotContainsStringIgnoringCase(
+            $forbidden,
+            $this->markers_for(['marker_description' => $description])[0]['marker']['marker_description']
+        );
+    }
+
+    public function test_marker_description_is_sanitized_for_users_with_unfiltered_html()
+    {
+        wp_set_current_user(self::factory()->user->create(['role' => 'administrator']));
+        if (!current_user_can('unfiltered_html')) {
+            $this->markTestSkipped('The administrator role lacks unfiltered_html on this install.');
+        }
+
+        $description = $this->markers_for(['marker_description' => '<script>alert(1)</script>Hi'])[0]['marker']['marker_description'];
+
+        $this->assertStringNotContainsString('<script', $description);
+        $this->assertSame('alert(1)Hi', $description);
+    }
+
+    public function non_string_descriptions()
+    {
+        return [
+            'array' => [['<b>x</b>']],
+            'null' => [null],
+        ];
+    }
+
+    /**
+     * @dataProvider non_string_descriptions
+     */
+    public function test_non_string_marker_description_becomes_empty($description)
+    {
+        $this->assertSame('', $this->markers_for(['marker_description' => $description])[0]['marker']['marker_description']);
+    }
+
+    public function test_missing_marker_description_becomes_empty()
+    {
+        $this->assertSame('', $this->markers_for([])[0]['marker']['marker_description']);
+    }
+
+    public function test_plain_text_description_keeps_its_meaning_and_line_breaks()
+    {
+        $this->assertSame(
+            "Tom &amp; Jerry\na &lt; b",
+            $this->markers_for(['marker_description' => "Tom & Jerry\na < b"])[0]['marker']['marker_description']
+        );
+    }
+
+    public function test_script_inserts_the_description_as_html_and_still_escapes_title_and_button()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringNotContainsString('escapeHtml(this.marker.marker_description)', $js);
+        $this->assertStringContainsString('<div class="marker-description">${this.marker.marker_description}</div>', $js);
+        $this->assertStringContainsString('escapeHtml(this.marker.marker_title)', $js);
+        $this->assertStringContainsString('escapeHtml(this.marker.button_text)', $js);
+    }
+
+    public function test_marker_description_cannot_break_out_of_the_editor_script()
+    {
+        $html = $this->render_admin(['marker_list' => [$this->marker(['marker_description' => '</script><script>alert(1)</script>'])]]);
+
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertSame(substr_count($this->render_admin(), '</script>'), substr_count($html, '</script>'));
+    }
+
+    public function test_frontend_script_carries_the_sanitized_description_html()
+    {
+        $this->render_frontend(['marker_list' => [$this->marker(['marker_description' => '<strong>Bold</strong><script>alert(1)</script>'])]]);
+        $scripts = $this->inline_scripts_after_markers_handle();
+
+        $this->assertStringContainsString('<strong>Bold<\/strong>', $scripts);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $scripts);
+    }
+
     public function test_custom_tile_url_is_json_encoded_and_keeps_its_placeholders()
     {
         update_option('osm_widget', ['osm_custom' => 'https://{s}.tile.example.com/{z}/{x}/{y}.png']);
