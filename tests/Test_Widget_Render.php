@@ -1009,19 +1009,33 @@ class Test_Widget_Render extends WP_UnitTestCase
         return $this->js_value($html, 'markers');
     }
 
-    public function test_marker_type_defaults_to_point_and_area_fields_show_only_for_areas()
+    public function test_marker_type_defaults_to_point_and_shape_fields_show_only_for_their_types()
+    {
+        $fields = $this->make_widget()->get_controls('marker_list')['fields'];
+        $shapes = ['area', 'circle', 'polygon', 'line'];
+
+        $this->assertSame('point', $fields['marker_type']['default']);
+        $this->assertSame(['point', 'area', 'circle', 'polygon', 'line'], array_keys($fields['marker_type']['options']));
+        $this->assertSame('Rectangle', $fields['marker_type']['options']['area']);
+        $this->assertSame(['marker_type!' => $shapes], $fields['marker_location']['condition']);
+        $this->assertSame(['marker_type!' => $shapes], $fields['marker_coords']['condition']);
+        $this->assertSame(['marker_type' => 'area'], $fields['area_corner_1']['condition']);
+        $this->assertSame(['marker_type' => 'area'], $fields['area_corner_2']['condition']);
+        $this->assertSame(['marker_type' => 'circle'], $fields['circle_center']['condition']);
+        $this->assertSame(['marker_type' => 'circle'], $fields['circle_radius']['condition']);
+        $this->assertSame(['marker_type' => ['polygon', 'line']], $fields['shape_points']['condition']);
+        $this->assertSame(['marker_type' => $shapes], $fields['area_border_color']['condition']);
+        $this->assertFalse($fields['area_border_color']['global']['active']);
+        $this->assertFalse($fields['area_fill_color']['global']['active']);
+    }
+
+    public function test_fill_controls_are_hidden_for_lines()
     {
         $fields = $this->make_widget()->get_controls('marker_list')['fields'];
 
-        $this->assertSame('point', $fields['marker_type']['default']);
-        $this->assertSame(['point', 'area'], array_keys($fields['marker_type']['options']));
-        $this->assertSame(['marker_type!' => 'area'], $fields['marker_location']['condition']);
-        $this->assertSame(['marker_type!' => 'area'], $fields['marker_coords']['condition']);
-        foreach (['area_corner_1', 'area_corner_2', 'area_border_color', 'area_fill_color', 'area_fill_opacity'] as $id) {
-            $this->assertSame(['marker_type' => 'area'], $fields[$id]['condition'], $id);
-        }
-        $this->assertFalse($fields['area_border_color']['global']['active']);
-        $this->assertFalse($fields['area_fill_color']['global']['active']);
+        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon']], $fields['area_fill_color']['condition']);
+        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon']], $fields['area_fill_opacity']['condition']);
+        $this->assertSame(1, $fields['circle_radius']['min']);
     }
 
     public function test_saved_marker_without_a_type_renders_exactly_as_before()
@@ -1102,7 +1116,8 @@ class Test_Widget_Render extends WP_UnitTestCase
     {
         $js = $this->render_admin();
 
-        $this->assertStringContainsString('L.rectangle(this.bounds, this.area)', $js);
+        $this->assertStringContainsString('L.rectangle(item.bounds, item.area)', $js);
+        $this->assertStringContainsString('this.bounds ? buildShape(this) : L.marker(', $js);
         $this->assertStringContainsString('L.marker([this.lat, this.lng], markerOptions)', $js);
         $this->assertSame(1, substr_count($js, 'bindPopup(tooltipContent);'));
     }
@@ -1335,6 +1350,138 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString("const markerLabel = " . wp_json_encode('Map marker') . ';', $js);
         $this->assertStringContainsString("'IMG' !== markerElement.tagName", $js);
         $this->assertStringContainsString("markerElement.setAttribute('aria-label', this.marker.marker_title || markerLabel);", $js);
+    }
+
+    private function shape_marker($type, array $overrides = [])
+    {
+        return $this->marker(array_merge(['marker_type' => $type], $overrides));
+    }
+
+    private function shapes_for($type, array $overrides)
+    {
+        $html = $this->render_admin(['marker_list' => [$this->shape_marker($type, $overrides)]]);
+
+        return $this->js_value($html, 'markers');
+    }
+
+    public function test_circle_renders_its_centre_radius_and_bounds()
+    {
+        $shape = $this->shapes_for('circle', ['circle_center' => ' 45.0 , 9.0 ', 'circle_radius' => '5000'])[0];
+
+        $this->assertSame('circle', $shape['shape']);
+        $this->assertSame(45.0, $shape['lat']);
+        $this->assertSame(9.0, $shape['lng']);
+        $this->assertSame(5000.0, $shape['radius']);
+        $this->assertEqualsWithDelta(45.0 - 5000 / 111194.9, $shape['bounds'][0][0], 0.001);
+        $this->assertEqualsWithDelta(45.0 + 5000 / 111194.9, $shape['bounds'][1][0], 0.001);
+        $this->assertGreaterThan(9.0, $shape['bounds'][1][1]);
+        $this->assertSame(['color', 'fillColor', 'fillOpacity'], array_keys($shape['area']));
+    }
+
+    public function invalid_radii()
+    {
+        return ['zero' => ['0'], 'negative' => ['-5'], 'text' => ['wide'], 'empty' => [''], 'array' => [[10]]];
+    }
+
+    /**
+     * @dataProvider invalid_radii
+     */
+    public function test_circle_with_an_invalid_radius_or_centre_is_skipped($radius)
+    {
+        $this->assertSame([], $this->shapes_for('circle', ['circle_center' => '45,9', 'circle_radius' => $radius]));
+        $this->assertSame([], $this->shapes_for('circle', ['circle_center' => 'abc', 'circle_radius' => '100']));
+    }
+
+    public function test_circle_radius_is_capped()
+    {
+        $shape = $this->shapes_for('circle', ['circle_center' => '0,0', 'circle_radius' => '99999999'])[0];
+
+        $this->assertSame(1000000.0, $shape['radius']);
+        $this->assertLessThanOrEqual(180, $shape['bounds'][1][1]);
+    }
+
+    public function test_polygon_renders_valid_points_and_skips_invalid_lines()
+    {
+        $text = "45.0, 7.0\nnot a point\n45.0, 9.0\r\n\n43.0, 8.0\n95, 10";
+
+        $shape = $this->shapes_for('polygon', ['shape_points' => $text])[0];
+
+        $this->assertSame('polygon', $shape['shape']);
+        $this->assertEquals([[45.0, 7.0], [45.0, 9.0], [43.0, 8.0]], $shape['points']);
+        $this->assertEquals([[43.0, 7.0], [45.0, 9.0]], $shape['bounds']);
+        $this->assertEqualsWithDelta(44.0, $shape['lat'], 1e-9);
+        $this->assertEqualsWithDelta(8.0, $shape['lng'], 1e-9);
+    }
+
+    public function test_polygon_needs_three_valid_points_and_line_needs_two()
+    {
+        $this->assertSame([], $this->shapes_for('polygon', ['shape_points' => "1,1\n2,2\nbad"]));
+        $this->assertSame([], $this->shapes_for('polygon', ['shape_points' => '']));
+        $this->assertSame([], $this->shapes_for('line', ['shape_points' => '1,1']));
+        $this->assertSame('line', $this->shapes_for('line', ['shape_points' => "1,1\n2,2"])[0]['shape']);
+    }
+
+    public function test_line_is_stroke_only()
+    {
+        $shape = $this->shapes_for('line', ['shape_points' => "1,1\n2,2", 'area_border_color' => '#d63638'])[0];
+
+        $this->assertSame(['color' => '#d63638'], $shape['area']);
+    }
+
+    public function test_shape_points_are_capped()
+    {
+        $lines = [];
+        for ($i = 0; $i < 600; $i++) {
+            $lines[] = ($i % 80) . ',' . ($i % 170);
+        }
+
+        $shape = $this->shapes_for('line', ['shape_points' => implode("\n", $lines)])[0];
+
+        $this->assertCount(500, $shape['points']);
+    }
+
+    public function test_shapes_extend_fit_bounds_and_the_midpoint_by_their_centre()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [
+                $this->shape_marker('circle', ['circle_center' => '0,0', 'circle_radius' => '111195']),
+                $this->shape_marker('line', ['shape_points' => "10,20\n12,30"]),
+            ],
+            'center_mode' => 'fit',
+        ]);
+
+        $bounds = $this->js_value($html, 'mapView')['bounds'];
+        $this->assertEqualsWithDelta(-1.0, $bounds[0][0], 0.01);
+        $this->assertEqualsWithDelta(-1.0, $bounds[0][1], 0.01);
+        $this->assertEqualsWithDelta(12.0, $bounds[1][0], 0.01);
+        $this->assertEqualsWithDelta(30.0, $bounds[1][1], 0.01);
+        $circle = $this->render_admin(['marker_list' => [$this->shape_marker('circle', ['circle_center' => '10,20', 'circle_radius' => '10'])]]);
+        $this->assertSame('10,20', $this->center_attribute($circle));
+    }
+
+    public function test_raw_shape_input_never_reaches_the_script()
+    {
+        $html = $this->render_admin(['marker_list' => [
+            $this->shape_marker('polygon', ['shape_points' => "1,1\n2,2\n3,1\n</script><script>alert(1)</script>"]),
+            $this->shape_marker('circle', ['circle_center' => '1,1', 'circle_radius' => '5']),
+        ]]);
+        $markers = $this->js_value($html, 'markers');
+
+        $this->assertStringNotContainsString('<script>alert(1)', $html);
+        foreach ($markers as $entry) {
+            foreach (['shape_points', 'circle_center', 'circle_radius', 'area_corner_1', 'area_corner_2'] as $key) {
+                $this->assertArrayNotHasKey($key, $entry['marker']);
+            }
+        }
+    }
+
+    public function test_script_builds_every_shape_through_the_shared_popup_builder()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString('L.circle([item.lat, item.lng], Object.assign({radius: item.radius}, item.area))', $js);
+        $this->assertStringContainsString('L.polygon(item.points, item.area)', $js);
+        $this->assertStringContainsString('L.polyline(item.points, item.area)', $js);
     }
 
     public function test_debug_helper_is_removed()

@@ -42,6 +42,10 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_POSTS_DEFAULT = 20;
     private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
     private const OSM_AREA_DEFAULT_OPACITY = 0.2;
+    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line'];
+    private const OSM_SHAPE_POINTS_MAX = 500;
+    private const OSM_CIRCLE_RADIUS_MAX = 1000000;
+    private const OSM_EARTH_RADIUS = 6371000;
     // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
     private const OSM_DEFAULT_ICON_GEOMETRY = [
         'iconSize' => [25, 41],
@@ -274,9 +278,12 @@ class Widget_OSM_Map extends Widget_Base
                 'default' => 'point',
                 'options' => [
                     'point' => __('Point', 'osm-map-elementor'),
-                    'area' => __('Area (rectangle)', 'osm-map-elementor'),
+                    'area' => __('Rectangle', 'osm-map-elementor'),
+                    'circle' => __('Circle', 'osm-map-elementor'),
+                    'polygon' => __('Polygon', 'osm-map-elementor'),
+                    'line' => __('Line', 'osm-map-elementor'),
                 ],
-                'description' => __('Areas are drawn as a rectangle and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
+                'description' => __('Shapes are drawn on the map and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
             ]
         );
 
@@ -290,7 +297,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => true,
                 ],
                 'condition' => [
-                    'marker_type!' => 'area',
+                    'marker_type!' => self::OSM_SHAPE_TYPES,
                 ],
             ]
         );
@@ -305,7 +312,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => true,
                 ],
                 'condition' => [
-                    'marker_type!' => 'area',
+                    'marker_type!' => self::OSM_SHAPE_TYPES,
                 ],
             ]
         );
@@ -342,6 +349,48 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $repeater->add_control(
+            'circle_center',
+            [
+                'label' => __('Center', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'circle',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'circle_radius',
+            [
+                'label' => __('Radius (meters)', 'osm-map-elementor'),
+                'type' => Controls_Manager::NUMBER,
+                'min' => 1,
+                'max' => self::OSM_CIRCLE_RADIUS_MAX,
+                'default' => 1000,
+                'condition' => [
+                    'marker_type' => 'circle',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'shape_points',
+            [
+                'label' => __('Points', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => "45.46, 9.19\n45.07, 7.69\n44.49, 11.34",
+                'description' => __('One "lat, long" point per line. A polygon needs at least 3 points and a line at least 2.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => ['polygon', 'line'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
             'area_border_color',
             [
                 'label' => __('Border Color', 'osm-map-elementor'),
@@ -351,7 +400,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => false,
                 ],
                 'condition' => [
-                    'marker_type' => 'area',
+                    'marker_type' => ['area', 'circle', 'polygon', 'line'],
                 ],
             ]
         );
@@ -366,7 +415,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => false,
                 ],
                 'condition' => [
-                    'marker_type' => 'area',
+                    'marker_type' => ['area', 'circle', 'polygon'],
                 ],
             ]
         );
@@ -389,7 +438,7 @@ class Widget_OSM_Map extends Widget_Base
                     'size' => self::OSM_AREA_DEFAULT_OPACITY,
                 ],
                 'condition' => [
-                    'marker_type' => 'area',
+                    'marker_type' => ['area', 'circle', 'polygon'],
                 ],
             ]
         );
@@ -1926,17 +1975,14 @@ class Widget_OSM_Map extends Widget_Base
                     continue;
                 }
 
-                $is_area = 'area' === ($marker['marker_type'] ?? 'point');
-                $area_bounds = null;
-                if ($is_area) {
-                    $area_bounds = $this->osm_parse_area_corners($marker['area_corner_1'] ?? null, $marker['area_corner_2'] ?? null);
-                    if (null === $area_bounds) {
+                $type = $marker['marker_type'] ?? 'point';
+                $shape = null;
+                if (in_array($type, self::OSM_SHAPE_TYPES, true)) {
+                    $shape = $this->osm_parse_shape($type, $marker);
+                    if (null === $shape) {
                         continue;
                     }
-                    $parsed = [
-                        'lat' => ($area_bounds[0][0] + $area_bounds[1][0]) / 2,
-                        'lng' => ($area_bounds[0][1] + $area_bounds[1][1]) / 2,
-                    ];
+                    $parsed = ['lat' => $shape['lat'], 'lng' => $shape['lng']];
                 } else {
                     $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
                     if (null === $parsed) {
@@ -1953,13 +1999,9 @@ class Widget_OSM_Map extends Widget_Base
                     'lat' => $parsed['lat'],
                     'lng' => $parsed['lng']
                 ];
-                if ($is_area) {
-                    $entry['bounds'] = $area_bounds;
-                    $entry['area'] = [
-                        'color' => $this->osm_sanitize_color($marker['area_border_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
-                        'fillColor' => $this->osm_sanitize_color($marker['area_fill_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
-                        'fillOpacity' => $this->osm_slider_size($marker['area_fill_opacity'] ?? null, 0, 1, self::OSM_AREA_DEFAULT_OPACITY),
-                    ];
+                if (null !== $shape) {
+                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points']);
+                    $entry = array_merge($entry, array_diff_key($shape, ['lat' => 1, 'lng' => 1]));
                 }
                 $coords[] = $entry;
             }
@@ -2320,6 +2362,19 @@ class Widget_OSM_Map extends Widget_Base
                 <?php endif; ?>
                 <?php endswitch; ?>
 
+                const buildShape = function (item) {
+                    switch (item.shape) {
+                        case 'circle':
+                            return L.circle([item.lat, item.lng], Object.assign({radius: item.radius}, item.area));
+                        case 'polygon':
+                            return L.polygon(item.points, item.area);
+                        case 'line':
+                            return L.polyline(item.points, item.area);
+                        default:
+                            return L.rectangle(item.bounds, item.area);
+                    }
+                };
+
                 /**
                  * Helper to add markers to our map
                  * @param {array}
@@ -2328,7 +2383,7 @@ class Widget_OSM_Map extends Widget_Base
 
                     let _markers = [];
                     jQuery.each(markers, function () {
-                        const marker = this.bounds ? L.rectangle(this.bounds, this.area) : L.marker([this.lat, this.lng], markerOptions);
+                        const marker = this.bounds ? buildShape(this) : L.marker([this.lat, this.lng], markerOptions);
                         _markers.push(marker);
 
                         // add marker to map
@@ -2741,6 +2796,75 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    /**
+     * Turns a shape item into floats only: centre, bounds and the geometry its Leaflet layer needs.
+     *
+     * @return array|null Null when the geometry is invalid.
+     */
+    private function osm_parse_shape(string $type, array $marker)
+    {
+        $style = [
+            'color' => $this->osm_sanitize_color($marker['area_border_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
+        ];
+        if ('line' !== $type) {
+            $style['fillColor'] = $this->osm_sanitize_color($marker['area_fill_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR);
+            $style['fillOpacity'] = $this->osm_slider_size($marker['area_fill_opacity'] ?? null, 0, 1, self::OSM_AREA_DEFAULT_OPACITY);
+        }
+
+        if ('area' === $type) {
+            $bounds = $this->osm_parse_area_corners($marker['area_corner_1'] ?? null, $marker['area_corner_2'] ?? null);
+            if (null === $bounds) {
+                return null;
+            }
+
+            return ['lat' => ($bounds[0][0] + $bounds[1][0]) / 2, 'lng' => ($bounds[0][1] + $bounds[1][1]) / 2, 'bounds' => $bounds, 'area' => $style];
+        }
+
+        if ('circle' === $type) {
+            $center = $this->osm_parse_marker_coords($marker['circle_center'] ?? null);
+            $radius = $marker['circle_radius'] ?? null;
+            if (null === $center || !is_numeric($radius) || (float) $radius <= 0) {
+                return null;
+            }
+            $radius = min((float) $radius, self::OSM_CIRCLE_RADIUS_MAX);
+            $lat_delta = rad2deg($radius / self::OSM_EARTH_RADIUS);
+            $cos = cos(deg2rad($center['lat']));
+            $lng_delta = $cos > 0.0001 ? min(180.0, $lat_delta / $cos) : 180.0;
+            $bounds = [
+                [max(-90.0, $center['lat'] - $lat_delta), max(-180.0, $center['lng'] - $lng_delta)],
+                [min(90.0, $center['lat'] + $lat_delta), min(180.0, $center['lng'] + $lng_delta)],
+            ];
+
+            return ['lat' => $center['lat'], 'lng' => $center['lng'], 'bounds' => $bounds, 'shape' => 'circle', 'radius' => $radius, 'area' => $style];
+        }
+
+        $points = [];
+        $lines = is_string($marker['shape_points'] ?? null) ? preg_split('/\R/', $marker['shape_points']) : [];
+        foreach ($lines as $line) {
+            $point = $this->osm_parse_marker_coords($line);
+            if (null !== $point) {
+                $points[] = [$point['lat'], $point['lng']];
+            }
+            if (count($points) >= self::OSM_SHAPE_POINTS_MAX) {
+                break;
+            }
+        }
+        if (count($points) < ('polygon' === $type ? 3 : 2)) {
+            return null;
+        }
+
+        $bounds = $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $points]]);
+
+        return [
+            'lat' => ($bounds[0][0] + $bounds[1][0]) / 2,
+            'lng' => ($bounds[0][1] + $bounds[1][1]) / 2,
+            'bounds' => $bounds,
+            'shape' => $type,
+            'points' => $points,
+            'area' => $style,
+        ];
     }
 
     /**
