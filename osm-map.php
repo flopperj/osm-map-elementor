@@ -53,6 +53,7 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_ROUTE_FETCHES_MAX = 5;
     private const OSM_ROUTE_CACHE_TTL = WEEK_IN_SECONDS;
     private const OSM_ROUTE_FAILURE_TTL = 10 * MINUTE_IN_SECONDS;
+    private const OSM_ROUTE_PERMANENT_FAILURE_TTL = DAY_IN_SECONDS;
     private const OSM_ROUTE_LOCK_TTL = 30;
     private const OSM_GEOJSON_MAX_BYTES = 204800;
     private const OSM_GEOJSON_POINTS_MAX = 5000;
@@ -3208,7 +3209,9 @@ class Widget_OSM_Map extends Widget_Base
         delete_transient($cache_key . '_lock');
 
         if (null !== $result['reason']) {
-            set_transient($cache_key, ['failed' => $result['reason']], self::OSM_ROUTE_FAILURE_TTL);
+            $permanent = in_array($result['reason'], ['invalid_response', 'too_long'], true)
+                || ('request_failed' === $result['reason'] && $result['status'] >= 400 && $result['status'] < 500);
+            set_transient($cache_key, ['failed' => $result['reason']], $permanent ? self::OSM_ROUTE_PERMANENT_FAILURE_TTL : self::OSM_ROUTE_FAILURE_TTL);
             do_action('osm_map_elementor_route_failed', $result['reason'], $result['status']);
 
             return $fallback + ['reason' => $result['reason']];
@@ -3259,7 +3262,7 @@ class Widget_OSM_Map extends Widget_Base
 
         $body = wp_remote_retrieve_body($response);
         if (strlen($body) > self::OSM_ROUTE_MAX_BYTES) {
-            return $failure('invalid_response', $status);
+            return $failure('too_long', $status);
         }
 
         $data = json_decode($body, true, 32);
@@ -3267,6 +3270,14 @@ class Widget_OSM_Map extends Widget_Base
         $geometry = is_array($feature) && is_array($feature['geometry'] ?? null) ? $feature['geometry'] : null;
         if (null === $geometry || !in_array($geometry['type'] ?? null, ['LineString', 'MultiLineString'], true)) {
             return $failure('invalid_response', $status);
+        }
+
+        $coordinates = is_array($geometry['coordinates'] ?? null) ? $geometry['coordinates'] : [];
+        $positions = 'LineString' === $geometry['type'] ? count($coordinates) : array_sum(array_map(static function ($part) {
+            return is_array($part) ? count($part) : 0;
+        }, $coordinates));
+        if ($positions > self::OSM_ROUTE_POINTS_MAX) {
+            return $failure('too_long', $status);
         }
 
         $parsed = $this->osm_geojson_geometry(['type' => 'Feature', 'geometry' => $geometry], self::OSM_ROUTE_POINTS_MAX);
@@ -3335,6 +3346,10 @@ class Widget_OSM_Map extends Widget_Base
             case 'quota':
                 /* translators: %s: route title. */
                 $message = __('%s: drawn as a straight line because the Geoapify request limit was reached.', 'osm-map-elementor');
+                break;
+            case 'too_long':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the route is too long to draw. Shorten it, or split it into several shorter routes.', 'osm-map-elementor');
                 break;
             case 'invalid_response':
                 /* translators: %s: route title. */

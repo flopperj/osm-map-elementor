@@ -2020,6 +2020,65 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertEqualsWithDelta(600, $this->transient_lifetime($this->route_cache_key('drive', $stops)), 60);
     }
 
+    public function route_failure_lifetimes()
+    {
+        $status = static function ($code) {
+            return ['response' => ['code' => $code], 'headers' => [], 'cookies' => [], 'body' => '{}'];
+        };
+        $too_many = [];
+        for ($i = 0; $i < 20001; $i++) {
+            $too_many[] = [9 + ($i % 1000) / 1000, 45 + ($i % 700) / 1000];
+        }
+        $ten_minutes = 10 * MINUTE_IN_SECONDS;
+
+        return [
+            'timeout' => [new WP_Error('http_request_failed', 'cURL error 28'), $ten_minutes],
+            'server error' => [$status(500), $ten_minutes],
+            'bad gateway' => [$status(502), $ten_minutes],
+            'quota' => [$status(429), $ten_minutes],
+            'unauthorised' => [$status(401), DAY_IN_SECONDS],
+            'forbidden' => [$status(403), DAY_IN_SECONDS],
+            'no route' => [$status(400), DAY_IN_SECONDS],
+            'not json' => [['response' => ['code' => 200], 'headers' => [], 'cookies' => [], 'body' => 'not json'], DAY_IN_SECONDS],
+            'wrong geometry' => [$this->route_response([9.19, 45.46], 1, 1, 'Point'), DAY_IN_SECONDS],
+            'too many points' => [$this->route_response([$too_many]), DAY_IN_SECONDS],
+        ];
+    }
+
+    /**
+     * @dataProvider route_failure_lifetimes
+     */
+    public function test_route_failures_are_cached_for_as_long_as_retrying_could_not_help($response, $lifetime)
+    {
+        $this->with_geoapify_key();
+        $stops = [[45.4642, 9.19], [45.7037, 9.6625]];
+        $this->stub_routing(static function () use ($response) {
+            return $response;
+        });
+
+        $this->route_for();
+
+        $this->assertEqualsWithDelta($lifetime, $this->transient_lifetime($this->route_cache_key('drive', $stops)), 60);
+    }
+
+    public function test_editor_notice_says_when_a_route_is_too_long_to_draw()
+    {
+        $this->with_geoapify_key();
+        $too_many = [];
+        for ($i = 0; $i < 20001; $i++) {
+            $too_many[] = [9 + ($i % 1000) / 1000, 45 + ($i % 700) / 1000];
+        }
+        $this->stub_routing(function () use ($too_many) {
+            return $this->route_response([$too_many]);
+        });
+
+        $editor = $this->render_admin(['marker_list' => [$this->route_marker(['marker_title' => 'Long trip'])]]);
+
+        $this->assertStringContainsString('Long trip', $editor);
+        $this->assertStringContainsString('too long', $editor);
+        $this->assertStringContainsString('split it', $editor);
+    }
+
     public function failed_route_responses()
     {
         $too_many = [];
@@ -2043,8 +2102,8 @@ class Test_Widget_Render extends WP_UnitTestCase
             'non numeric coordinate' => [$this->route_response([[['a', 45.4], [9.2, 45.5]]]), 'invalid_response'],
             'latitude out of range' => [$this->route_response([[[9.2, 95.4], [9.3, 45.5]]]), 'invalid_response'],
             'empty collection' => [$ok('{"type":"FeatureCollection","features":[]}'), 'invalid_response'],
-            'too many points' => [$this->route_response([$too_many]), 'invalid_response'],
-            'body over 5 MB' => [$ok(str_repeat(' ', 5242881)), 'invalid_response'],
+            'too many points' => [$this->route_response([$too_many]), 'too_long'],
+            'body over 5 MB' => [$ok(str_repeat(' ', 5242881)), 'too_long'],
         ];
     }
 
