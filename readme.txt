@@ -43,6 +43,7 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 7. Map Center: "Fit all markers" zooms and centers the map so every marker is visible
 8. Shapes: rectangles, circles, polygons, lines and pasted GeoJSON, each with its own colors and popup
 10. Markers from posts, with coordinates read from custom fields such as ACF
+11. Map Center and marker Type settings in the Elementor editor
 
 
 == External services ==
