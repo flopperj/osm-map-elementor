@@ -447,6 +447,13 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('if (!mapElement.isConnected)', $js);
     }
 
+    public function test_widget_fills_the_width_of_an_elementor_container()
+    {
+        $css = file_get_contents(dirname(__DIR__) . '/assets/css/osm-map-elementor.css');
+
+        $this->assertMatchesRegularExpression('/\.e-con \.elementor-widget-osm-map-elementor\s*\{\s*width:\s*100%;\s*\}/', $css);
+    }
+
     private function new_tab_links($html)
     {
         preg_match_all('/<a\b[^>]*target="_blank"[^>]*>/', stripslashes($html), $links);
