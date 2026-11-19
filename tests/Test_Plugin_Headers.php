@@ -78,6 +78,14 @@ class Test_Plugin_Headers extends WP_UnitTestCase
         $this->assertSame(OSM_MAP_VERSION, $this->readme_field('Stable tag'));
     }
 
+    public function test_upgrade_notice_for_the_plugin_version_is_at_most_300_characters()
+    {
+        $readme = file_get_contents(dirname(__DIR__) . '/readme.txt');
+
+        $this->assertSame(1, preg_match('/== Upgrade Notice ==\s+= ' . preg_quote(OSM_MAP_VERSION, '/') . ' =\n(.+?)\n\n/s', $readme, $notice));
+        $this->assertLessThanOrEqual(300, mb_strlen(trim($notice[1])));
+    }
+
     public function test_readme_discloses_the_geoapify_routing_service()
     {
         $readme = file_get_contents(dirname(__DIR__) . '/readme.txt');

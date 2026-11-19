@@ -70,6 +70,7 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 = 1.6.0 =
 * NEW: Map Center setting. Keep "Midpoint of markers", choose "Fit all markers" to zoom and center the map so every visible marker fits (Zoom Level becomes the closest it zooms in), or enter custom center coordinates. Existing maps keep their current center. Thanks to @skonebeke, @herondino and @giamox.
 * NEW: Shapes as markers. Set a marker's Type to Rectangle (two opposite corners), Circle (center and radius in meters), Polygon or Line (one "lat, long" point per line), or paste GeoJSON; shapes have their own border and fill colors and the same popups, tooltips and buttons as markers. Thanks to [@ms-lepol](https://github.com/ms-lepol).
+* NEW: Routes. Set a marker's Type to Route and enter a start, an end and optional stops to draw the driving, walking or cycling route along roads and paths, with optional start and end markers and distance and time in the popup. Routes need a Geoapify API key in the plugin settings; your server fetches each route once and caches it. Without a key the route is drawn as a dashed straight line. Thanks to [@Phoenix-Ignited-Tech](https://github.com/Phoenix-Ignited-Tech).
 * NEW: Markers from posts. Set Marker Source to Posts to show a marker for each published post of a chosen type, using coordinates from custom fields such as ACF fields. Thanks to @samben28 and @scatata.
 * IMPROVEMENT: The map's scripts and styles (Leaflet, Mapbox GL, Font Awesome) load only on pages with an OSM Map widget, and the plugin no longer adds jQuery to every page. Sites that need the assets everywhere can return true from the `osm_map_elementor_load_assets_on_every_page` filter. Thanks to @ausdemnichts.
 * IMPROVEMENT: Font Awesome markers have an accessible name for screen readers and keyboard users, taken from the marker title. Thanks to @letiziam2024.
@@ -118,7 +119,7 @@ For older versions, see the [full changelog](https://github.com/flopperj/osm-map
 
 == Upgrade Notice ==
 = 1.6.0 =
-Adds Map Center (fit all markers or custom coordinates), shapes (rectangles, circles, polygons, lines and GeoJSON) and markers from posts, and loads the map's scripts only on pages that use it.
+Adds Map Center (fit all markers or custom coordinates), shapes (rectangles, circles, polygons, lines, GeoJSON), routes along roads (needs a Geoapify key) and markers from posts, and loads the map's scripts only on pages that use it.
 
 = 1.5.1 =
 Marker descriptions show their HTML formatting again, and maps display correctly inside tabs, popups and row containers.
