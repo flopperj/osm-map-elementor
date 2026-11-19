@@ -8,6 +8,8 @@ class Test_Widget_Render extends WP_UnitTestCase
     public function set_up()
     {
         parent::set_up();
+        $GLOBALS['wp_scripts'] = new WP_Scripts();
+        $GLOBALS['wp_styles'] = new WP_Styles();
         delete_option('osm_widget');
         \Elementor\Core\Kits\Manager::create_default_kit();
     }
@@ -352,13 +354,74 @@ class Test_Widget_Render extends WP_UnitTestCase
         update_option('osm_widget', ['gmaps_key' => 'ab"c&d']);
         set_current_screen('edit-post');
 
-        $this->make_widget();
+        do_action('elementor/editor/after_enqueue_scripts');
         $google = wp_scripts()->registered['google-maps'];
 
         $this->assertStringContainsString('key=' . rawurlencode('ab"c&d'), $google->src);
         $this->assertStringContainsString('loading=async', $google->src);
         $this->assertStringContainsString('callback=initOSMEditorControls', $google->src);
         $this->assertNull($google->ver);
+    }
+
+    public function test_constructing_the_widget_enqueues_nothing()
+    {
+        $this->make_widget();
+
+        $this->assertFalse(wp_script_is('leaflet', 'enqueued'));
+        $this->assertFalse(wp_script_is('leaflet-fa-markers', 'enqueued'));
+        $this->assertFalse(wp_style_is('leaflet', 'enqueued'));
+        $this->assertFalse(wp_style_is('osm-map-elementor', 'enqueued'));
+    }
+
+    public function test_widget_declares_its_vendor_scripts_and_styles_as_dependencies()
+    {
+        $widget = $this->make_widget();
+
+        $this->assertSame(['leaflet', 'mapbox-gl', 'leaflet-mapbox-gl', 'leaflet-fa-markers'], $widget->get_script_depends());
+
+        update_option('osm_widget', ['enable_fontawesome' => 'yes']);
+        $this->assertSame(['leaflet', 'mapbox-gl', 'leaflet-fa-markers', 'osm-map-elementor', 'font-awesome-free'], $widget->get_style_depends());
+
+        delete_option('osm_widget');
+        $this->assertSame(['leaflet', 'mapbox-gl', 'leaflet-fa-markers', 'osm-map-elementor'], $widget->get_style_depends());
+    }
+
+    public function test_rendering_a_map_registers_and_enqueues_its_assets()
+    {
+        $this->render_frontend();
+
+        $this->assertTrue(wp_script_is('leaflet-fa-markers', 'enqueued'));
+        $this->assertTrue(wp_style_is('leaflet', 'enqueued'));
+        $this->assertTrue(wp_style_is('osm-map-elementor', 'enqueued'));
+    }
+
+    public function test_editor_controls_script_loads_only_on_the_editor_hook()
+    {
+        $this->render_admin();
+        $this->assertFalse(wp_script_is('osm-map-elementor-controls', 'enqueued'));
+
+        do_action('elementor/editor/after_enqueue_scripts');
+
+        $this->assertTrue(wp_script_is('osm-map-elementor-controls', 'enqueued'));
+    }
+
+    public function test_asset_hooks_are_registered()
+    {
+        $this->assertNotFalse(has_action('elementor/frontend/after_register_scripts', 'OSM_Map\\register_widget_assets'));
+        $this->assertNotFalse(has_action('elementor/frontend/after_register_styles', 'OSM_Map\\register_widget_assets'));
+    }
+
+    public function test_every_page_loading_is_opt_in_through_a_filter()
+    {
+        do_action('wp_enqueue_scripts');
+        $this->assertFalse(wp_script_is('leaflet-fa-markers', 'enqueued'));
+
+        add_filter('osm_map_elementor_load_assets_on_every_page', '__return_true');
+        do_action('wp_enqueue_scripts');
+
+        $this->assertTrue(wp_script_is('leaflet-fa-markers', 'enqueued'));
+        $this->assertTrue(wp_style_is('leaflet', 'enqueued'));
+        remove_filter('osm_map_elementor_load_assets_on_every_page', '__return_true');
     }
 
     private function render_frontend(array $settings = [], $id = 'abc1234')

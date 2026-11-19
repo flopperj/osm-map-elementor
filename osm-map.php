@@ -58,9 +58,6 @@ class Widget_OSM_Map extends Widget_Base
     public function __construct($data = [], $args = null)
     {
         parent::__construct($data, $args);
-
-        // add these scripts later
-        $this->osm_queue_assets();
     }
 
     /**
@@ -127,7 +124,7 @@ class Widget_OSM_Map extends Widget_Base
      */
     public function get_script_depends()
     {
-        return ['jquery'];
+        return ['leaflet', 'mapbox-gl', 'leaflet-mapbox-gl', 'leaflet-fa-markers'];
     }
 
     /**
@@ -136,7 +133,12 @@ class Widget_OSM_Map extends Widget_Base
      */
     public function get_style_depends()
     {
-        return ['leaflet'];
+        $styles = ['leaflet', 'mapbox-gl', 'leaflet-fa-markers', 'osm-map-elementor'];
+        if (self::osm_fontawesome_enabled()) {
+            $styles[] = 'font-awesome-free';
+        }
+
+        return $styles;
     }
 
     /**
@@ -1576,6 +1578,10 @@ class Widget_OSM_Map extends Widget_Base
 
         $display_settings = array_intersect_key($settings, array_flip(['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
 
+        self::osm_register_assets();
+        array_map('wp_enqueue_style', $this->get_style_depends());
+        array_map('wp_enqueue_script', $this->get_script_depends());
+
         ob_start();
         ?>
             jQuery(function () {
@@ -2027,58 +2033,30 @@ class Widget_OSM_Map extends Widget_Base
         }
     }
 
-    /**
-     * queue assets needed by maps widget
-     */
-    private function osm_queue_assets()
+    private static function osm_fontawesome_enabled(): bool
     {
-        // grab global settings
         $widget_settings = get_option('osm_widget', []);
 
+        return (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings)) || !empty($widget_settings['enable_fontawesome']);
+    }
+
+    /**
+     * Registers the front-end scripts and styles without enqueueing them, so Elementor
+     * (or render) loads them only on pages that use the widget.
+     */
+    public static function osm_register_assets(): void
+    {
         $styles = [
             'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/mapbox-gl.css'),
             'leaflet-fa-markers' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
-            'osm-map-elementor' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/osm-map-elementor.css')
+            'osm-map-elementor' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/osm-map-elementor.css'),
+            'font-awesome-free' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css'),
         ];
-
-        // load fontawesome
-        if ((!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings)) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css');
-        }
-
         foreach ($styles as $handle => $path) {
             wp_register_style($handle, $path, [], self::$ver);
-            wp_enqueue_style($handle);
         }
 
-        // queue admin js
-        if (is_admin()) {
-
-            // queue google maps key if provided
-            $admin_scripts = [
-                'osm-map-elementor-controls' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/osm-map-controls.js')
-            ];
-
-            // add google maps API
-            if (!empty($widget_settings['gmaps_key'])) {
-                $admin_scripts['google-maps'] = add_query_arg([
-                    'libraries' => 'places',
-                    'callback' => 'initOSMEditorControls',
-                    'loading' => 'async',
-                    'key' => rawurlencode($widget_settings['gmaps_key']),
-                ], 'https://maps.googleapis.com/maps/api/js');
-            }
-
-            $dependencies = ['jquery'];
-            foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, 'google-maps' === $handle ? null : self::$ver, true);
-                wp_enqueue_script($handle);
-                $dependencies[] = $handle;
-            }
-        }
-
-        // queue widget view js
         $scripts = [
             'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.js'),
             'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/mapbox-gl.js'),
@@ -2088,8 +2066,32 @@ class Widget_OSM_Map extends Widget_Base
         $deps = ['jquery'];
         foreach ($scripts as $handle => $path) {
             wp_register_script($handle, $path, $deps, self::$ver, true);
-            wp_enqueue_script($handle);
             $deps[] = $handle;
+        }
+    }
+
+    public static function osm_enqueue_editor_assets(): void
+    {
+        $widget_settings = get_option('osm_widget', []);
+
+        $admin_scripts = [
+            'osm-map-elementor-controls' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/osm-map-controls.js')
+        ];
+
+        if (!empty($widget_settings['gmaps_key'])) {
+            $admin_scripts['google-maps'] = add_query_arg([
+                'libraries' => 'places',
+                'callback' => 'initOSMEditorControls',
+                'loading' => 'async',
+                'key' => rawurlencode($widget_settings['gmaps_key']),
+            ], 'https://maps.googleapis.com/maps/api/js');
+        }
+
+        $dependencies = ['jquery'];
+        foreach ($admin_scripts as $handle => $path) {
+            wp_register_script($handle, $path, $dependencies, 'google-maps' === $handle ? null : self::$ver, true);
+            wp_enqueue_script($handle);
+            $dependencies[] = $handle;
         }
     }
 

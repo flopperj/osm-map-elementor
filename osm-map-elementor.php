@@ -227,6 +227,33 @@ function enqueue_jquery_in_head()
 }
 add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_jquery_in_head', 1);
 
+function register_widget_assets()
+{
+    require_once __DIR__ . '/osm-map.php';
+    Widget_OSM_Map::osm_register_assets();
+}
+
+add_action('elementor/frontend/after_register_scripts', __NAMESPACE__ . '\\register_widget_assets');
+add_action('elementor/frontend/after_register_styles', __NAMESPACE__ . '\\register_widget_assets');
+
+add_action('elementor/editor/after_enqueue_scripts', function () {
+    require_once __DIR__ . '/osm-map.php';
+    Widget_OSM_Map::osm_enqueue_editor_assets();
+});
+
+// Opt-in escape hatch for sites that need the map assets on every page (e.g. maps injected by custom code).
+add_action('wp_enqueue_scripts', function () {
+    if (!apply_filters('osm_map_elementor_load_assets_on_every_page', false)) {
+        return;
+    }
+
+    register_widget_assets();
+    foreach (['leaflet', 'mapbox-gl', 'leaflet-fa-markers', 'osm-map-elementor'] as $style) {
+        wp_enqueue_style($style);
+    }
+    wp_enqueue_script('leaflet-fa-markers');
+}, 20);
+
 function render_elementor_version_notice($installed_version)
 {
     if (!$installed_version || !current_user_can('update_plugins') || version_compare($installed_version, OSM_MAP_MIN_ELEMENTOR_VERSION, '>=')) {
