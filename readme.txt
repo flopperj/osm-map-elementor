@@ -108,7 +108,7 @@ For older versions, see the [full changelog](https://github.com/flopperj/osm-map
 
 == Upgrade Notice ==
 = 1.5.1 =
-Marker descriptions show their HTML formatting again.
+Marker descriptions show their HTML formatting again, and maps display correctly inside tabs, popups and row containers.
 
 = 1.5.0 =
 Adds a Marker Size setting for the Default and Font Awesome markers.
