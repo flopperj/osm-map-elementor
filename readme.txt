@@ -12,26 +12,35 @@ Stable tag: 1.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Free Elementor map widget powered by OpenStreetMap: multiple markers, custom icons, popups and a library of map tiles.
+Free Elementor map widget powered by OpenStreetMap: markers, shapes, routes along roads, markers from posts and 27 map styles.
 
 == Description ==
-A free Elementor Map Widget that utilizes [Open Street Map](https://www.openstreetmap.org/about). Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel. Requires [Elementor Page Builder](https://wordpress.org/plugins/elementor/) Plugin Version: 3.30+
+A free Elementor map widget built on [OpenStreetMap](https://www.openstreetmap.org/about). Add markers, shapes and routes, pull locations from your posts, and pick from 27 map styles. Requires the [Elementor](https://wordpress.org/plugins/elementor/) plugin, version 3.30 or newer.
 
-This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so feel free to contribute to it by:
-1. Adding a topic/issue [here](https://github.com/flopperj/osm-map-elementor/issues)
-2. Submitting a pull request with any well-written code that implements the desired feature.
+### Features
+* **Markers** with a title, description (HTML allowed), button and popup or tooltip. Use the default pin, a Font Awesome icon or your own image, at any size.
+* **Shapes:** draw rectangles, circles, polygons and lines, or paste GeoJSON. Each shape has its own border and fill colors and the same popups as markers.
+* **Routes along roads:** enter a start, an end and optional stops to draw the driving, walking or cycling route, with distance and time in the popup. Needs a free [Geoapify API key](https://www.geoapify.com/maps-api/).
+* **Markers from posts:** show a marker for each published post of a chosen type, with coordinates from custom fields such as ACF fields.
+* **Map Center:** center on the markers, zoom to fit all of them, or set your own coordinates.
+* **Map styles:** 27 tile styles from OpenStreetMap, Stadia Maps and Geoapify, or your own tile server.
+* **Lightweight:** the map's scripts and styles load only on pages that use the widget.
+
+This plugin is [open source](https://github.com/flopperj/osm-map-elementor). To contribute:
+1. Open an issue [here](https://github.com/flopperj/osm-map-elementor/issues)
+2. Submit a pull request with well-written code that implements the feature.
 
 ### Usage
-1. Make sure that **Elementor** plugin is installed
-2. Add optional API Keys to the settings page:
-    - **Google Maps API Key** *(Used to autocomplete and update the coordinates of markers in a map. Need help to get a Google map API key? [Read this resource](https://developers.google.com/maps/documentation/javascript/get-api-key))*
-    - **Mapbox Access Token** *(Used for custom tiles. Need help to get a Mapbox Access Token? [Read this resource](https://docs.mapbox.com/help/how-mapbox-works/access-tokens/))*
-    - **Geoapify API Key** *(Used for custom tiles. Need help to get a Geoapify API key? [Read this resource](https://www.geoapify.com/maps-api/))*
-3. Add OSM Map widget to your elementor page and have fun :)
-    - Find OSM Map widget from elements listing and add it to your elementor page
-    - Add multiple markers, change Zoom level style them accordingly
-    - *Editing the markers:* A marker's settings contains **Title, Location, Coordinates, Description, Button Text, and Button URL** fields. Of those fields, only the **Coordinates** field is required to render a marker on the map. If you have a Google Maps API key added, you'll be able to automatically populate the coordinates field without manually doing so.
-    - Change Tiles from style section *requires **[Mapbox Access Token](https://docs.mapbox.com/help/how-mapbox-works/access-tokens/)** and **[Geoapify API Key](https://www.geoapify.com/maps-api/)***
+1. Make sure the **Elementor** plugin is installed.
+2. Optionally, add API keys on the plugin's settings page:
+    - **Google Maps API Key** *(autocompletes marker coordinates in the editor. [How to get one](https://developers.google.com/maps/documentation/javascript/get-api-key))*
+    - **Mapbox Access Token** *(used with the Geoapify key for the Geoapify map styles, which are drawn with Mapbox GL. [How to get one](https://docs.mapbox.com/help/how-mapbox-works/access-tokens/))*
+    - **Geoapify API Key** *(for Geoapify tile styles and for routes along roads. [How to get one](https://www.geoapify.com/maps-api/))*
+3. Add the **OSM Map** widget to an Elementor page:
+    - **Markers:** add items to the marker list. Each item's **Type** is Point, Rectangle, Circle, Polygon, Line, GeoJSON or Route. A Point needs only its **Coordinates**; the other types ask for their own corners, points or stops.
+    - **Marker Source:** set it to **Posts** to build the markers from your posts instead.
+    - **Map Center:** choose **Midpoint of markers**, **Fit all markers** or **Custom coordinates**, and set the zoom level per device.
+    - **Style:** change the tiles and the marker, shape, popup and button styles from the Style tab.
 
 == Screenshots ==
 1. Update optional API keys
