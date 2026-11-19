@@ -42,7 +42,9 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_POSTS_DEFAULT = 20;
     private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
     private const OSM_AREA_DEFAULT_OPACITY = 0.2;
-    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line'];
+    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line', 'geojson'];
+    private const OSM_GEOJSON_MAX_BYTES = 204800;
+    private const OSM_GEOJSON_POINTS_MAX = 5000;
     private const OSM_SHAPE_POINTS_MAX = 500;
     private const OSM_CIRCLE_RADIUS_MAX = 1000000;
     private const OSM_EARTH_RADIUS = 6371000;
@@ -282,6 +284,7 @@ class Widget_OSM_Map extends Widget_Base
                     'circle' => __('Circle', 'osm-map-elementor'),
                     'polygon' => __('Polygon', 'osm-map-elementor'),
                     'line' => __('Line', 'osm-map-elementor'),
+                    'geojson' => __('GeoJSON', 'osm-map-elementor'),
                 ],
                 'description' => __('Shapes are drawn on the map and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
             ]
@@ -391,6 +394,19 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $repeater->add_control(
+            'geojson_data',
+            [
+                'label' => __('GeoJSON', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[9.1, 45.4], [9.3, 45.4], [9.2, 45.5]]]}}',
+                'description' => __('Paste a GeoJSON Feature, FeatureCollection or geometry (Point, LineString, Polygon and their Multi versions). Properties are ignored and the title, description and button come from this item.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => 'geojson',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
             'area_border_color',
             [
                 'label' => __('Border Color', 'osm-map-elementor'),
@@ -400,7 +416,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => false,
                 ],
                 'condition' => [
-                    'marker_type' => ['area', 'circle', 'polygon', 'line'],
+                    'marker_type' => ['area', 'circle', 'polygon', 'line', 'geojson'],
                 ],
             ]
         );
@@ -415,7 +431,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => false,
                 ],
                 'condition' => [
-                    'marker_type' => ['area', 'circle', 'polygon'],
+                    'marker_type' => ['area', 'circle', 'polygon', 'geojson'],
                 ],
             ]
         );
@@ -438,7 +454,7 @@ class Widget_OSM_Map extends Widget_Base
                     'size' => self::OSM_AREA_DEFAULT_OPACITY,
                 ],
                 'condition' => [
-                    'marker_type' => ['area', 'circle', 'polygon'],
+                    'marker_type' => ['area', 'circle', 'polygon', 'geojson'],
                 ],
             ]
         );
@@ -2000,7 +2016,7 @@ class Widget_OSM_Map extends Widget_Base
                     'lng' => $parsed['lng']
                 ];
                 if (null !== $shape) {
-                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points']);
+                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points'], $entry['marker']['geojson_data']);
                     $entry = array_merge($entry, array_diff_key($shape, ['lat' => 1, 'lng' => 1]));
                 }
                 $coords[] = $entry;
@@ -2370,6 +2386,18 @@ class Widget_OSM_Map extends Widget_Base
                             return L.polygon(item.points, item.area);
                         case 'line':
                             return L.polyline(item.points, item.area);
+                        case 'geojson':
+                            return L.featureGroup([].concat(
+                                item.polygons.map(function (rings) {
+                                    return L.polygon(rings, item.area);
+                                }),
+                                item.lines.map(function (line) {
+                                    return L.polyline(line, {color: item.area.color});
+                                }),
+                                item.points.map(function (point) {
+                                    return L.circleMarker(point, Object.assign({radius: 6}, item.area));
+                                })
+                            ));
                         default:
                             return L.rectangle(item.bounds, item.area);
                     }
@@ -2840,6 +2868,24 @@ class Widget_OSM_Map extends Widget_Base
             return ['lat' => $center['lat'], 'lng' => $center['lng'], 'bounds' => $bounds, 'shape' => 'circle', 'radius' => $radius, 'area' => $style];
         }
 
+        if ('geojson' === $type) {
+            $geometry = $this->osm_parse_geojson($marker['geojson_data'] ?? null);
+            if (null === $geometry) {
+                return null;
+            }
+
+            return [
+                'lat' => ($geometry['bounds'][0][0] + $geometry['bounds'][1][0]) / 2,
+                'lng' => ($geometry['bounds'][0][1] + $geometry['bounds'][1][1]) / 2,
+                'bounds' => $geometry['bounds'],
+                'shape' => 'geojson',
+                'polygons' => $geometry['polygons'],
+                'lines' => $geometry['lines'],
+                'points' => $geometry['points'],
+                'area' => $style,
+            ];
+        }
+
         $points = [];
         $lines = is_string($marker['shape_points'] ?? null) ? preg_split('/\R/', $marker['shape_points']) : [];
         foreach ($lines as $line) {
@@ -2865,6 +2911,177 @@ class Widget_OSM_Map extends Widget_Base
             'points' => $points,
             'area' => $style,
         ];
+    }
+
+    /**
+     * Reads pasted GeoJSON into Leaflet [lat, lng] geometry. Only Point, MultiPoint, LineString, MultiLineString,
+     * Polygon and MultiPolygon are used; GeometryCollection and everything else, including properties, is ignored.
+     *
+     * @param mixed $raw
+     * @return array|null Null when the text is too large, not GeoJSON, has no usable geometry or exceeds the point cap.
+     */
+    private function osm_parse_geojson($raw)
+    {
+        if (!is_string($raw) || strlen($raw) > self::OSM_GEOJSON_MAX_BYTES) {
+            return null;
+        }
+
+        $data = json_decode($raw, true, 32);
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $geometries = [];
+        $type = $data['type'] ?? null;
+        if ('FeatureCollection' === $type) {
+            foreach (is_array($data['features'] ?? null) ? $data['features'] : [] as $feature) {
+                if (is_array($feature) && 'Feature' === ($feature['type'] ?? null) && is_array($feature['geometry'] ?? null)) {
+                    $geometries[] = $feature['geometry'];
+                }
+            }
+        } elseif ('Feature' === $type) {
+            if (is_array($data['geometry'] ?? null)) {
+                $geometries[] = $data['geometry'];
+            }
+        } else {
+            $geometries[] = $data;
+        }
+
+        $count = 0;
+        $polygons = [];
+        $lines = [];
+        $points = [];
+        foreach ($geometries as $geometry) {
+            $coordinates = $geometry['coordinates'] ?? null;
+            if (!is_array($coordinates)) {
+                continue;
+            }
+
+            switch ($geometry['type'] ?? null) {
+                case 'Point':
+                    $position = $this->osm_geojson_position($coordinates, $count);
+                    if (null !== $position) {
+                        $points[] = $position;
+                    }
+                    break;
+                case 'MultiPoint':
+                    $list = $this->osm_geojson_positions($coordinates, $count, 1);
+                    if (null !== $list) {
+                        $points = array_merge($points, $list);
+                    }
+                    break;
+                case 'LineString':
+                    $line = $this->osm_geojson_positions($coordinates, $count, 2);
+                    if (null !== $line) {
+                        $lines[] = $line;
+                    }
+                    break;
+                case 'MultiLineString':
+                    foreach ($coordinates as $part) {
+                        $line = is_array($part) ? $this->osm_geojson_positions($part, $count, 2) : null;
+                        if (null !== $line) {
+                            $lines[] = $line;
+                        }
+                    }
+                    break;
+                case 'Polygon':
+                    $rings = $this->osm_geojson_rings($coordinates, $count);
+                    if (null !== $rings) {
+                        $polygons[] = $rings;
+                    }
+                    break;
+                case 'MultiPolygon':
+                    foreach ($coordinates as $part) {
+                        $rings = is_array($part) ? $this->osm_geojson_rings($part, $count) : null;
+                        if (null !== $rings) {
+                            $polygons[] = $rings;
+                        }
+                    }
+                    break;
+            }
+
+            if ($count > self::OSM_GEOJSON_POINTS_MAX) {
+                return null;
+            }
+        }
+
+        if (!$polygons && !$lines && !$points) {
+            return null;
+        }
+
+        $all = $points;
+        foreach ($lines as $line) {
+            $all = array_merge($all, $line);
+        }
+        foreach ($polygons as $rings) {
+            foreach ($rings as $ring) {
+                $all = array_merge($all, $ring);
+            }
+        }
+
+        return [
+            'polygons' => $polygons,
+            'lines' => $lines,
+            'points' => $points,
+            'bounds' => $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $all]]),
+        ];
+    }
+
+    /**
+     * @param mixed $position GeoJSON [lng, lat, ...] position.
+     * @return float[]|null [lat, lng]
+     */
+    private function osm_geojson_position($position, int &$count)
+    {
+        ++$count;
+        if (!is_array($position) || !isset($position[0], $position[1]) || !is_numeric($position[0]) || !is_numeric($position[1])) {
+            return null;
+        }
+
+        $lng = (float) $position[0];
+        $lat = (float) $position[1];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            return null;
+        }
+
+        return [$lat, $lng];
+    }
+
+    /**
+     * @return float[][]|null Null when any position is invalid or there are fewer than $min.
+     */
+    private function osm_geojson_positions(array $positions, int &$count, int $min)
+    {
+        $list = [];
+        foreach ($positions as $position) {
+            $converted = $this->osm_geojson_position($position, $count);
+            if (null === $converted) {
+                return null;
+            }
+            $list[] = $converted;
+            if ($count > self::OSM_GEOJSON_POINTS_MAX) {
+                return null;
+            }
+        }
+
+        return count($list) >= $min ? $list : null;
+    }
+
+    /**
+     * @return float[][][]|null
+     */
+    private function osm_geojson_rings(array $rings, int &$count)
+    {
+        $converted = [];
+        foreach ($rings as $ring) {
+            $list = is_array($ring) ? $this->osm_geojson_positions($ring, $count, 3) : null;
+            if (null === $list) {
+                return null;
+            }
+            $converted[] = $list;
+        }
+
+        return empty($converted) ? null : $converted;
     }
 
     /**

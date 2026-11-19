@@ -1012,10 +1012,10 @@ class Test_Widget_Render extends WP_UnitTestCase
     public function test_marker_type_defaults_to_point_and_shape_fields_show_only_for_their_types()
     {
         $fields = $this->make_widget()->get_controls('marker_list')['fields'];
-        $shapes = ['area', 'circle', 'polygon', 'line'];
+        $shapes = ['area', 'circle', 'polygon', 'line', 'geojson'];
 
         $this->assertSame('point', $fields['marker_type']['default']);
-        $this->assertSame(['point', 'area', 'circle', 'polygon', 'line'], array_keys($fields['marker_type']['options']));
+        $this->assertSame(['point', 'area', 'circle', 'polygon', 'line', 'geojson'], array_keys($fields['marker_type']['options']));
         $this->assertSame('Rectangle', $fields['marker_type']['options']['area']);
         $this->assertSame(['marker_type!' => $shapes], $fields['marker_location']['condition']);
         $this->assertSame(['marker_type!' => $shapes], $fields['marker_coords']['condition']);
@@ -1033,8 +1033,9 @@ class Test_Widget_Render extends WP_UnitTestCase
     {
         $fields = $this->make_widget()->get_controls('marker_list')['fields'];
 
-        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon']], $fields['area_fill_color']['condition']);
-        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon']], $fields['area_fill_opacity']['condition']);
+        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon', 'geojson']], $fields['area_fill_color']['condition']);
+        $this->assertSame(['marker_type' => ['area', 'circle', 'polygon', 'geojson']], $fields['area_fill_opacity']['condition']);
+        $this->assertSame(['marker_type' => 'geojson'], $fields['geojson_data']['condition']);
         $this->assertSame(1, $fields['circle_radius']['min']);
     }
 
@@ -1482,6 +1483,154 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('L.circle([item.lat, item.lng], Object.assign({radius: item.radius}, item.area))', $js);
         $this->assertStringContainsString('L.polygon(item.points, item.area)', $js);
         $this->assertStringContainsString('L.polyline(item.points, item.area)', $js);
+    }
+
+    private function geojson_for($geojson, array $overrides = [])
+    {
+        $text = is_string($geojson) ? $geojson : wp_json_encode($geojson);
+
+        return $this->shapes_for('geojson', array_merge(['geojson_data' => $text], $overrides));
+    }
+
+    private function geojson_polygon()
+    {
+        return ['type' => 'Polygon', 'coordinates' => [[[9.0, 45.0], [10.0, 45.0], [10.0, 46.0], [9.0, 45.0]]]];
+    }
+
+    public function test_geojson_feature_collection_feature_and_bare_geometry_are_read()
+    {
+        $polygon = $this->geojson_polygon();
+        $feature = ['type' => 'Feature', 'properties' => [], 'geometry' => $polygon];
+        $collection = ['type' => 'FeatureCollection', 'features' => [
+            $feature,
+            ['type' => 'Feature', 'properties' => [], 'geometry' => ['type' => 'LineString', 'coordinates' => [[11.0, 40.0], [12.0, 41.0]]]],
+            ['type' => 'Feature', 'properties' => [], 'geometry' => ['type' => 'Point', 'coordinates' => [13.0, 42.0]]],
+        ]];
+
+        foreach ([$polygon, $feature] as $input) {
+            $shape = $this->geojson_for($input)[0];
+            $this->assertSame('geojson', $shape['shape']);
+            $this->assertCount(1, $shape['polygons']);
+        }
+
+        $shape = $this->geojson_for($collection)[0];
+        $this->assertCount(1, $shape['polygons']);
+        $this->assertCount(1, $shape['lines']);
+        $this->assertEquals([[42.0, 13.0]], $shape['points']);
+        $this->assertEquals([[40.0, 9.0], [46.0, 13.0]], $shape['bounds']);
+    }
+
+    public function test_geojson_longitude_latitude_order_is_converted_to_leaflet_order()
+    {
+        $shape = $this->geojson_for(['type' => 'Point', 'coordinates' => [7.6, 45.1, 300]])[0];
+
+        $this->assertEquals([[45.1, 7.6]], $shape['points']);
+        $this->assertEqualsWithDelta(45.1, $shape['lat'], 1e-9);
+        $this->assertEqualsWithDelta(7.6, $shape['lng'], 1e-9);
+    }
+
+    public function test_geojson_multi_geometries_are_read()
+    {
+        $shape = $this->geojson_for(['type' => 'GeometryCollection', 'geometries' => []]);
+        $this->assertSame([], $shape);
+
+        $multi = $this->geojson_for(['type' => 'FeatureCollection', 'features' => [
+            ['type' => 'Feature', 'geometry' => ['type' => 'MultiPoint', 'coordinates' => [[1, 2], [3, 4]]]],
+            ['type' => 'Feature', 'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[[1, 1], [2, 2]], [[3, 3], [4, 4]]]]],
+            ['type' => 'Feature', 'geometry' => ['type' => 'MultiPolygon', 'coordinates' => [[[[0, 0], [1, 0], [1, 1], [0, 0]]], [[[5, 5], [6, 5], [6, 6], [5, 5]]]]]],
+        ]])[0];
+
+        $this->assertCount(2, $multi['points']);
+        $this->assertCount(2, $multi['lines']);
+        $this->assertCount(2, $multi['polygons']);
+    }
+
+    public function invalid_geojson_positions()
+    {
+        return [
+            'latitude out of range' => [[10, 95]],
+            'longitude out of range' => [[190, 10]],
+            'non numeric' => [['a', 'b']],
+            'single value' => [[10]],
+            'not an array' => ['10,20'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalid_geojson_positions
+     */
+    public function test_geojson_with_invalid_coordinates_is_skipped($position)
+    {
+        $this->assertSame([], $this->geojson_for(['type' => 'Point', 'coordinates' => $position]));
+    }
+
+    public function test_unsupported_and_malformed_geojson_is_skipped_without_errors()
+    {
+        foreach (['{"type": "Feature", "geometry": null}', '{"type": "Topology"}', 'not json', '', '[1,2,3]', '"string"', '{"type":"LineString","coordinates":[[1,1]]}', '{"type":"Polygon","coordinates":[[[0,0],[1,1]]]}'] as $text) {
+            $this->assertSame([], $this->geojson_for($text), $text);
+        }
+        $this->assertSame([], $this->shapes_for('geojson', ['geojson_data' => ['x']]));
+    }
+
+    public function test_geojson_unsupported_geometries_are_ignored_but_supported_ones_remain()
+    {
+        $shape = $this->geojson_for(['type' => 'FeatureCollection', 'features' => [
+            ['type' => 'Feature', 'geometry' => ['type' => 'GeometryCollection', 'geometries' => [['type' => 'Point', 'coordinates' => [1, 1]]]]],
+            ['type' => 'Feature', 'geometry' => ['type' => 'Point', 'coordinates' => [2, 3]]],
+        ]])[0];
+
+        $this->assertEquals([[3.0, 2.0]], $shape['points']);
+    }
+
+    public function test_geojson_byte_and_point_caps_skip_the_item()
+    {
+        $positions = [];
+        for ($i = 0; $i < 5001; $i++) {
+            $positions[] = [($i % 170), ($i % 80)];
+        }
+        $this->assertSame([], $this->geojson_for(['type' => 'LineString', 'coordinates' => $positions]));
+
+        $ok = array_slice($positions, 0, 5000);
+        $this->assertCount(5000, $this->geojson_for(['type' => 'LineString', 'coordinates' => $ok])[0]['lines'][0]);
+
+        $padded = '{"type":"Point","coordinates":[1,2]}' . str_repeat(' ', 204800);
+        $this->assertSame([], $this->geojson_for($padded));
+    }
+
+    public function test_geojson_properties_never_reach_the_script()
+    {
+        $html = $this->render_admin(['marker_list' => [$this->shape_marker('geojson', ['geojson_data' => wp_json_encode([
+            'type' => 'Feature',
+            'properties' => ['name' => '<img src=x onerror=alert(1)>', 'description' => 'SECRET-PROPERTY'],
+            'geometry' => ['type' => 'Point', 'coordinates' => [1, 2]],
+        ])])]]);
+
+        $this->assertStringNotContainsString('SECRET-PROPERTY', $html);
+        $this->assertStringNotContainsString('onerror', $html);
+        $this->assertArrayNotHasKey('geojson_data', $this->js_value($html, 'markers')[0]['marker']);
+    }
+
+    public function test_geojson_extends_fit_bounds_and_the_midpoint()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->shape_marker('geojson', ['geojson_data' => wp_json_encode($this->geojson_polygon())]), $this->marker(['marker_coords' => '50,20'])],
+            'center_mode' => 'fit',
+        ]);
+
+        $this->assertEquals([[45.0, 9.0], [50.0, 20.0]], $this->js_value($html, 'mapView')['bounds']);
+        $alone = $this->shapes_for('geojson', ['geojson_data' => wp_json_encode($this->geojson_polygon())])[0];
+        $this->assertEqualsWithDelta(45.5, $alone['lat'], 1e-9);
+        $this->assertEqualsWithDelta(9.5, $alone['lng'], 1e-9);
+    }
+
+    public function test_script_draws_geojson_as_polygons_lines_and_circle_markers_in_one_group()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString('L.featureGroup(', $js);
+        $this->assertStringContainsString('L.polygon(rings, item.area)', $js);
+        $this->assertStringContainsString('L.polyline(line, {color: item.area.color})', $js);
+        $this->assertStringContainsString('L.circleMarker(point, Object.assign({radius: 6}, item.area))', $js);
     }
 
     public function test_debug_helper_is_removed()
