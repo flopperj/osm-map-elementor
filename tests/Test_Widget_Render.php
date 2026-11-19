@@ -2106,6 +2106,60 @@ class Test_Widget_Render extends WP_UnitTestCase
         }
     }
 
+    public function test_maps_with_a_road_route_credit_geoapify_and_other_maps_do_not()
+    {
+        $this->with_geoapify_key();
+        $stops = [[45.4642, 9.19], [45.7037, 9.6625]];
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+        $routed = $this->js_value($this->render_admin(['marker_list' => [$this->route_marker(), $this->marker()]]), 'markers');
+        $this->assertSame('geoapify', $routed[0]['provider']);
+        $this->assertArrayNotHasKey('provider', $routed[1]);
+
+        $this->assertSame('geoapify', $this->route_for()['provider'], 'A cached route is still credited.');
+
+        remove_all_filters('pre_http_request');
+        $this->stub_routing(static function () {
+            return new WP_Error('http_request_failed', 'timeout');
+        });
+        delete_transient($this->route_cache_key('drive', $stops));
+        $this->assertArrayNotHasKey('provider', $this->route_for());
+
+        delete_option('osm_widget');
+        delete_transient($this->route_cache_key('drive', $stops));
+        $this->assertArrayNotHasKey('provider', $this->route_for());
+        $this->assertArrayNotHasKey('provider', $this->shapes_for('line', ['shape_points' => "1,1\n2,2"])[0]);
+    }
+
+    public function test_the_geoapify_credit_is_fixed_text_that_opens_in_a_new_tab_with_noopener()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString("const routeAttribution = 'Routing &copy; <a href=\"https://www.geoapify.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Geoapify</a>';", $js);
+        $this->assertStringContainsString("if ('geoapify' === this.provider) {", $js);
+        $this->assertStringContainsString('map.attributionControl.addAttribution(routeAttribution);', $js);
+        $this->assertSame([], $this->links_without_noopener($this->new_tab_links($js)));
+    }
+
+    public function test_provider_flag_never_comes_from_the_routing_response()
+    {
+        $this->with_geoapify_key();
+        $response = $this->route_response($this->road_lines());
+        $body = json_decode($response['body'], true);
+        $body['features'][0]['properties']['provider'] = '<script>alert(3)</script>';
+        $body['provider'] = 'x"><img>';
+        $response['body'] = wp_json_encode($body);
+        $this->stub_routing(static function () use ($response) {
+            return $response;
+        });
+
+        $html = $this->render_admin(['marker_list' => [$this->route_marker()]]);
+
+        $this->assertSame('geoapify', $this->js_value($html, 'markers')[0]['provider']);
+        $this->assertStringNotContainsString('alert(3)', $html);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

@@ -2411,6 +2411,7 @@ class Widget_OSM_Map extends Widget_Base
                 let markerOptions = {};
                 const markerLabel = <?php echo wp_json_encode(__('Map marker', 'osm-map-elementor')); ?>;
                 const routeStartLabel = <?php echo wp_json_encode(__('start', 'osm-map-elementor')); ?>;
+                const routeAttribution = 'Routing &copy; <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a>';
                 const routeEndLabel = <?php echo wp_json_encode(__('end', 'osm-map-elementor')); ?>;
 
                 <?php
@@ -2582,6 +2583,9 @@ class Widget_OSM_Map extends Widget_Base
                     let _markers = [];
                     jQuery.each(markers, function () {
                         const marker = this.bounds ? buildShape(this) : L.marker([this.lat, this.lng], markerOptions);
+                        if ('geoapify' === this.provider) {
+                            map.attributionControl.addAttribution(routeAttribution);
+                        }
                         _markers.push(marker);
 
                         // add marker to map
@@ -3142,7 +3146,7 @@ class Widget_OSM_Map extends Widget_Base
         $bounds = $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $points]]);
         $centre = $this->osm_bounds_centre($bounds);
 
-        return [
+        $entry = [
             'lat' => $centre[0],
             'lng' => $centre[1],
             'bounds' => $bounds,
@@ -3153,6 +3157,11 @@ class Widget_OSM_Map extends Widget_Base
             'summary' => 'yes' === ($marker['route_summary'] ?? '') ? $this->osm_route_summary($route['distance'], $route['time']) : null,
             'area' => $style,
         ];
+        if ($route['routed']) {
+            $entry['provider'] = 'geoapify';
+        }
+
+        return $entry;
     }
 
     /**
