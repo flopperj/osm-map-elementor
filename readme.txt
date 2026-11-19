@@ -1,6 +1,6 @@
 === OSM Map Widget for Elementor ===
 Plugin Name: OSM Map Widget for Elementor
-Version: 1.5.1
+Version: 1.6.0
 Author: Plugin Contributors
 Author URI: https://github.com/flopperj/osm-map-elementor/graphs/contributors
 Contributors: garbowza, intelchip, youngmedianetwork
@@ -8,7 +8,7 @@ Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -38,12 +38,18 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 2. Add widget to your elementor page
 3. Add multiple markers & style them accordingly
 4. Edit the marker's coordinates to render them in the map
-5. Choose from 14 different custom tiles
-6. NEW: Add custom marker icons. Available Icon types: Default, Font Awesome and Custom Image.
+5. Choose from a library of map tiles
+6. Add custom marker icons. Available icon types: Default, Font Awesome and Custom Image.
+7. Map Center: "Fit all markers" zooms and centers the map so every marker is visible
+8. Shapes: rectangles, circles, polygons, lines and pasted GeoJSON, each with its own colors and popup
+9. On the site: a route follows roads from its start to its end, with distance and time in the popup
+10. Markers from posts, with coordinates read from custom fields such as ACF
+11. Map Center and marker Type settings in the Elementor editor
+12. In the editor: draw routes along roads between two points with the Route marker type (needs a free Geoapify API key)
 
 
 == External services ==
-This plugin loads map tiles and map libraries from third-party services in the visitor's browser. No data is sent to the plugin authors.
+This plugin loads map tiles and map libraries from third-party services in the visitor's browser, and, for routes, contacts Geoapify from your server. No data is sent to the plugin authors.
 
 = OpenStreetMap tile servers (tile.openstreetmap.org) =
 Used by default to display the map. Every map view requests tiles from this service, which receives the visitor's IP address and the tiles requested. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/) and [privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
@@ -53,6 +59,9 @@ Used only when a Stadia tile is selected in the widget's Style tab. The visitor'
 
 = Geoapify (maps.geoapify.com) =
 Used only when a Geoapify tile is selected. The Geoapify API key saved in the plugin settings and the visitor's tile requests (including IP address) are sent to Geoapify. [Terms and conditions](https://www.geoapify.com/terms-and-conditions/) and [privacy policy](https://www.geoapify.com/privacy-policy/).
+
+= Geoapify Routing API (api.geoapify.com) =
+Used only when a map contains a Route item and a Geoapify API key is saved in the plugin settings. Your WordPress server, not the visitor's browser, sends the route's start, stop and end coordinates, the travel mode and the API key to Geoapify when the route is first shown or changed, again when the cached route expires (after 7 days), and in the editor preview. A failed request is retried after 10 minutes, or after a day when the error cannot fix itself, such as a rejected key. Visitors' IP addresses are not sent. [Terms and conditions](https://www.geoapify.com/terms-and-conditions/) and [privacy policy](https://www.geoapify.com/privacy-policy/).
 
 = Mapbox GL JS =
 Geoapify vector styles are rendered with the bundled mapbox-gl library, which is given the Mapbox access token saved in the plugin settings. The library may contact Mapbox services when an access token is supplied. [Terms of service](https://www.mapbox.com/legal/tos) and [privacy policy](https://www.mapbox.com/legal/privacy).
@@ -64,6 +73,14 @@ Used only in the Elementor editor, and only when a Google Maps API key is saved 
 When a custom map tile URL is configured in the plugin settings, the visitor's browser requests tiles from that server, and its terms and privacy policy apply.
 
 == Changelog ==
+= 1.6.0 =
+* NEW: Map Center setting. Keep "Midpoint of markers", choose "Fit all markers" to zoom and center the map so every visible marker fits (Zoom Level becomes the closest it zooms in), or enter custom center coordinates. Existing maps keep their current center. Thanks to @skonebeke, @herondino and @giamox.
+* NEW: Shapes as markers. Set a marker's Type to Rectangle (two opposite corners), Circle (center and radius in meters), Polygon or Line (one "lat, long" point per line), or paste GeoJSON; shapes have their own border and fill colors and the same popups, tooltips and buttons as markers. Thanks to [@ms-lepol](https://github.com/ms-lepol).
+* NEW: Routes. Set a marker's Type to Route and enter a start, an end and optional stops to draw the driving, walking or cycling route along roads and paths, with optional start and end markers and distance and time in the popup. Routes need a Geoapify API key in the plugin settings; your server fetches each route once and caches it. Without a key the route is drawn as a dashed straight line. Maps with road routes credit Geoapify. Thanks to [@Phoenix-Ignited-Tech](https://github.com/Phoenix-Ignited-Tech).
+* NEW: Markers from posts. Set Marker Source to Posts to show a marker for each published post of a chosen type, using coordinates from custom fields such as ACF fields. Thanks to @samben28 and @scatata.
+* IMPROVEMENT: The map's scripts and styles (Leaflet, Mapbox GL, Font Awesome) load only on pages with an OSM Map widget, and the plugin no longer adds jQuery to every page. Sites that need the assets everywhere can return true from the `osm_map_elementor_load_assets_on_every_page` filter. Thanks to @ausdemnichts.
+* IMPROVEMENT: Font Awesome markers have an accessible name for screen readers and keyboard users, taken from the marker title. Thanks to @letiziam2024.
+
 = 1.5.1 =
 * FIX: HTML in a marker's Description shows as formatting again instead of as text. Descriptions allow the same HTML as post content, so scripts, event handlers and javascript: links are removed. Text inside angle brackets, such as an email address in `<>`, is treated as markup and removed, so write `&lt;` for a literal `<`. Thanks to @fastnormal and @tdebaillon.
 * SECURITY: The map's script now receives only the zoom levels and breakpoints it uses, instead of every widget setting, so a marker's unfiltered Description no longer appears in the page source.
@@ -107,6 +124,9 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 For older versions, see the [full changelog](https://github.com/flopperj/osm-map-elementor/wiki/Changelog).
 
 == Upgrade Notice ==
+= 1.6.0 =
+Adds Map Center (fit all markers or custom coordinates), shapes (rectangles, circles, polygons, lines, GeoJSON), routes along roads (needs a Geoapify key) and markers from posts, and loads the map's scripts only on pages that use it.
+
 = 1.5.1 =
 Marker descriptions show their HTML formatting again, and maps display correctly inside tabs, popups and row containers.
 

@@ -224,9 +224,10 @@ class Test_Settings_Save extends WP_UnitTestCase
         $this->assertStringContainsString('osm_widget[gmaps_key]', $html);
     }
 
-    public function test_jquery_is_enqueued_early_through_an_action()
+    public function test_plugin_no_longer_enqueues_jquery_in_the_head_of_every_page()
     {
-        $this->assertSame(1, has_action('wp_enqueue_scripts', 'OSM_Map\enqueue_jquery_in_head'));
+        $this->assertFalse(has_action('wp_enqueue_scripts', 'OSM_Map\enqueue_jquery_in_head'));
+        $this->assertFalse(function_exists('OSM_Map\enqueue_jquery_in_head'));
     }
 
     public function test_notice_is_shown_to_updaters_when_elementor_is_older_than_the_minimum()

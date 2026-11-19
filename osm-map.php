@@ -34,6 +34,32 @@ class Widget_OSM_Map extends Widget_Base
 
     private const OSM_MARKER_SIZE_MIN = 25;
     private const OSM_MARKER_SIZE_MAX = 200;
+    private const OSM_FIT_PADDING_MIN = 0;
+    private const OSM_FIT_PADDING_MAX = 200;
+    private const OSM_FIT_PADDING_DEFAULT = 50;
+    private const OSM_CENTER_MODES = ['midpoint', 'fit', 'custom'];
+    private const OSM_POSTS_MAX = 100;
+    private const OSM_POSTS_DEFAULT = 20;
+    private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
+    private const OSM_AREA_DEFAULT_OPACITY = 0.2;
+    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line', 'geojson', 'route'];
+    private const OSM_ROUTE_MODES = ['drive', 'walk', 'bicycle'];
+    private const OSM_ROUTE_WAYPOINTS_MAX = 10;
+    private const OSM_STROKE_WIDTH_DEFAULT = 3;
+    private const OSM_ROUTE_ENDPOINT = 'https://api.geoapify.com/v1/routing';
+    private const OSM_ROUTE_TIMEOUT = 5;
+    private const OSM_ROUTE_MAX_BYTES = 5242880;
+    private const OSM_ROUTE_POINTS_MAX = 20000;
+    private const OSM_ROUTE_FETCHES_MAX = 5;
+    private const OSM_ROUTE_CACHE_TTL = WEEK_IN_SECONDS;
+    private const OSM_ROUTE_FAILURE_TTL = 10 * MINUTE_IN_SECONDS;
+    private const OSM_ROUTE_PERMANENT_FAILURE_TTL = DAY_IN_SECONDS;
+    private const OSM_ROUTE_LOCK_TTL = 30;
+    private const OSM_GEOJSON_MAX_BYTES = 204800;
+    private const OSM_GEOJSON_POINTS_MAX = 5000;
+    private const OSM_SHAPE_POINTS_MAX = 500;
+    private const OSM_CIRCLE_RADIUS_MAX = 1000000;
+    private const OSM_EARTH_RADIUS = 6371000;
     // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
     private const OSM_DEFAULT_ICON_GEOMETRY = [
         'iconSize' => [25, 41],
@@ -44,24 +70,11 @@ class Widget_OSM_Map extends Widget_Base
     ];
     private const OSM_FA_MARKER_TOP = -50;
 
-    /**
-     * Widget OSM Map constructor.
-     *
-     * Initializing the widget base class.
-     *
-     * @param array $data Widget data. Default is an empty array.
-     * @param array|null $args Optional. Widget default arguments. Default is null.
-     * @since 1.0.0
-     * @access public
-     *
-     */
-    public function __construct($data = [], $args = null)
-    {
-        parent::__construct($data, $args);
+    /** @var array[] Routes drawn as straight lines during the current render, with the reason. */
+    private $osm_route_notices = [];
 
-        // add these scripts later
-        $this->osm_queue_assets();
-    }
+    /** @var int Routing requests made during the current render. */
+    private $osm_route_fetches = 0;
 
     /**
      * Get widget name.
@@ -127,7 +140,7 @@ class Widget_OSM_Map extends Widget_Base
      */
     public function get_script_depends()
     {
-        return ['jquery'];
+        return ['leaflet', 'mapbox-gl', 'leaflet-mapbox-gl', 'leaflet-fa-markers'];
     }
 
     /**
@@ -136,7 +149,12 @@ class Widget_OSM_Map extends Widget_Base
      */
     public function get_style_depends()
     {
-        return ['leaflet'];
+        $styles = ['leaflet', 'mapbox-gl', 'leaflet-fa-markers', 'osm-map-elementor'];
+        if (self::osm_fontawesome_enabled()) {
+            $styles[] = 'font-awesome-free';
+        }
+
+        return $styles;
     }
 
     /**
@@ -176,6 +194,48 @@ class Widget_OSM_Map extends Widget_Base
             'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map-elementor'),
             'custom-tile' => __('Custom Map Tile', 'osm-map-elementor'),
         ];
+    }
+
+    private static function osm_marker_behavior_options()
+    {
+        return [
+            'popup' => 'Popup',
+            'tooltip' => 'Tooltip',
+            'static_close_on' => 'Static with close',
+            'static_close_off' => 'Static without close',
+            'none' => 'None'
+        ];
+    }
+
+    /**
+     * Public, viewable post types selectable as a marker source; also the allowlist applied when rendering.
+     *
+     * @return string[]
+     */
+    private static function osm_post_type_options()
+    {
+        $options = [];
+        foreach (get_post_types(['public' => true], 'objects') as $slug => $type) {
+            if (in_array($slug, ['attachment', 'elementor_library'], true) || !is_post_type_viewable($type)) {
+                continue;
+            }
+            $options[$slug] = $type->labels->name;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function osm_taxonomy_options()
+    {
+        $options = [];
+        foreach (get_taxonomies(['public' => true], 'objects') as $slug => $taxonomy) {
+            $options[$slug] = $taxonomy->labels->name;
+        }
+
+        return $options;
     }
 
     /**
@@ -231,6 +291,41 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $repeater->add_control(
+            'marker_type',
+            [
+                'label' => __('Type', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'point',
+                'options' => [
+                    'point' => __('Point', 'osm-map-elementor'),
+                    'area' => __('Rectangle', 'osm-map-elementor'),
+                    'circle' => __('Circle', 'osm-map-elementor'),
+                    'polygon' => __('Polygon', 'osm-map-elementor'),
+                    'line' => __('Line', 'osm-map-elementor'),
+                    'geojson' => __('GeoJSON', 'osm-map-elementor'),
+                    'route' => __('Route', 'osm-map-elementor'),
+                ],
+                'description' => __('Shapes are drawn on the map and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
+            ]
+        );
+
+        if (empty(get_option('osm_widget')['geoapify_key'] ?? null)) {
+            $repeater->add_control(
+                'route_key_note',
+                [
+                    'type' => Controls_Manager::RAW_HTML,
+                    'raw' => $this->osm_settings_note(
+                        /* translators: 1: opening link tag to the plugin settings page, 2: closing link tag. */
+                        esc_html__('Routes follow roads only with a Geoapify API key, which you can add in the plugin settings %1$shere%2$s. Without one the route is drawn as a dashed straight line.', 'osm-map-elementor')
+                    ),
+                    'condition' => [
+                        'marker_type' => 'route',
+                    ],
+                ]
+            );
+        }
+
+        $repeater->add_control(
             'marker_location',
             [
                 'label' => __('Location', 'osm-map-elementor'),
@@ -238,6 +333,9 @@ class Widget_OSM_Map extends Widget_Base
                 'placeholder' => __('Marker Location', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
+                ],
+                'condition' => [
+                    'marker_type!' => self::OSM_SHAPE_TYPES,
                 ],
             ]
         );
@@ -250,6 +348,261 @@ class Widget_OSM_Map extends Widget_Base
                 'placeholder' => __('lat, long', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
+                ],
+                'condition' => [
+                    'marker_type!' => self::OSM_SHAPE_TYPES,
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_corner_1',
+            [
+                'label' => __('First Corner', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'description' => __('Two opposite corners of the rectangle, in any order.', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_corner_2',
+            [
+                'label' => __('Opposite Corner', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'circle_center',
+            [
+                'label' => __('Center', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'circle',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'circle_radius',
+            [
+                'label' => __('Radius (meters)', 'osm-map-elementor'),
+                'type' => Controls_Manager::NUMBER,
+                'min' => 1,
+                'max' => self::OSM_CIRCLE_RADIUS_MAX,
+                'default' => 1000,
+                'condition' => [
+                    'marker_type' => 'circle',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'shape_points',
+            [
+                'label' => __('Points', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => "45.46, 9.19\n45.07, 7.69\n44.49, 11.34",
+                'description' => __('One "lat, long" point per line. A polygon needs at least 3 points and a line at least 2.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => ['polygon', 'line'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'geojson_data',
+            [
+                'label' => __('GeoJSON', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[9.1, 45.4], [9.3, 45.4], [9.2, 45.5]]]}}',
+                'description' => __('Paste a GeoJSON Feature, FeatureCollection or geometry (Point, LineString, Polygon and their Multi versions). Properties are ignored and the title, description and button come from this item.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => 'geojson',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_start',
+            [
+                'label' => __('Start', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_waypoints',
+            [
+                'label' => __('Stops', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => "45.47, 9.18\n45.48, 9.17",
+                'description' => __('Optional. One "lat, long" stop per line, up to 10, visited in order.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_end',
+            [
+                'label' => __('End', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_mode',
+            [
+                'label' => __('Travel Mode', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'drive',
+                'options' => [
+                    'drive' => __('Driving', 'osm-map-elementor'),
+                    'walk' => __('Walking', 'osm-map-elementor'),
+                    'bicycle' => __('Cycling', 'osm-map-elementor'),
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_pins',
+            [
+                'label' => __('Start and End Markers', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => 'yes',
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_summary',
+            [
+                'label' => __('Show Distance and Time', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => '',
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'shape_stroke_width',
+            [
+                'label' => __('Line Width', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 12,
+                        'step' => 1,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_STROKE_WIDTH_DEFAULT,
+                ],
+                'condition' => [
+                    'marker_type' => ['line', 'route'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_border_color',
+            [
+                'label' => __('Border Color', 'osm-map-elementor'),
+                'type' => Controls_Manager::COLOR,
+                'default' => self::OSM_AREA_DEFAULT_COLOR,
+                'global' => [
+                    'active' => false,
+                ],
+                'condition' => [
+                    'marker_type' => ['area', 'circle', 'polygon', 'line', 'geojson', 'route'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_fill_color',
+            [
+                'label' => __('Fill Color', 'osm-map-elementor'),
+                'type' => Controls_Manager::COLOR,
+                'default' => self::OSM_AREA_DEFAULT_COLOR,
+                'global' => [
+                    'active' => false,
+                ],
+                'condition' => [
+                    'marker_type' => ['area', 'circle', 'polygon', 'geojson'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_fill_opacity',
+            [
+                'label' => __('Fill Opacity', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 0,
+                        'max' => 1,
+                        'step' => 0.05,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_AREA_DEFAULT_OPACITY,
+                ],
+                'condition' => [
+                    'marker_type' => ['area', 'circle', 'polygon', 'geojson'],
                 ],
             ]
         );
@@ -272,13 +625,7 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Behavior', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'popup',
-                'options' => [
-                    'popup' => 'Popup',
-                    'tooltip' => 'Tooltip',
-                    'static_close_on' => 'Static with close',
-                    'static_close_off' => 'Static without close',
-                    'none' => 'None'
-                ]
+                'options' => self::osm_marker_behavior_options(),
             ]
         );
 
@@ -367,6 +714,60 @@ class Widget_OSM_Map extends Widget_Base
             ]
         );
 
+        $this->add_control(
+            'center_mode',
+            [
+                'label' => __('Map Center', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'midpoint',
+                'options' => [
+                    'midpoint' => __('Midpoint of markers', 'osm-map-elementor'),
+                    'fit' => __('Fit all markers', 'osm-map-elementor'),
+                    'custom' => __('Custom coordinates', 'osm-map-elementor'),
+                ],
+                'description' => __('Fit all markers zooms and centers the map so every visible marker fits. Zoom Level is then the closest the map zooms in.', 'osm-map-elementor'),
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_control(
+            'center_coords',
+            [
+                'label' => __('Center Coordinates', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'center_mode' => 'custom',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'fit_padding',
+            [
+                'label' => __('Fit Padding', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => self::OSM_FIT_PADDING_MIN,
+                        'max' => self::OSM_FIT_PADDING_MAX,
+                        'step' => 5,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_FIT_PADDING_DEFAULT,
+                ],
+                'condition' => [
+                    'center_mode' => 'fit',
+                ],
+            ]
+        );
+
         $this->add_responsive_control(
             'zoom',
             [
@@ -433,6 +834,200 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $this->add_control(
+            'marker_source',
+            [
+                'label' => __('Marker Source', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'manual',
+                'options' => [
+                    'manual' => __('Manual list', 'osm-map-elementor'),
+                    'posts' => __('Posts', 'osm-map-elementor'),
+                ],
+                'description' => __('Posts shows one marker for each published post, using coordinates stored in custom fields (for example ACF fields). Set Map Center to "Fit all markers" so every post is visible.', 'osm-map-elementor'),
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_control(
+            'posts_post_type',
+            [
+                'label' => __('Post Type', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'post',
+                'options' => self::osm_post_type_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_taxonomy',
+            [
+                'label' => __('Filter by Taxonomy', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => '',
+                'options' => ['' => __('None', 'osm-map-elementor')] + self::osm_taxonomy_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_terms',
+            [
+                'label' => __('Terms', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('term-slug, another-slug', 'osm-map-elementor'),
+                'description' => __('Term slugs, comma separated.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_taxonomy!' => ''],
+            ]
+        );
+
+        $this->add_control(
+            'posts_per_page',
+            [
+                'label' => __('Number of Posts', 'osm-map-elementor'),
+                'type' => Controls_Manager::NUMBER,
+                'min' => 1,
+                'max' => self::OSM_POSTS_MAX,
+                'default' => self::OSM_POSTS_DEFAULT,
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_orderby',
+            [
+                'label' => __('Order By', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'date',
+                'options' => [
+                    'date' => __('Date', 'osm-map-elementor'),
+                    'title' => __('Title', 'osm-map-elementor'),
+                    'menu_order' => __('Menu order', 'osm-map-elementor'),
+                ],
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_order',
+            [
+                'label' => __('Order', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'DESC',
+                'options' => [
+                    'DESC' => __('Descending', 'osm-map-elementor'),
+                    'ASC' => __('Ascending', 'osm-map-elementor'),
+                ],
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_coords_format',
+            [
+                'label' => __('Coordinates Stored In', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'single',
+                'options' => [
+                    'single' => __('One field (lat, long)', 'osm-map-elementor'),
+                    'separate' => __('Separate latitude and longitude fields', 'osm-map-elementor'),
+                ],
+                'description' => __('A field holding an array with lat and lng keys, such as an ACF Google Map field, also works.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_coords_field',
+            [
+                'label' => __('Coordinates Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'single'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_lat_field',
+            [
+                'label' => __('Latitude Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'separate'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_lng_field',
+            [
+                'label' => __('Longitude Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'separate'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_description',
+            [
+                'label' => __('Description', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'excerpt',
+                'options' => [
+                    'none' => __('None', 'osm-map-elementor'),
+                    'excerpt' => __('Post excerpt', 'osm-map-elementor'),
+                    'meta' => __('Custom field', 'osm-map-elementor'),
+                ],
+                'description' => __('Only an excerpt written for the post is used; excerpts are never generated from the content.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_description_field',
+            [
+                'label' => __('Description Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_description' => 'meta'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_marker_behavior',
+            [
+                'label' => __('Behavior', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'popup',
+                'options' => self::osm_marker_behavior_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_show_button',
+            [
+                'label' => __('Show Button', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => 'no',
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_button_text',
+            [
+                'label' => __('Button Text', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'default' => __('View', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_show_button' => 'yes'],
+            ]
+        );
+
+        $this->add_control(
             'marker_list',
             [
                 'label' => __('Marker List', 'osm-map-elementor'),
@@ -441,7 +1036,8 @@ class Widget_OSM_Map extends Widget_Base
                 'default' => [
                     []
                 ],
-                'title_field' => '{{ marker_title }}'
+                'title_field' => '{{ marker_title }}',
+                'condition' => ['marker_source!' => 'posts'],
             ]
         );
 
@@ -1511,8 +2107,10 @@ class Widget_OSM_Map extends Widget_Base
     protected function render()
     {
         $global_settings = get_option('osm_widget');
+        $this->osm_route_notices = [];
+        $this->osm_route_fetches = 0;
         $settings = $this->get_settings_for_display();
-        $markers = $this->get_settings_for_display('marker_list');
+        $markers = 'posts' === ($settings['marker_source'] ?? 'manual') ? $this->osm_posts_markers($settings) : $this->get_settings_for_display('marker_list');
         $breakpoints_config = \Elementor\Plugin::$instance->breakpoints->get_breakpoints_config();
         $settings['breakpoints'] = [
             'sm' => (int)($breakpoints_config['mobile']['value'] ?? 767),
@@ -1543,20 +2141,35 @@ class Widget_OSM_Map extends Widget_Base
                     continue;
                 }
 
-                $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
-                if (null === $parsed) {
-                    continue;
+                $type = $marker['marker_type'] ?? 'point';
+                $shape = null;
+                if (in_array($type, self::OSM_SHAPE_TYPES, true)) {
+                    $shape = $this->osm_parse_shape($type, $marker);
+                    if (null === $shape) {
+                        continue;
+                    }
+                    $parsed = ['lat' => $shape['lat'], 'lng' => $shape['lng']];
+                } else {
+                    $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
+                    if (null === $parsed) {
+                        continue;
+                    }
                 }
 
                 $marker['button_url'] = !empty($marker['button_url']) ? esc_url_raw($marker['button_url'], ['http', 'https', 'mailto', 'tel']) : '';
                 $marker['button_url_target'] = in_array($marker['button_url_target'] ?? '', ['_self', '_blank'], true) ? $marker['button_url_target'] : '_blank';
                 // The popup inserts the description as HTML, so this is its only sanitization.
                 $marker['marker_description'] = isset($marker['marker_description']) && is_string($marker['marker_description']) ? wp_kses_post($marker['marker_description']) : '';
-                $coords[] = [
+                $entry = [
                     'marker' => $marker,
                     'lat' => $parsed['lat'],
                     'lng' => $parsed['lng']
                 ];
+                if (null !== $shape) {
+                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points'], $entry['marker']['geojson_data'], $entry['marker']['route_start'], $entry['marker']['route_end'], $entry['marker']['route_waypoints'], $entry['marker']['route_mode'], $entry['marker']['route_pins'], $entry['marker']['route_summary'], $entry['marker']['shape_stroke_width']);
+                    $entry = array_merge($entry, array_diff_key($shape, ['lat' => 1, 'lng' => 1]));
+                }
+                $coords[] = $entry;
             }
         }
 
@@ -1567,14 +2180,35 @@ class Widget_OSM_Map extends Widget_Base
         $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
         $geoapify_tile = array_key_exists($requested_tile, self::osm_tile_options()) ? $requested_tile : 'osm-carto';
 
-        // get center coordinates for our map
+        $center_mode = in_array($settings['center_mode'] ?? '', self::OSM_CENTER_MODES, true) ? $settings['center_mode'] : 'midpoint';
         $center_coords = !empty($coords) ? $this->osm_get_center_coords($coords) : [];
+        if ('custom' === $center_mode) {
+            $custom_center = $this->osm_parse_marker_coords($settings['center_coords'] ?? null);
+            if (null !== $custom_center) {
+                $center_coords = [$custom_center['lat'], $custom_center['lng']];
+            }
+        }
+        $map_view = [
+            'mode' => $center_mode,
+            'padding' => (int) $this->osm_slider_size($settings['fit_padding'] ?? null, self::OSM_FIT_PADDING_MIN, self::OSM_FIT_PADDING_MAX, self::OSM_FIT_PADDING_DEFAULT),
+            'bounds' => 'fit' === $center_mode && !empty($coords) ? $this->osm_get_bounds($coords) : null,
+        ];
 
         echo '<div id="' . esc_attr('osm-map-' . $this->get_id()) . '" 
         class="osm-map-container" 
         data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
 
+        if (is_admin() || \Elementor\Plugin::$instance->preview->is_preview_mode()) {
+            foreach ($this->osm_route_notices as $notice) {
+                echo '<p class="osm-map-notice">' . esc_html($this->osm_route_notice_text($notice['reason'], $notice['title'])) . '</p>';
+            }
+        }
+
         $display_settings = array_intersect_key($settings, array_flip(['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+
+        self::osm_register_assets();
+        array_map('wp_enqueue_style', $this->get_style_depends());
+        array_map('wp_enqueue_script', $this->get_script_depends());
 
         ob_start();
         ?>
@@ -1584,6 +2218,7 @@ class Widget_OSM_Map extends Widget_Base
                 const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
+                const mapView = <?php echo wp_json_encode($map_view); ?>;
 
                 // Security: HTML escaping functions to prevent XSS
                 const escapeHtml = function (text) {
@@ -1650,6 +2285,24 @@ class Widget_OSM_Map extends Widget_Base
                     dragging: <?php echo !empty($settings['pan_control']) ? 'true' : 'false'; ?>
                 });
 
+                let userInteracted = false;
+                ['pointerdown', 'wheel', 'keydown'].forEach(function (type) {
+                    map.getContainer().addEventListener(type, function () {
+                        userInteracted = true;
+                    }, {once: true, passive: true});
+                });
+                const refitView = function () {
+                    if ('fit' !== mapView.mode || !mapView.bounds || userInteracted) {
+                        return;
+                    }
+                    const size = map.getSize();
+                    // fitBounds on a 0x0 container produces an invalid zoom; the resize observer refits once the map is visible.
+                    if (size.x <= 0 || size.y <= 0) {
+                        return;
+                    }
+                    map.fitBounds(mapView.bounds, {padding: [mapView.padding, mapView.padding], maxZoom: zoomLevel, animate: false});
+                };
+
                 // Leaflet measures its container only when created, so a map that starts
                 // hidden (tabs, popups) stays 0x0 until it is told the size changed.
                 if (mapElement && typeof ResizeObserver !== 'undefined') {
@@ -1661,6 +2314,7 @@ class Widget_OSM_Map extends Widget_Base
                         const size = entries[entries.length - 1].contentRect;
                         if (size.width > 0 && size.height > 0) {
                             map.invalidateSize();
+                            refitView();
                         }
                     });
                     mapElement._osmResizeObserver.observe(mapElement);
@@ -1670,6 +2324,7 @@ class Widget_OSM_Map extends Widget_Base
                     let centerCoords = center.split(',');
                     map.setView(centerCoords, zoomLevel);
                 }
+                refitView();
 
                 <?php if('osm-carto' === $geoapify_tile):?>
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1755,6 +2410,10 @@ class Widget_OSM_Map extends Widget_Base
                 const markers = <?php echo wp_json_encode($coords); ?>;
                 let markerIcon = null;
                 let markerOptions = {};
+                const markerLabel = <?php echo wp_json_encode(__('Map marker', 'osm-map-elementor')); ?>;
+                const routeStartLabel = <?php echo wp_json_encode(__('start', 'osm-map-elementor')); ?>;
+                const routeAttribution = 'Routing &copy; <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a>';
+                const routeEndLabel = <?php echo wp_json_encode(__('end', 'osm-map-elementor')); ?>;
 
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
@@ -1878,6 +2537,44 @@ class Widget_OSM_Map extends Widget_Base
                 <?php endif; ?>
                 <?php endswitch; ?>
 
+                const buildShape = function (item) {
+                    switch (item.shape) {
+                        case 'circle':
+                            return L.circle([item.lat, item.lng], Object.assign({radius: item.radius}, item.area));
+                        case 'polygon':
+                            return L.polygon(item.points, item.area);
+                        case 'line':
+                            return L.polyline(item.points, item.area);
+                        case 'geojson':
+                            return L.featureGroup([].concat(
+                                item.polygons.map(function (rings) {
+                                    return L.polygon(rings, item.area);
+                                }),
+                                item.lines.map(function (line) {
+                                    return L.polyline(line, {color: item.area.color});
+                                }),
+                                item.points.map(function (point) {
+                                    return L.circleMarker(point, Object.assign({radius: 6}, item.area));
+                                })
+                            ));
+                        case 'route':
+                            return L.featureGroup([
+                                L.polyline(item.lines, item.routed ? item.area : Object.assign({dashArray: '8 8'}, item.area))
+                            ].concat(item.pins.map(function (pin, index) {
+                                const pinMarker = L.marker(pin, markerOptions);
+                                pinMarker.on('add', function () {
+                                    const element = pinMarker.getElement();
+                                    if (element && 'IMG' !== element.tagName) {
+                                        element.setAttribute('aria-label', (item.marker.marker_title || markerLabel) + ' ' + (0 === index ? routeStartLabel : routeEndLabel));
+                                    }
+                                });
+                                return pinMarker;
+                            })));
+                        default:
+                            return L.rectangle(item.bounds, item.area);
+                    }
+                };
+
                 /**
                  * Helper to add markers to our map
                  * @param {array}
@@ -1886,11 +2583,20 @@ class Widget_OSM_Map extends Widget_Base
 
                     let _markers = [];
                     jQuery.each(markers, function () {
-                        const marker = L.marker([this.lat, this.lng], markerOptions);
+                        const marker = this.bounds ? buildShape(this) : L.marker([this.lat, this.lng], markerOptions);
+                        if ('geoapify' === this.provider) {
+                            map.attributionControl.addAttribution(routeAttribution);
+                        }
                         _markers.push(marker);
 
                         // add marker to map
                         marker.addTo(map);
+
+                        // Font Awesome markers are focusable div[role=button] elements that Leaflet leaves unnamed.
+                        const markerElement = this.bounds ? null : marker.getElement();
+                        if (markerElement && 'IMG' !== markerElement.tagName) {
+                            markerElement.setAttribute('aria-label', this.marker.marker_title || markerLabel);
+                        }
 
                         // prep tooltip content
                         let tooltipContent = '<div class="marker-tooltip">';
@@ -1906,6 +2612,10 @@ class Widget_OSM_Map extends Widget_Base
                         // add marker description
                         if (this.marker.marker_description) {
                             tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
+                        }
+
+                        if (this.summary) {
+                            tooltipContent += `<div class="marker-route-summary">${escapeHtml(this.summary)}</div>`;
                         }
 
                         // add marker button
@@ -1928,7 +2638,7 @@ class Widget_OSM_Map extends Widget_Base
                         tooltipContent += '</div>';
 
                         // add tooltip / popup to marker
-                        if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
+                        if (this.marker.marker_title || this.marker.marker_description || this.summary || this.marker.button_text && this.marker.show_button) {
                             let markerBehavior = this.marker.hasOwnProperty('marker_behavior') ? this.marker.marker_behavior : null;
                             switch (markerBehavior) {
                                 case 'popup':
@@ -1958,8 +2668,10 @@ class Widget_OSM_Map extends Widget_Base
 
                                 <?php if('fontawesome' === $icon_type): ?>
                                     // update offset for fontawesome markers
-                                    tooltipOptions.direction = "top";
-                                    tooltipOptions.offset = markerTooltipOffset;
+                                    if (!this.bounds) {
+                                        tooltipOptions.direction = "top";
+                                        tooltipOptions.offset = markerTooltipOffset;
+                                    }
                                 <?php  endif; ?>
 
                                     marker.bindTooltip(tooltipContent, tooltipOptions);
@@ -1971,6 +2683,7 @@ class Widget_OSM_Map extends Widget_Base
 
                     setTimeout(function () {
                         map.invalidateSize();
+                        refitView();
                     }, 100)
                 };
 
@@ -1985,6 +2698,8 @@ class Widget_OSM_Map extends Widget_Base
                 // we want to make sure we have at least one marker visible
                 if (canRenderMap) {
                     buildMarkers(markers);
+                } else if (center) {
+                    buildMarkers([]);
                 } else {
 
                     // set our default coordinates to Nairobi Kenya
@@ -2027,58 +2742,30 @@ class Widget_OSM_Map extends Widget_Base
         }
     }
 
-    /**
-     * queue assets needed by maps widget
-     */
-    private function osm_queue_assets()
+    public static function osm_fontawesome_enabled(): bool
     {
-        // grab global settings
         $widget_settings = get_option('osm_widget', []);
 
+        return (!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings)) || !empty($widget_settings['enable_fontawesome']);
+    }
+
+    /**
+     * Registers the front-end scripts and styles without enqueueing them, so Elementor
+     * (or render) loads them only on pages that use the widget.
+     */
+    public static function osm_register_assets(): void
+    {
         $styles = [
             'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.css'),
             'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/mapbox-gl.css'),
             'leaflet-fa-markers' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet-fa-markers/L.Icon.FontAwesome.css'),
-            'osm-map-elementor' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/osm-map-elementor.css')
+            'osm-map-elementor' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/css/osm-map-elementor.css'),
+            'font-awesome-free' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css'),
         ];
-
-        // load fontawesome
-        if ((!empty($widget_settings) && !array_key_exists('enable_fontawesome', $widget_settings)) || !empty($widget_settings['enable_fontawesome'])) {
-            $styles['font-awesome-free'] = plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/fontawesome-free/css/all.min.css');
-        }
-
         foreach ($styles as $handle => $path) {
             wp_register_style($handle, $path, [], self::$ver);
-            wp_enqueue_style($handle);
         }
 
-        // queue admin js
-        if (is_admin()) {
-
-            // queue google maps key if provided
-            $admin_scripts = [
-                'osm-map-elementor-controls' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/osm-map-controls.js')
-            ];
-
-            // add google maps API
-            if (!empty($widget_settings['gmaps_key'])) {
-                $admin_scripts['google-maps'] = add_query_arg([
-                    'libraries' => 'places',
-                    'callback' => 'initOSMEditorControls',
-                    'loading' => 'async',
-                    'key' => rawurlencode($widget_settings['gmaps_key']),
-                ], 'https://maps.googleapis.com/maps/api/js');
-            }
-
-            $dependencies = ['jquery'];
-            foreach ($admin_scripts as $handle => $path) {
-                wp_register_script($handle, $path, $dependencies, 'google-maps' === $handle ? null : self::$ver, true);
-                wp_enqueue_script($handle);
-                $dependencies[] = $handle;
-            }
-        }
-
-        // queue widget view js
         $scripts = [
             'leaflet' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/leaflet/leaflet.js'),
             'mapbox-gl' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/mapbox-gl.js'),
@@ -2088,9 +2775,166 @@ class Widget_OSM_Map extends Widget_Base
         $deps = ['jquery'];
         foreach ($scripts as $handle => $path) {
             wp_register_script($handle, $path, $deps, self::$ver, true);
-            wp_enqueue_script($handle);
             $deps[] = $handle;
         }
+    }
+
+    public static function osm_enqueue_editor_assets(): void
+    {
+        $widget_settings = get_option('osm_widget', []);
+
+        $admin_scripts = [
+            'osm-map-elementor-controls' => plugins_url('/' . OSM_PLUGIN_FOLDER . '/assets/js/osm-map-controls.js')
+        ];
+
+        if (!empty($widget_settings['gmaps_key'])) {
+            $admin_scripts['google-maps'] = add_query_arg([
+                'libraries' => 'places',
+                'callback' => 'initOSMEditorControls',
+                'loading' => 'async',
+                'key' => rawurlencode($widget_settings['gmaps_key']),
+            ], 'https://maps.googleapis.com/maps/api/js');
+        }
+
+        $dependencies = ['jquery'];
+        foreach ($admin_scripts as $handle => $path) {
+            wp_register_script($handle, $path, $dependencies, 'google-maps' === $handle ? null : self::$ver, true);
+            wp_enqueue_script($handle);
+            $dependencies[] = $handle;
+        }
+    }
+
+    /**
+     * Builds marker list items from published posts, shaped like repeater items so they pass through the same sanitising loop.
+     *
+     * @return array[]
+     */
+    private function osm_posts_markers(array $settings)
+    {
+        $post_type = isset($settings['posts_post_type']) && is_string($settings['posts_post_type']) ? $settings['posts_post_type'] : 'post';
+        if (!array_key_exists($post_type, self::osm_post_type_options())) {
+            return [];
+        }
+
+        $per_page = (int) $this->osm_slider_size(['size' => $settings['posts_per_page'] ?? null], 1, self::OSM_POSTS_MAX, self::OSM_POSTS_DEFAULT);
+        $orderby = in_array($settings['posts_orderby'] ?? '', ['date', 'title', 'menu_order'], true) ? $settings['posts_orderby'] : 'date';
+        $order = 'ASC' === ($settings['posts_order'] ?? '') ? 'ASC' : 'DESC';
+        $args = [
+            'post_type' => $post_type,
+            'post_status' => 'publish',
+            'has_password' => false,
+            'posts_per_page' => $per_page,
+            'orderby' => $orderby,
+            'order' => $order,
+            'no_found_rows' => true,
+            'ignore_sticky_posts' => true,
+            'update_post_term_cache' => false,
+            'update_post_meta_cache' => true,
+            'suppress_filters' => false,
+        ];
+
+        $taxonomy = isset($settings['posts_taxonomy']) && is_string($settings['posts_taxonomy']) ? $settings['posts_taxonomy'] : '';
+        if ('' !== $taxonomy && array_key_exists($taxonomy, self::osm_taxonomy_options())) {
+            $terms = array_filter(array_map('sanitize_title', explode(',', is_string($settings['posts_terms'] ?? null) ? $settings['posts_terms'] : '')));
+            if ($terms) {
+                $args['tax_query'] = [['taxonomy' => $taxonomy, 'field' => 'slug', 'terms' => array_values($terms)]];
+            }
+        }
+
+        $query = new \WP_Query($args);
+        $description_mode = in_array($settings['posts_description'] ?? 'excerpt', ['none', 'excerpt', 'meta'], true) ? ($settings['posts_description'] ?? 'excerpt') : 'excerpt';
+        $description_key = 'meta' === $description_mode ? $this->osm_meta_key($settings['posts_description_field'] ?? null) : null;
+        $behavior = array_key_exists($settings['posts_marker_behavior'] ?? '', self::osm_marker_behavior_options()) ? $settings['posts_marker_behavior'] : 'popup';
+        $show_button = !empty($settings['posts_show_button']) && 'yes' === $settings['posts_show_button'];
+        $charset = get_bloginfo('charset');
+
+        $markers = [];
+        foreach ($query->posts as $post) {
+            $coords = $this->osm_post_coords((int) $post->ID, $settings);
+            if (null === $coords) {
+                continue;
+            }
+
+            $description = '';
+            if ('excerpt' === $description_mode && '' !== $post->post_excerpt) {
+                $description = $post->post_excerpt;
+            } elseif (null !== $description_key) {
+                $value = get_post_meta($post->ID, $description_key, true);
+                $description = is_string($value) ? $value : '';
+            }
+
+            $markers[] = [
+                '_id' => 'post-' . $post->ID,
+                'marker_title' => html_entity_decode(wp_strip_all_tags(get_the_title($post)), ENT_QUOTES | ENT_HTML5, $charset),
+                'marker_coords' => $coords,
+                'marker_description' => $description,
+                'marker_behavior' => $behavior,
+                'show_button' => $show_button ? 'yes' : 'no',
+                'button_text' => $show_button && isset($settings['posts_button_text']) && is_string($settings['posts_button_text']) ? $settings['posts_button_text'] : '',
+                'button_url' => $show_button ? get_permalink($post) : '',
+                'button_url_target' => '_self',
+            ];
+        }
+
+        return $markers;
+    }
+
+    /**
+     * @return string|null A "lat,lng" string for the existing coordinate parser, or null when the post has no usable field.
+     */
+    private function osm_post_coords(int $post_id, array $settings)
+    {
+        $separate = 'separate' === ($settings['posts_coords_format'] ?? 'single');
+        $key = $this->osm_meta_key($settings[$separate ? 'posts_lat_field' : 'posts_coords_field'] ?? null);
+        if (null === $key) {
+            return null;
+        }
+
+        $value = get_post_meta($post_id, $key, true);
+        if (is_array($value)) {
+            return isset($value['lat'], $value['lng']) && is_scalar($value['lat']) && is_scalar($value['lng']) ? $value['lat'] . ',' . $value['lng'] : null;
+        }
+
+        if (!$separate) {
+            return is_string($value) ? $value : null;
+        }
+
+        $lng_key = $this->osm_meta_key($settings['posts_lng_field'] ?? null);
+        $lng = null === $lng_key ? null : get_post_meta($post_id, $lng_key, true);
+
+        return is_scalar($value) && is_scalar($lng) ? $value . ',' . $lng : null;
+    }
+
+    /**
+     * Only plain, public meta keys may be read, so an editor cannot surface private plugin data on a public page.
+     *
+     * @param mixed $raw
+     * @return string|null
+     */
+    private function osm_meta_key($raw)
+    {
+        if (!is_string($raw)) {
+            return null;
+        }
+
+        $key = trim($raw);
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $key) || is_protected_meta($key, 'post')) {
+            return null;
+        }
+
+        return $key;
+    }
+
+    /**
+     * @param mixed $setting Elementor slider value.
+     */
+    private function osm_slider_size($setting, float $min, float $max, float $fallback): float
+    {
+        if (!is_array($setting) || !isset($setting['size']) || !is_numeric($setting['size'])) {
+            return $fallback;
+        }
+
+        return max($min, min($max, (float) $setting['size']));
     }
 
     /**
@@ -2098,13 +2942,33 @@ class Widget_OSM_Map extends Widget_Base
      */
     private function osm_marker_scale($setting): float
     {
-        if (!is_array($setting) || !isset($setting['size']) || !is_numeric($setting['size'])) {
-            return 1.0;
+        return $this->osm_slider_size($setting, self::OSM_MARKER_SIZE_MIN, self::OSM_MARKER_SIZE_MAX, 100) / 100;
+    }
+
+    /**
+     * Bounding box of the coordinates and of any rectangle corners they carry.
+     *
+     * @param array[] $coords Entries with lat, lng and optionally bounds.
+     * @return float[][] [[south, west], [north, east]]
+     */
+    private function osm_get_bounds(array $coords): array
+    {
+        $south = INF;
+        $west = INF;
+        $north = -INF;
+        $east = -INF;
+
+        foreach ($coords as $entry) {
+            $points = isset($entry['bounds']) ? $entry['bounds'] : [[$entry['lat'], $entry['lng']]];
+            foreach ($points as $point) {
+                $south = min($south, $point[0]);
+                $north = max($north, $point[0]);
+                $west = min($west, $point[1]);
+                $east = max($east, $point[1]);
+            }
         }
 
-        $percent = max(self::OSM_MARKER_SIZE_MIN, min(self::OSM_MARKER_SIZE_MAX, (float) $setting['size']));
-
-        return $percent / 100;
+        return [[$south, $west], [$north, $east]];
     }
 
     /**
@@ -2140,6 +3004,587 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    /**
+     * Turns a shape item into floats only: centre, bounds and the geometry its Leaflet layer needs.
+     *
+     * @return array|null Null when the geometry is invalid.
+     */
+    private function osm_parse_shape(string $type, array $marker)
+    {
+        $style = [
+            'color' => $this->osm_sanitize_color($marker['area_border_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
+        ];
+        if ('line' === $type || 'route' === $type) {
+            $style['weight'] = (int) $this->osm_slider_size($marker['shape_stroke_width'] ?? null, 1, 12, self::OSM_STROKE_WIDTH_DEFAULT);
+        } else {
+            $style['fillColor'] = $this->osm_sanitize_color($marker['area_fill_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR);
+            $style['fillOpacity'] = $this->osm_slider_size($marker['area_fill_opacity'] ?? null, 0, 1, self::OSM_AREA_DEFAULT_OPACITY);
+        }
+
+        if ('route' === $type) {
+            return $this->osm_parse_route($marker, $style);
+        }
+
+        if ('area' === $type) {
+            $bounds = $this->osm_parse_area_corners($marker['area_corner_1'] ?? null, $marker['area_corner_2'] ?? null);
+            if (null === $bounds) {
+                return null;
+            }
+
+            return ['lat' => ($bounds[0][0] + $bounds[1][0]) / 2, 'lng' => ($bounds[0][1] + $bounds[1][1]) / 2, 'bounds' => $bounds, 'area' => $style];
+        }
+
+        if ('circle' === $type) {
+            $center = $this->osm_parse_marker_coords($marker['circle_center'] ?? null);
+            $radius = $marker['circle_radius'] ?? null;
+            if (null === $center || !is_numeric($radius) || (float) $radius <= 0) {
+                return null;
+            }
+            $radius = min((float) $radius, self::OSM_CIRCLE_RADIUS_MAX);
+            $lat_delta = rad2deg($radius / self::OSM_EARTH_RADIUS);
+            $cos = cos(deg2rad($center['lat']));
+            $lng_delta = $cos > 0.0001 ? min(180.0, $lat_delta / $cos) : 180.0;
+            $bounds = [
+                [max(-90.0, $center['lat'] - $lat_delta), max(-180.0, $center['lng'] - $lng_delta)],
+                [min(90.0, $center['lat'] + $lat_delta), min(180.0, $center['lng'] + $lng_delta)],
+            ];
+
+            return ['lat' => $center['lat'], 'lng' => $center['lng'], 'bounds' => $bounds, 'shape' => 'circle', 'radius' => $radius, 'area' => $style];
+        }
+
+        if ('geojson' === $type) {
+            $geometry = $this->osm_parse_geojson($marker['geojson_data'] ?? null);
+            if (null === $geometry) {
+                return null;
+            }
+
+            return [
+                'lat' => ($geometry['bounds'][0][0] + $geometry['bounds'][1][0]) / 2,
+                'lng' => ($geometry['bounds'][0][1] + $geometry['bounds'][1][1]) / 2,
+                'bounds' => $geometry['bounds'],
+                'shape' => 'geojson',
+                'polygons' => $geometry['polygons'],
+                'lines' => $geometry['lines'],
+                'points' => $geometry['points'],
+                'area' => $style,
+            ];
+        }
+
+        $points = [];
+        $lines = is_string($marker['shape_points'] ?? null) ? preg_split('/\R/', $marker['shape_points']) : [];
+        foreach ($lines as $line) {
+            $point = $this->osm_parse_marker_coords($line);
+            if (null !== $point) {
+                $points[] = [$point['lat'], $point['lng']];
+            }
+            if (count($points) >= self::OSM_SHAPE_POINTS_MAX) {
+                break;
+            }
+        }
+        if (count($points) < ('polygon' === $type ? 3 : 2)) {
+            return null;
+        }
+
+        $bounds = $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $points]]);
+
+        return [
+            'lat' => ($bounds[0][0] + $bounds[1][0]) / 2,
+            'lng' => ($bounds[0][1] + $bounds[1][1]) / 2,
+            'bounds' => $bounds,
+            'shape' => $type,
+            'points' => $points,
+            'area' => $style,
+        ];
+    }
+
+    /**
+     * @param float[][] $bounds [[south, west], [north, east]]
+     * @return float[] [lat, lng]
+     */
+    private function osm_bounds_centre(array $bounds): array
+    {
+        return [($bounds[0][0] + $bounds[1][0]) / 2, ($bounds[0][1] + $bounds[1][1]) / 2];
+    }
+
+    /**
+     * @return array|null Shape entry with lines, bounds, pins and routed flag; null when the start or end is invalid.
+     */
+    private function osm_parse_route(array $marker, array $style)
+    {
+        $start = $this->osm_parse_marker_coords($marker['route_start'] ?? null);
+        $end = $this->osm_parse_marker_coords($marker['route_end'] ?? null);
+        if (null === $start || null === $end) {
+            return null;
+        }
+
+        $stops = [[$start['lat'], $start['lng']]];
+        $lines = is_string($marker['route_waypoints'] ?? null) ? preg_split('/\R/', $marker['route_waypoints']) : [];
+        foreach ($lines as $line) {
+            $waypoint = $this->osm_parse_marker_coords($line);
+            if (null !== $waypoint) {
+                $stops[] = [$waypoint['lat'], $waypoint['lng']];
+            }
+            if (count($stops) > self::OSM_ROUTE_WAYPOINTS_MAX) {
+                break;
+            }
+        }
+        $stops[] = [$end['lat'], $end['lng']];
+
+        $mode = in_array($marker['route_mode'] ?? '', self::OSM_ROUTE_MODES, true) ? $marker['route_mode'] : 'drive';
+        $route = $this->osm_route_geometry($stops, $mode);
+        if (!$route['routed']) {
+            $this->osm_route_notices[] = [
+                'title' => isset($marker['marker_title']) && is_string($marker['marker_title']) ? $marker['marker_title'] : '',
+                'reason' => $route['reason'],
+            ];
+        }
+
+        $points = [];
+        foreach ($route['lines'] as $line) {
+            $points = array_merge($points, $line);
+        }
+        $bounds = $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $points]]);
+        $centre = $this->osm_bounds_centre($bounds);
+
+        $entry = [
+            'lat' => $centre[0],
+            'lng' => $centre[1],
+            'bounds' => $bounds,
+            'shape' => 'route',
+            'lines' => $route['lines'],
+            'routed' => $route['routed'],
+            'pins' => 'yes' === ($marker['route_pins'] ?? 'yes') ? [$stops[0], end($stops)] : [],
+            'summary' => 'yes' === ($marker['route_summary'] ?? '') ? $this->osm_route_summary($route['distance'], $route['time']) : null,
+            'area' => $style,
+        ];
+        if ($route['routed']) {
+            $entry['provider'] = 'geoapify';
+        }
+
+        return $entry;
+    }
+
+    /**
+     * Road-following geometry for the stops, cached; a straight line when no route can be fetched.
+     *
+     * @param float[][] $stops [lat, lng] start, waypoints, end.
+     * @return array{lines: float[][][], routed: bool, distance: float|null, time: float|null, reason: string|null}
+     */
+    private function osm_route_geometry(array $stops, string $mode): array
+    {
+        $fallback = ['lines' => [$stops], 'routed' => false, 'distance' => null, 'time' => null];
+        $rounded = array_map(function ($point) {
+            return [round($point[0], 6), round($point[1], 6)];
+        }, $stops);
+        $cache_key = 'osm_route_' . md5(wp_json_encode([$mode, $rounded]));
+
+        $cached = get_transient($cache_key);
+        if (is_array($cached) && isset($cached['lines']) && is_array($cached['lines'])) {
+            return [
+                'lines' => $cached['lines'],
+                'routed' => true,
+                'distance' => $cached['distance'] ?? null,
+                'time' => $cached['time'] ?? null,
+                'reason' => null,
+            ];
+        }
+        if (is_array($cached) && isset($cached['failed']) && is_string($cached['failed'])) {
+            return $fallback + ['reason' => $cached['failed']];
+        }
+
+        $key = get_option('osm_widget')['geoapify_key'] ?? '';
+        if (!is_string($key) || '' === $key) {
+            return $fallback + ['reason' => 'no_key'];
+        }
+
+        if (get_transient($cache_key . '_lock') || $this->osm_route_fetches >= self::OSM_ROUTE_FETCHES_MAX) {
+            return $fallback + ['reason' => 'busy'];
+        }
+
+        set_transient($cache_key . '_lock', 1, self::OSM_ROUTE_LOCK_TTL);
+        ++$this->osm_route_fetches;
+        $result = $this->osm_route_request($stops, $mode, $key);
+        delete_transient($cache_key . '_lock');
+
+        if (null !== $result['reason']) {
+            $permanent = in_array($result['reason'], ['invalid_response', 'too_long'], true)
+                || ('request_failed' === $result['reason'] && $result['status'] >= 400 && $result['status'] < 500);
+            set_transient($cache_key, ['failed' => $result['reason']], $permanent ? self::OSM_ROUTE_PERMANENT_FAILURE_TTL : self::OSM_ROUTE_FAILURE_TTL);
+            do_action('osm_map_elementor_route_failed', $result['reason'], $result['status']);
+
+            return $fallback + ['reason' => $result['reason']];
+        }
+
+        set_transient($cache_key, ['lines' => $result['lines'], 'distance' => $result['distance'], 'time' => $result['time']], self::OSM_ROUTE_CACHE_TTL);
+
+        return ['lines' => $result['lines'], 'routed' => true, 'distance' => $result['distance'], 'time' => $result['time'], 'reason' => null];
+    }
+
+    /**
+     * One request to the Geoapify Routing API, validated through the GeoJSON reader.
+     *
+     * @param float[][] $stops
+     * @return array{lines: float[][][]|null, distance: float|null, time: float|null, reason: string|null, status: int}
+     */
+    private function osm_route_request(array $stops, string $mode, string $key): array
+    {
+        $failure = function ($reason, $status = 0) {
+            return ['lines' => null, 'distance' => null, 'time' => null, 'reason' => $reason, 'status' => (int) $status];
+        };
+
+        $url = self::OSM_ROUTE_ENDPOINT . '?' . http_build_query([
+            'waypoints' => implode('|', array_map(function ($point) {
+                return sprintf('%.6F,%.6F', $point[0], $point[1]);
+            }, $stops)),
+            'mode' => $mode,
+            'apiKey' => $key,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        $response = wp_remote_get($url, [
+            'timeout' => self::OSM_ROUTE_TIMEOUT,
+            'redirection' => 0,
+            'limit_response_size' => self::OSM_ROUTE_MAX_BYTES,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        if (is_wp_error($response)) {
+            return $failure('request_failed');
+        }
+
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if (429 === $status) {
+            return $failure('quota', $status);
+        }
+        if (200 !== $status) {
+            return $failure('request_failed', $status);
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (strlen($body) > self::OSM_ROUTE_MAX_BYTES) {
+            return $failure('too_long', $status);
+        }
+
+        $data = json_decode($body, true, 32);
+        $feature = is_array($data) && 'FeatureCollection' === ($data['type'] ?? null) && is_array($data['features'] ?? null) ? ($data['features'][0] ?? null) : null;
+        $geometry = is_array($feature) && is_array($feature['geometry'] ?? null) ? $feature['geometry'] : null;
+        if (null === $geometry || !in_array($geometry['type'] ?? null, ['LineString', 'MultiLineString'], true)) {
+            return $failure('invalid_response', $status);
+        }
+
+        $coordinates = is_array($geometry['coordinates'] ?? null) ? $geometry['coordinates'] : [];
+        $positions = 'LineString' === $geometry['type'] ? count($coordinates) : array_sum(array_map(static function ($part) {
+            return is_array($part) ? count($part) : 0;
+        }, $coordinates));
+        if ($positions > self::OSM_ROUTE_POINTS_MAX) {
+            return $failure('too_long', $status);
+        }
+
+        $parsed = $this->osm_geojson_geometry(['type' => 'Feature', 'geometry' => $geometry], self::OSM_ROUTE_POINTS_MAX);
+        if (null === $parsed || empty($parsed['lines']) || $parsed['polygons'] || $parsed['points']) {
+            return $failure('invalid_response', $status);
+        }
+
+        $lines = array_map(function ($line) {
+            return array_map(function ($point) {
+                return [round($point[0], 5), round($point[1], 5)];
+            }, $line);
+        }, $parsed['lines']);
+
+        $properties = is_array($feature['properties'] ?? null) ? $feature['properties'] : [];
+        $number = function ($value) {
+            return is_numeric($value) && (float) $value >= 0 ? (float) $value : null;
+        };
+
+        return [
+            'lines' => $lines,
+            'distance' => $number($properties['distance'] ?? null),
+            'time' => $number($properties['time'] ?? null),
+            'reason' => null,
+            'status' => $status,
+        ];
+    }
+
+    /**
+     * @param float|null $distance Metres.
+     * @param float|null $time Seconds.
+     * @return string|null "51.2 km · 48 min", or null without a distance.
+     */
+    private function osm_route_summary($distance, $time)
+    {
+        if (null === $distance) {
+            return null;
+        }
+
+        /* translators: %s: distance in kilometres. */
+        $parts = [sprintf(__('%s km', 'osm-map-elementor'), number_format_i18n($distance / 1000, $distance < 100000 ? 1 : 0))];
+        if (null !== $time) {
+            $minutes = max(1, (int) round($time / 60));
+            if ($minutes >= 60) {
+                /* translators: 1: hours, 2: minutes. */
+                $parts[] = sprintf(__('%1$d h %2$d min', 'osm-map-elementor'), intdiv($minutes, 60), $minutes % 60);
+            } else {
+                /* translators: %d: minutes. */
+                $parts[] = sprintf(__('%d min', 'osm-map-elementor'), $minutes);
+            }
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    private function osm_route_notice_text(string $reason, string $title): string
+    {
+        if ('' === $title) {
+            $title = __('Route', 'osm-map-elementor');
+        }
+
+        switch ($reason) {
+            case 'request_failed':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the route request failed. Check the Geoapify API key and try again later.', 'osm-map-elementor');
+                break;
+            case 'quota':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the Geoapify request limit was reached.', 'osm-map-elementor');
+                break;
+            case 'too_long':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the route is too long to draw. Shorten it, or split it into several shorter routes.', 'osm-map-elementor');
+                break;
+            case 'invalid_response':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because Geoapify returned a route this plugin cannot use.', 'osm-map-elementor');
+                break;
+            case 'busy':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line for now; the route is still loading.', 'osm-map-elementor');
+                break;
+            default:
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line. Add a Geoapify API key in the plugin settings to follow roads.', 'osm-map-elementor');
+        }
+
+        return sprintf($message, $title);
+    }
+
+    /**
+     * Reads pasted GeoJSON into Leaflet [lat, lng] geometry. Only Point, MultiPoint, LineString, MultiLineString,
+     * Polygon and MultiPolygon are used; GeometryCollection and everything else, including properties, is ignored.
+     *
+     * @param mixed $raw
+     * @return array|null Null when the text is too large, not GeoJSON, has no usable geometry or exceeds the point cap.
+     */
+    private function osm_parse_geojson($raw)
+    {
+        if (!is_string($raw) || strlen($raw) > self::OSM_GEOJSON_MAX_BYTES) {
+            return null;
+        }
+
+        $data = json_decode($raw, true, 32);
+        if (!is_array($data)) {
+            return null;
+        }
+
+        return $this->osm_geojson_geometry($data, self::OSM_GEOJSON_POINTS_MAX);
+    }
+
+    /**
+     * @param array $data Decoded GeoJSON Feature, FeatureCollection or geometry.
+     * @return array|null Null when nothing usable is found or the positions exceed $max_points.
+     */
+    private function osm_geojson_geometry(array $data, int $max_points)
+    {
+        $geometries = [];
+        $type = $data['type'] ?? null;
+        if ('FeatureCollection' === $type) {
+            foreach (is_array($data['features'] ?? null) ? $data['features'] : [] as $feature) {
+                if (is_array($feature) && 'Feature' === ($feature['type'] ?? null) && is_array($feature['geometry'] ?? null)) {
+                    $geometries[] = $feature['geometry'];
+                }
+            }
+        } elseif ('Feature' === $type) {
+            if (is_array($data['geometry'] ?? null)) {
+                $geometries[] = $data['geometry'];
+            }
+        } else {
+            $geometries[] = $data;
+        }
+
+        $count = 0;
+        $polygons = [];
+        $lines = [];
+        $points = [];
+        foreach ($geometries as $geometry) {
+            $coordinates = $geometry['coordinates'] ?? null;
+            if (!is_array($coordinates)) {
+                continue;
+            }
+
+            switch ($geometry['type'] ?? null) {
+                case 'Point':
+                    $position = $this->osm_geojson_position($coordinates, $count);
+                    if (null !== $position) {
+                        $points[] = $position;
+                    }
+                    break;
+                case 'MultiPoint':
+                    $list = $this->osm_geojson_positions($coordinates, $count, 1, $max_points);
+                    if (null !== $list) {
+                        $points = array_merge($points, $list);
+                    }
+                    break;
+                case 'LineString':
+                    $line = $this->osm_geojson_positions($coordinates, $count, 2, $max_points);
+                    if (null !== $line) {
+                        $lines[] = $line;
+                    }
+                    break;
+                case 'MultiLineString':
+                    foreach ($coordinates as $part) {
+                        $line = is_array($part) ? $this->osm_geojson_positions($part, $count, 2, $max_points) : null;
+                        if (null !== $line) {
+                            $lines[] = $line;
+                        }
+                    }
+                    break;
+                case 'Polygon':
+                    $rings = $this->osm_geojson_rings($coordinates, $count, $max_points);
+                    if (null !== $rings) {
+                        $polygons[] = $rings;
+                    }
+                    break;
+                case 'MultiPolygon':
+                    foreach ($coordinates as $part) {
+                        $rings = is_array($part) ? $this->osm_geojson_rings($part, $count, $max_points) : null;
+                        if (null !== $rings) {
+                            $polygons[] = $rings;
+                        }
+                    }
+                    break;
+            }
+
+            if ($count > $max_points) {
+                return null;
+            }
+        }
+
+        if (!$polygons && !$lines && !$points) {
+            return null;
+        }
+
+        $all = $points;
+        foreach ($lines as $line) {
+            $all = array_merge($all, $line);
+        }
+        foreach ($polygons as $rings) {
+            foreach ($rings as $ring) {
+                $all = array_merge($all, $ring);
+            }
+        }
+
+        return [
+            'polygons' => $polygons,
+            'lines' => $lines,
+            'points' => $points,
+            'bounds' => $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $all]]),
+        ];
+    }
+
+    /**
+     * @param mixed $position GeoJSON [lng, lat, ...] position.
+     * @return float[]|null [lat, lng]
+     */
+    private function osm_geojson_position($position, int &$count)
+    {
+        ++$count;
+        if (!is_array($position) || !isset($position[0], $position[1]) || !is_numeric($position[0]) || !is_numeric($position[1])) {
+            return null;
+        }
+
+        $lng = (float) $position[0];
+        $lat = (float) $position[1];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            return null;
+        }
+
+        return [$lat, $lng];
+    }
+
+    /**
+     * @return float[][]|null Null when any position is invalid or there are fewer than $min.
+     */
+    private function osm_geojson_positions(array $positions, int &$count, int $min, int $max_points)
+    {
+        $list = [];
+        foreach ($positions as $position) {
+            $converted = $this->osm_geojson_position($position, $count);
+            if (null === $converted) {
+                return null;
+            }
+            $list[] = $converted;
+            if ($count > $max_points) {
+                return null;
+            }
+        }
+
+        return count($list) >= $min ? $list : null;
+    }
+
+    /**
+     * @return float[][][]|null
+     */
+    private function osm_geojson_rings(array $rings, int &$count, int $max_points)
+    {
+        $converted = [];
+        foreach ($rings as $ring) {
+            $list = is_array($ring) ? $this->osm_geojson_positions($ring, $count, 3, $max_points) : null;
+            if (null === $list) {
+                return null;
+            }
+            $converted[] = $list;
+        }
+
+        return empty($converted) ? null : $converted;
+    }
+
+    /**
+     * Parses two opposite rectangle corners given in any order.
+     *
+     * @param mixed $first
+     * @param mixed $second
+     * @return float[][]|null [[south, west], [north, east]], null when a corner is invalid or the rectangle has no area.
+     */
+    private function osm_parse_area_corners($first, $second)
+    {
+        $a = $this->osm_parse_marker_coords($first);
+        $b = $this->osm_parse_marker_coords($second);
+        if (null === $a || null === $b || $a['lat'] === $b['lat'] || $a['lng'] === $b['lng']) {
+            return null;
+        }
+
+        return [
+            [min($a['lat'], $b['lat']), min($a['lng'], $b['lng'])],
+            [max($a['lat'], $b['lat']), max($a['lng'], $b['lng'])],
+        ];
+    }
+
+    /**
+     * Accepts hex (3, 4, 6 or 8 digits) and rgb()/rgba() colors, which the Elementor picker emits and
+     * sanitize_hex_color() rejects; anything else becomes the default.
+     *
+     * @param mixed $value
+     */
+    private function osm_sanitize_color($value, string $fallback): string
+    {
+        if (!is_string($value)) {
+            return $fallback;
+        }
+
+        $value = trim($value);
+        $hex = '/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i';
+        $rgb = '/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+|1\.0+)\s*)?\)$/i';
+
+        return preg_match($hex, $value) || preg_match($rgb, $value) ? $value : $fallback;
     }
 
     /**

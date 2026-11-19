@@ -67,7 +67,7 @@ class Test_I18n extends WP_UnitTestCase
         $total = preg_match_all('/esc_html__\(\s*' . $text . '/', $source);
         $commented = preg_match_all('/\/\* translators:[^*]*\*\/\s*esc_html__\(\s*' . $text . '/', $source);
 
-        $this->assertSame(3, $total);
+        $this->assertSame(4, $total);
         $this->assertSame($total, $commented);
     }
 }
