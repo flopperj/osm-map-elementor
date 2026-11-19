@@ -53,22 +53,6 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_FA_MARKER_TOP = -50;
 
     /**
-     * Widget OSM Map constructor.
-     *
-     * Initializing the widget base class.
-     *
-     * @param array $data Widget data. Default is an empty array.
-     * @param array|null $args Optional. Widget default arguments. Default is null.
-     * @since 1.0.0
-     * @access public
-     *
-     */
-    public function __construct($data = [], $args = null)
-    {
-        parent::__construct($data, $args);
-    }
-
-    /**
      * Get widget name.
      *
      * Retrieve osm map widget name.
@@ -2681,10 +2665,10 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * @param mixed $setting Elementor slider value.
      */
-    private function osm_slider_size($setting, float $min, float $max, float $default): float
+    private function osm_slider_size($setting, float $min, float $max, float $fallback): float
     {
         if (!is_array($setting) || !isset($setting['size']) || !is_numeric($setting['size'])) {
-            return $default;
+            return $fallback;
         }
 
         return max($min, min($max, (float) $setting['size']));
@@ -2706,8 +2690,10 @@ class Widget_OSM_Map extends Widget_Base
      */
     private function osm_get_bounds(array $coords): array
     {
-        $south = $west = INF;
-        $north = $east = -INF;
+        $south = INF;
+        $west = INF;
+        $north = -INF;
+        $east = -INF;
 
         foreach ($coords as $entry) {
             $points = isset($entry['bounds']) ? $entry['bounds'] : [[$entry['lat'], $entry['lng']]];
@@ -2784,17 +2770,17 @@ class Widget_OSM_Map extends Widget_Base
      *
      * @param mixed $value
      */
-    private function osm_sanitize_color($value, string $default): string
+    private function osm_sanitize_color($value, string $fallback): string
     {
         if (!is_string($value)) {
-            return $default;
+            return $fallback;
         }
 
         $value = trim($value);
         $hex = '/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i';
         $rgb = '/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+|1\.0+)\s*)?\)$/i';
 
-        return preg_match($hex, $value) || preg_match($rgb, $value) ? $value : $default;
+        return preg_match($hex, $value) || preg_match($rgb, $value) ? $value : $fallback;
     }
 
     /**
