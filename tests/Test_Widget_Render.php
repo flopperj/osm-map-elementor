@@ -1328,6 +1328,15 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertEquals([[10, 20], [14, 24]], $this->js_value($html, 'mapView')['bounds']);
     }
 
+    public function test_script_gives_non_image_markers_an_accessible_name()
+    {
+        $js = $this->render_admin(['icon_type' => 'fontawesome']);
+
+        $this->assertStringContainsString("const markerLabel = " . wp_json_encode('Map marker') . ';', $js);
+        $this->assertStringContainsString("'IMG' !== markerElement.tagName", $js);
+        $this->assertStringContainsString("markerElement.setAttribute('aria-label', this.marker.marker_title || markerLabel);", $js);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

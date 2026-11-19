@@ -2212,6 +2212,7 @@ class Widget_OSM_Map extends Widget_Base
                 const markers = <?php echo wp_json_encode($coords); ?>;
                 let markerIcon = null;
                 let markerOptions = {};
+                const markerLabel = <?php echo wp_json_encode(__('Map marker', 'osm-map-elementor')); ?>;
 
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
@@ -2348,6 +2349,12 @@ class Widget_OSM_Map extends Widget_Base
 
                         // add marker to map
                         marker.addTo(map);
+
+                        // Font Awesome markers are focusable div[role=button] elements that Leaflet leaves unnamed.
+                        const markerElement = this.bounds ? null : marker.getElement();
+                        if (markerElement && 'IMG' !== markerElement.tagName) {
+                            markerElement.setAttribute('aria-label', this.marker.marker_title || markerLabel);
+                        }
 
                         // prep tooltip content
                         let tooltipContent = '<div class="marker-tooltip">';
