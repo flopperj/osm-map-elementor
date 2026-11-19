@@ -1,3 +1,8 @@
 .marker-description{
     white-space: pre-line;
 }
+
+/* Containers size widgets to their content and the map has none, so it would collapse to 0 wide. */
+.e-con .elementor-widget-osm-map-elementor {
+    width: 100%;
+}

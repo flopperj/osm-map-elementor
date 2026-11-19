@@ -2,7 +2,7 @@
 /**
  * Plugin Name:                OSM Map Widget for Elementor
  * Description:                A free Elementor Map Widget that Utilizes Open Street Map. Comes with features like adding multiple markers, and choosing from a library of custom tiles to change the look and feel.
- * Version:                    1.5.0
+ * Version:                    1.5.1
  * Requires at least:          6.8
  * Requires PHP:               7.4
  * Requires Plugins:           elementor
@@ -173,7 +173,7 @@ add_action('admin_menu', function () {
                         <div class="card-content">
                             <p><strong>See more tile servers:</strong>
                                 <a href="http://wiki.openstreetmap.org/wiki/Tile_servers" target="_blank" rel="noopener noreferrer">here</a>
-                                <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
+                                <br><strong>Example:</strong> https://tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
                                    value="<?php echo esc_attr($setting('osm_custom')); ?>"/>
 

@@ -120,6 +120,22 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertSame((int) $config['tablet']['value'], $display['breakpoints']['md']);
     }
 
+    public function test_display_settings_carry_only_the_zoom_levels_and_breakpoints()
+    {
+        $display = $this->js_value($this->render_admin([
+            'marker_list' => [$this->marker(['marker_description' => 'Gate code 4321'])],
+            'zoom_tablet' => ['unit' => 'px', 'size' => 7],
+        ]), 'displaySettings');
+
+        $this->assertSame([], array_diff(array_keys($display), ['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+        $this->assertArrayNotHasKey('marker_list', $display);
+        $this->assertStringNotContainsString('Gate code 4321', wp_json_encode($display));
+        $this->assertArrayHasKey('size', $display['zoom']);
+        $this->assertSame(7, (int) $display['zoom_tablet']['size']);
+        $this->assertArrayHasKey('sm', $display['breakpoints']);
+        $this->assertArrayHasKey('md', $display['breakpoints']);
+    }
+
     public function test_script_scheme_button_url_is_dropped_and_web_urls_are_kept()
     {
         $this->assertSame('', $this->markers_for(['button_url' => 'javascript:alert(1)'])[0]['marker']['button_url']);
@@ -137,6 +153,111 @@ class Test_Widget_Render extends WP_UnitTestCase
             $this->markers_for(['button_url_target' => '"><img src=x onerror=alert(1)>'])[0]['marker']['button_url_target']
         );
         $this->assertSame('_self', $this->markers_for(['button_url_target' => '_self'])[0]['marker']['button_url_target']);
+    }
+
+    public function test_marker_description_keeps_post_safe_html()
+    {
+        $html = '<strong>Bold</strong> <em>i</em><br><p>Para</p><a href="https://example.com/" target="_blank">Link</a>';
+
+        $this->assertSame($html, $this->markers_for(['marker_description' => $html])[0]['marker']['marker_description']);
+    }
+
+    public function unsafe_descriptions()
+    {
+        return [
+            'script element' => ['<script>alert(1)</script>Hi', '<script'],
+            'event handler' => ['<img src="x" onerror="alert(1)">', 'onerror'],
+            'script url' => ['<a href="javascript:alert(1)">x</a>', 'javascript:'],
+        ];
+    }
+
+    /**
+     * @dataProvider unsafe_descriptions
+     */
+    public function test_marker_description_strips_scripts_event_handlers_and_script_urls($description, $forbidden)
+    {
+        $this->assertStringNotContainsStringIgnoringCase(
+            $forbidden,
+            $this->markers_for(['marker_description' => $description])[0]['marker']['marker_description']
+        );
+    }
+
+    public function test_marker_description_is_sanitized_for_users_with_unfiltered_html()
+    {
+        wp_set_current_user(self::factory()->user->create(['role' => 'administrator']));
+        if (!current_user_can('unfiltered_html')) {
+            $this->markTestSkipped('The administrator role lacks unfiltered_html on this install.');
+        }
+
+        $description = $this->markers_for(['marker_description' => '<script>alert(1)</script>Hi'])[0]['marker']['marker_description'];
+
+        $this->assertStringNotContainsString('<script', $description);
+        $this->assertSame('alert(1)Hi', $description);
+    }
+
+    public function non_string_descriptions()
+    {
+        return [
+            'array' => [['<b>x</b>']],
+            'null' => [null],
+        ];
+    }
+
+    /**
+     * @dataProvider non_string_descriptions
+     */
+    public function test_non_string_marker_description_becomes_empty($description)
+    {
+        $this->assertSame('', $this->markers_for(['marker_description' => $description])[0]['marker']['marker_description']);
+    }
+
+    public function test_missing_marker_description_becomes_empty()
+    {
+        $this->assertSame('', $this->markers_for([])[0]['marker']['marker_description']);
+    }
+
+    public function test_plain_text_description_keeps_its_meaning_and_line_breaks()
+    {
+        $this->assertSame(
+            "Tom &amp; Jerry\na &lt; b",
+            $this->markers_for(['marker_description' => "Tom & Jerry\na < b"])[0]['marker']['marker_description']
+        );
+    }
+
+    public function test_script_inserts_the_description_as_html_and_still_escapes_title_and_button()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringNotContainsString('escapeHtml(this.marker.marker_description)', $js);
+        $this->assertStringContainsString('<div class="marker-description">${this.marker.marker_description}</div>', $js);
+        $this->assertStringContainsString('escapeHtml(this.marker.marker_title)', $js);
+        $this->assertStringContainsString('escapeHtml(this.marker.button_text)', $js);
+    }
+
+    public function test_editor_script_json_escapes_a_description_that_closes_the_script_tag()
+    {
+        $html = $this->render_admin(['marker_list' => [$this->marker(['marker_description' => '</script><script>alert(1)</script>'])]]);
+
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertSame(substr_count($this->render_admin(), '</script>'), substr_count($html, '</script>'));
+    }
+
+    public function test_frontend_script_carries_the_sanitized_description_html()
+    {
+        $this->render_frontend(['marker_list' => [$this->marker(['marker_description' => '<strong>Bold</strong><script>alert(1)</script>'])]]);
+
+        $markers = $this->js_value($this->inline_scripts_after_markers_handle(), 'markers');
+
+        $this->assertSame('<strong>Bold</strong>alert(1)', $markers[0]['marker']['marker_description']);
+    }
+
+    public function test_text_in_angle_brackets_is_treated_as_markup()
+    {
+        $this->assertSame('Contact: Jane ', $this->markers_for(['marker_description' => 'Contact: Jane <jane@example.com>'])[0]['marker']['marker_description']);
+        $this->assertSame(
+            'Contact: Jane &lt;jane@example.com&gt;',
+            $this->markers_for(['marker_description' => 'Contact: Jane &lt;jane@example.com&gt;'])[0]['marker']['marker_description']
+        );
     }
 
     public function test_custom_tile_url_is_json_encoded_and_keeps_its_placeholders()
@@ -313,6 +434,32 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringNotContainsString('jQuery(window).ready', $js);
         $this->assertStringContainsString("['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)", $js);
         $this->assertStringNotContainsString("return 'javascript:void(0)'", $js);
+    }
+
+    public function test_script_resizes_the_map_when_its_container_changes_size()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString("typeof ResizeObserver !== 'undefined'", $js);
+        $this->assertMatchesRegularExpression('/new ResizeObserver\(function \(entries\) \{.*?map\.invalidateSize\(\);/s', $js);
+        $this->assertStringContainsString('_osmResizeObserver.observe(mapElement)', $js);
+        $this->assertStringContainsString('mapElement._osmResizeObserver.disconnect();', $js);
+        $this->assertStringContainsString('if (!mapElement.isConnected)', $js);
+    }
+
+    public function test_widget_fills_the_width_of_an_elementor_container()
+    {
+        $css = file_get_contents(dirname(__DIR__) . '/assets/css/osm-map-elementor.css');
+
+        $this->assertMatchesRegularExpression('/\.e-con \.elementor-widget-osm-map-elementor\s*\{\s*width:\s*100%;\s*\}/', $css);
+    }
+
+    public function test_osm_carto_tiles_load_from_the_single_tile_host()
+    {
+        $html = $this->render_admin(['geoapify_tile' => 'osm-carto']);
+
+        $this->assertStringContainsString("L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'", $html);
+        $this->assertStringNotContainsString('{s}.tile.openstreetmap.org', $html);
     }
 
     private function new_tab_links($html)

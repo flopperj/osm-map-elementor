@@ -1550,6 +1550,8 @@ class Widget_OSM_Map extends Widget_Base
 
                 $marker['button_url'] = !empty($marker['button_url']) ? esc_url_raw($marker['button_url'], ['http', 'https', 'mailto', 'tel']) : '';
                 $marker['button_url_target'] = in_array($marker['button_url_target'] ?? '', ['_self', '_blank'], true) ? $marker['button_url_target'] : '_blank';
+                // The popup inserts the description as HTML, so this is its only sanitization.
+                $marker['marker_description'] = isset($marker['marker_description']) && is_string($marker['marker_description']) ? wp_kses_post($marker['marker_description']) : '';
                 $coords[] = [
                     'marker' => $marker,
                     'lat' => $parsed['lat'],
@@ -1572,11 +1574,13 @@ class Widget_OSM_Map extends Widget_Base
         class="osm-map-container" 
         data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
 
+        $display_settings = array_intersect_key($settings, array_flip(['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+
         ob_start();
         ?>
             jQuery(function () {
                 "use strict";
-                const displaySettings = <?php echo wp_json_encode($settings); ?>;
+                const displaySettings = <?php echo wp_json_encode($display_settings); ?>;
                 const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
@@ -1632,8 +1636,12 @@ class Widget_OSM_Map extends Widget_Base
                 }
 
                 // avoid recreating the html element
-                if (L.DomUtil.get(mapId) !== undefined && L.DomUtil.get(mapId)) {
-                    L.DomUtil.get(mapId)._leaflet_id = null;
+                const mapElement = L.DomUtil.get(mapId);
+                if (mapElement) {
+                    mapElement._leaflet_id = null;
+                    if (mapElement._osmResizeObserver) {
+                        mapElement._osmResizeObserver.disconnect();
+                    }
                 }
 
                 const map = L.map(mapId, {
@@ -1642,13 +1650,29 @@ class Widget_OSM_Map extends Widget_Base
                     dragging: <?php echo !empty($settings['pan_control']) ? 'true' : 'false'; ?>
                 });
 
+                // Leaflet measures its container only when created, so a map that starts
+                // hidden (tabs, popups) stays 0x0 until it is told the size changed.
+                if (mapElement && typeof ResizeObserver !== 'undefined') {
+                    mapElement._osmResizeObserver = new ResizeObserver(function (entries) {
+                        if (!mapElement.isConnected) {
+                            mapElement._osmResizeObserver.disconnect();
+                            return;
+                        }
+                        const size = entries[entries.length - 1].contentRect;
+                        if (size.width > 0 && size.height > 0) {
+                            map.invalidateSize();
+                        }
+                    });
+                    mapElement._osmResizeObserver.observe(mapElement);
+                }
+
                 if (center) {
                     let centerCoords = center.split(',');
                     map.setView(centerCoords, zoomLevel);
                 }
 
                 <?php if('osm-carto' === $geoapify_tile):?>
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
                     maxZoom: 20
                 }).addTo(map);
@@ -1881,7 +1905,7 @@ class Widget_OSM_Map extends Widget_Base
 
                         // add marker description
                         if (this.marker.marker_description) {
-                            tooltipContent += `<div class="marker-description">${escapeHtml(this.marker.marker_description)}</div>`;
+                            tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
                         }
 
                         // add marker button
