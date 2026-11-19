@@ -78,6 +78,19 @@ class Test_Plugin_Headers extends WP_UnitTestCase
         $this->assertSame(OSM_MAP_VERSION, $this->readme_field('Stable tag'));
     }
 
+    public function test_readme_discloses_the_geoapify_routing_service()
+    {
+        $readme = file_get_contents(dirname(__DIR__) . '/readme.txt');
+        $this->assertSame(1, preg_match('/== External services ==(.*?)\n== /s', $readme, $section));
+
+        $this->assertStringContainsString('= Geoapify Routing API (api.geoapify.com) =', $section[1]);
+        $entry = explode('= Geoapify Routing API (api.geoapify.com) =', $section[1])[1];
+        $entry = explode("\n= ", $entry)[0];
+        foreach (['server', 'start', 'API key', 'https://www.geoapify.com/terms-and-conditions/', 'https://www.geoapify.com/privacy-policy/'] as $needle) {
+            $this->assertStringContainsString($needle, $entry);
+        }
+    }
+
     public function test_constants_file_refuses_direct_access()
     {
         $source = file_get_contents(dirname(__DIR__) . '/constants.php');

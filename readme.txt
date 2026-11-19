@@ -43,7 +43,7 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 
 
 == External services ==
-This plugin loads map tiles and map libraries from third-party services in the visitor's browser. No data is sent to the plugin authors.
+This plugin loads map tiles and map libraries from third-party services in the visitor's browser, and, for routes, contacts Geoapify from your server. No data is sent to the plugin authors.
 
 = OpenStreetMap tile servers (tile.openstreetmap.org) =
 Used by default to display the map. Every map view requests tiles from this service, which receives the visitor's IP address and the tiles requested. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/) and [privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
@@ -53,6 +53,9 @@ Used only when a Stadia tile is selected in the widget's Style tab. The visitor'
 
 = Geoapify (maps.geoapify.com) =
 Used only when a Geoapify tile is selected. The Geoapify API key saved in the plugin settings and the visitor's tile requests (including IP address) are sent to Geoapify. [Terms and conditions](https://www.geoapify.com/terms-and-conditions/) and [privacy policy](https://www.geoapify.com/privacy-policy/).
+
+= Geoapify Routing API (api.geoapify.com) =
+Used only when a map contains a Route item and a Geoapify API key is saved in the plugin settings. Your WordPress server, not the visitor's browser, sends the route's start, stop and end coordinates, the travel mode and the API key to Geoapify when the route is first shown or after it changes. The result is cached on your site for 7 days, so visitors' IP addresses are not sent. [Terms and conditions](https://www.geoapify.com/terms-and-conditions/) and [privacy policy](https://www.geoapify.com/privacy-policy/).
 
 = Mapbox GL JS =
 Geoapify vector styles are rendered with the bundled mapbox-gl library, which is given the Mapbox access token saved in the plugin settings. The library may contact Mapbox services when an access token is supplied. [Terms of service](https://www.mapbox.com/legal/tos) and [privacy policy](https://www.mapbox.com/legal/privacy).

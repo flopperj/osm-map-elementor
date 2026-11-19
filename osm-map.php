@@ -46,6 +46,14 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_ROUTE_MODES = ['drive', 'walk', 'bicycle'];
     private const OSM_ROUTE_WAYPOINTS_MAX = 10;
     private const OSM_STROKE_WIDTH_DEFAULT = 3;
+    private const OSM_ROUTE_ENDPOINT = 'https://api.geoapify.com/v1/routing';
+    private const OSM_ROUTE_TIMEOUT = 5;
+    private const OSM_ROUTE_MAX_BYTES = 5242880;
+    private const OSM_ROUTE_POINTS_MAX = 20000;
+    private const OSM_ROUTE_FETCHES_MAX = 5;
+    private const OSM_ROUTE_CACHE_TTL = WEEK_IN_SECONDS;
+    private const OSM_ROUTE_FAILURE_TTL = 10 * MINUTE_IN_SECONDS;
+    private const OSM_ROUTE_LOCK_TTL = 30;
     private const OSM_GEOJSON_MAX_BYTES = 204800;
     private const OSM_GEOJSON_POINTS_MAX = 5000;
     private const OSM_SHAPE_POINTS_MAX = 500;
@@ -63,6 +71,9 @@ class Widget_OSM_Map extends Widget_Base
 
     /** @var array[] Routes drawn as straight lines during the current render, with the reason. */
     private $osm_route_notices = [];
+
+    /** @var int Routing requests made during the current render. */
+    private $osm_route_fetches = 0;
 
     /**
      * Get widget name.
@@ -2096,6 +2107,7 @@ class Widget_OSM_Map extends Widget_Base
     {
         $global_settings = get_option('osm_widget');
         $this->osm_route_notices = [];
+        $this->osm_route_fetches = 0;
         $settings = $this->get_settings_for_display();
         $markers = 'posts' === ($settings['marker_source'] ?? 'manual') ? $this->osm_posts_markers($settings) : $this->get_settings_for_display('marker_list');
         $breakpoints_config = \Elementor\Plugin::$instance->breakpoints->get_breakpoints_config();
@@ -3138,18 +3150,165 @@ class Widget_OSM_Map extends Widget_Base
             'lines' => $route['lines'],
             'routed' => $route['routed'],
             'pins' => 'yes' === ($marker['route_pins'] ?? 'yes') ? [$stops[0], end($stops)] : [],
-            'summary' => null,
+            'summary' => 'yes' === ($marker['route_summary'] ?? '') ? $this->osm_route_summary($route['distance'], $route['time']) : null,
             'area' => $style,
         ];
     }
 
     /**
+     * Road-following geometry for the stops, cached; a straight line when no route can be fetched.
+     *
      * @param float[][] $stops [lat, lng] start, waypoints, end.
      * @return array{lines: float[][][], routed: bool, distance: float|null, time: float|null, reason: string|null}
      */
     private function osm_route_geometry(array $stops, string $mode): array
     {
-        return ['lines' => [$stops], 'routed' => false, 'distance' => null, 'time' => null, 'reason' => 'no_key'];
+        $fallback = ['lines' => [$stops], 'routed' => false, 'distance' => null, 'time' => null];
+        $rounded = array_map(function ($point) {
+            return [round($point[0], 6), round($point[1], 6)];
+        }, $stops);
+        $cache_key = 'osm_route_' . md5(wp_json_encode([$mode, $rounded]));
+
+        $cached = get_transient($cache_key);
+        if (is_array($cached) && isset($cached['lines']) && is_array($cached['lines'])) {
+            return [
+                'lines' => $cached['lines'],
+                'routed' => true,
+                'distance' => $cached['distance'] ?? null,
+                'time' => $cached['time'] ?? null,
+                'reason' => null,
+            ];
+        }
+        if (is_array($cached) && isset($cached['failed']) && is_string($cached['failed'])) {
+            return $fallback + ['reason' => $cached['failed']];
+        }
+
+        $key = get_option('osm_widget')['geoapify_key'] ?? '';
+        if (!is_string($key) || '' === $key) {
+            return $fallback + ['reason' => 'no_key'];
+        }
+
+        if (get_transient($cache_key . '_lock') || $this->osm_route_fetches >= self::OSM_ROUTE_FETCHES_MAX) {
+            return $fallback + ['reason' => 'busy'];
+        }
+
+        set_transient($cache_key . '_lock', 1, self::OSM_ROUTE_LOCK_TTL);
+        ++$this->osm_route_fetches;
+        $result = $this->osm_route_request($stops, $mode, $key);
+        delete_transient($cache_key . '_lock');
+
+        if (null !== $result['reason']) {
+            set_transient($cache_key, ['failed' => $result['reason']], self::OSM_ROUTE_FAILURE_TTL);
+            do_action('osm_map_elementor_route_failed', $result['reason'], $result['status']);
+
+            return $fallback + ['reason' => $result['reason']];
+        }
+
+        set_transient($cache_key, ['lines' => $result['lines'], 'distance' => $result['distance'], 'time' => $result['time']], self::OSM_ROUTE_CACHE_TTL);
+
+        return ['lines' => $result['lines'], 'routed' => true, 'distance' => $result['distance'], 'time' => $result['time'], 'reason' => null];
+    }
+
+    /**
+     * One request to the Geoapify Routing API, validated through the GeoJSON reader.
+     *
+     * @param float[][] $stops
+     * @return array{lines: float[][][]|null, distance: float|null, time: float|null, reason: string|null, status: int}
+     */
+    private function osm_route_request(array $stops, string $mode, string $key): array
+    {
+        $failure = function ($reason, $status = 0) {
+            return ['lines' => null, 'distance' => null, 'time' => null, 'reason' => $reason, 'status' => (int) $status];
+        };
+
+        $url = self::OSM_ROUTE_ENDPOINT . '?' . http_build_query([
+            'waypoints' => implode('|', array_map(function ($point) {
+                return $point[0] . ',' . $point[1];
+            }, $stops)),
+            'mode' => $mode,
+            'apiKey' => $key,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        $response = wp_remote_get($url, [
+            'timeout' => self::OSM_ROUTE_TIMEOUT,
+            'redirection' => 0,
+            'limit_response_size' => self::OSM_ROUTE_MAX_BYTES,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        if (is_wp_error($response)) {
+            return $failure('request_failed');
+        }
+
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if (429 === $status) {
+            return $failure('quota', $status);
+        }
+        if (200 !== $status) {
+            return $failure('request_failed', $status);
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (strlen($body) > self::OSM_ROUTE_MAX_BYTES) {
+            return $failure('invalid_response', $status);
+        }
+
+        $data = json_decode($body, true, 32);
+        $feature = is_array($data) && 'FeatureCollection' === ($data['type'] ?? null) && is_array($data['features'] ?? null) ? ($data['features'][0] ?? null) : null;
+        $geometry = is_array($feature) && is_array($feature['geometry'] ?? null) ? $feature['geometry'] : null;
+        if (null === $geometry || !in_array($geometry['type'] ?? null, ['LineString', 'MultiLineString'], true)) {
+            return $failure('invalid_response', $status);
+        }
+
+        $parsed = $this->osm_geojson_geometry(['type' => 'Feature', 'geometry' => $geometry], self::OSM_ROUTE_POINTS_MAX);
+        if (null === $parsed || empty($parsed['lines']) || $parsed['polygons'] || $parsed['points']) {
+            return $failure('invalid_response', $status);
+        }
+
+        $lines = array_map(function ($line) {
+            return array_map(function ($point) {
+                return [round($point[0], 5), round($point[1], 5)];
+            }, $line);
+        }, $parsed['lines']);
+
+        $properties = is_array($feature['properties'] ?? null) ? $feature['properties'] : [];
+        $number = function ($value) {
+            return is_numeric($value) && (float) $value >= 0 ? (float) $value : null;
+        };
+
+        return [
+            'lines' => $lines,
+            'distance' => $number($properties['distance'] ?? null),
+            'time' => $number($properties['time'] ?? null),
+            'reason' => null,
+            'status' => $status,
+        ];
+    }
+
+    /**
+     * @param float|null $distance Metres.
+     * @param float|null $time Seconds.
+     * @return string|null "51.2 km · 48 min", or null without a distance.
+     */
+    private function osm_route_summary($distance, $time)
+    {
+        if (null === $distance) {
+            return null;
+        }
+
+        /* translators: %s: distance in kilometres. */
+        $parts = [sprintf(__('%s km', 'osm-map-elementor'), number_format_i18n($distance / 1000, $distance < 100000 ? 1 : 0))];
+        if (null !== $time) {
+            $minutes = max(1, (int) round($time / 60));
+            if ($minutes >= 60) {
+                /* translators: 1: hours, 2: minutes. */
+                $parts[] = sprintf(__('%1$d h %2$d min', 'osm-map-elementor'), intdiv($minutes, 60), $minutes % 60);
+            } else {
+                /* translators: %d: minutes. */
+                $parts[] = sprintf(__('%d min', 'osm-map-elementor'), $minutes);
+            }
+        }
+
+        return implode(' · ', $parts);
     }
 
     private function osm_route_notice_text(string $reason, string $title): string
@@ -3201,6 +3360,15 @@ class Widget_OSM_Map extends Widget_Base
             return null;
         }
 
+        return $this->osm_geojson_geometry($data, self::OSM_GEOJSON_POINTS_MAX);
+    }
+
+    /**
+     * @param array $data Decoded GeoJSON Feature, FeatureCollection or geometry.
+     * @return array|null Null when nothing usable is found or the positions exceed $max_points.
+     */
+    private function osm_geojson_geometry(array $data, int $max_points)
+    {
         $geometries = [];
         $type = $data['type'] ?? null;
         if ('FeatureCollection' === $type) {
@@ -3235,34 +3403,34 @@ class Widget_OSM_Map extends Widget_Base
                     }
                     break;
                 case 'MultiPoint':
-                    $list = $this->osm_geojson_positions($coordinates, $count, 1);
+                    $list = $this->osm_geojson_positions($coordinates, $count, 1, $max_points);
                     if (null !== $list) {
                         $points = array_merge($points, $list);
                     }
                     break;
                 case 'LineString':
-                    $line = $this->osm_geojson_positions($coordinates, $count, 2);
+                    $line = $this->osm_geojson_positions($coordinates, $count, 2, $max_points);
                     if (null !== $line) {
                         $lines[] = $line;
                     }
                     break;
                 case 'MultiLineString':
                     foreach ($coordinates as $part) {
-                        $line = is_array($part) ? $this->osm_geojson_positions($part, $count, 2) : null;
+                        $line = is_array($part) ? $this->osm_geojson_positions($part, $count, 2, $max_points) : null;
                         if (null !== $line) {
                             $lines[] = $line;
                         }
                     }
                     break;
                 case 'Polygon':
-                    $rings = $this->osm_geojson_rings($coordinates, $count);
+                    $rings = $this->osm_geojson_rings($coordinates, $count, $max_points);
                     if (null !== $rings) {
                         $polygons[] = $rings;
                     }
                     break;
                 case 'MultiPolygon':
                     foreach ($coordinates as $part) {
-                        $rings = is_array($part) ? $this->osm_geojson_rings($part, $count) : null;
+                        $rings = is_array($part) ? $this->osm_geojson_rings($part, $count, $max_points) : null;
                         if (null !== $rings) {
                             $polygons[] = $rings;
                         }
@@ -3270,7 +3438,7 @@ class Widget_OSM_Map extends Widget_Base
                     break;
             }
 
-            if ($count > self::OSM_GEOJSON_POINTS_MAX) {
+            if ($count > $max_points) {
                 return null;
             }
         }
@@ -3320,7 +3488,7 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * @return float[][]|null Null when any position is invalid or there are fewer than $min.
      */
-    private function osm_geojson_positions(array $positions, int &$count, int $min)
+    private function osm_geojson_positions(array $positions, int &$count, int $min, int $max_points)
     {
         $list = [];
         foreach ($positions as $position) {
@@ -3329,7 +3497,7 @@ class Widget_OSM_Map extends Widget_Base
                 return null;
             }
             $list[] = $converted;
-            if ($count > self::OSM_GEOJSON_POINTS_MAX) {
+            if ($count > $max_points) {
                 return null;
             }
         }
@@ -3340,11 +3508,11 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * @return float[][][]|null
      */
-    private function osm_geojson_rings(array $rings, int &$count)
+    private function osm_geojson_rings(array $rings, int &$count, int $max_points)
     {
         $converted = [];
         foreach ($rings as $ring) {
-            $list = is_array($ring) ? $this->osm_geojson_positions($ring, $count, 3) : null;
+            $list = is_array($ring) ? $this->osm_geojson_positions($ring, $count, 3, $max_points) : null;
             if (null === $list) {
                 return null;
             }

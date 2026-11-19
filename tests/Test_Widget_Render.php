@@ -1817,6 +1817,295 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('marker-route-summary', $js);
     }
 
+    private function with_geoapify_key()
+    {
+        update_option('osm_widget', ['geoapify_key' => 'test-key']);
+    }
+
+    private function route_response(array $lnglat_lines, $distance = 51234, $time = 2880, $type = 'MultiLineString')
+    {
+        return [
+            'response' => ['code' => 200, 'message' => 'OK'],
+            'headers' => [],
+            'cookies' => [],
+            'body' => wp_json_encode([
+                'type' => 'FeatureCollection',
+                'features' => [['type' => 'Feature', 'properties' => ['distance' => $distance, 'time' => $time], 'geometry' => ['type' => $type, 'coordinates' => $lnglat_lines]]],
+            ]),
+        ];
+    }
+
+    private function road_lines()
+    {
+        return [[[9.19, 45.4642], [9.2000012, 45.47001234], [9.4, 45.6], [9.6625, 45.7037]]];
+    }
+
+    private function stub_routing($responder)
+    {
+        $requests = new ArrayObject();
+        add_filter('pre_http_request', static function ($pre, $args, $url) use ($responder, $requests) {
+            $requests[] = ['url' => $url, 'args' => $args];
+
+            return $responder($url, $args);
+        }, 10, 3);
+
+        return $requests;
+    }
+
+    private function route_cache_key($mode, array $stops)
+    {
+        $rounded = array_map(static function ($point) {
+            return [round($point[0], 6), round($point[1], 6)];
+        }, $stops);
+
+        return 'osm_route_' . md5(wp_json_encode([$mode, $rounded]));
+    }
+
+    private function transient_lifetime($key)
+    {
+        return (int) get_option('_transient_timeout_' . $key) - time();
+    }
+
+    public function test_route_request_targets_geoapify_with_latitude_first_stops_mode_and_key()
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $this->route_for(['route_mode' => 'walk']);
+
+        $this->assertCount(1, $requests);
+        $url = $requests[0]['url'];
+        parse_str(wp_parse_url($url, PHP_URL_QUERY), $query);
+        $this->assertSame('api.geoapify.com', wp_parse_url($url, PHP_URL_HOST));
+        $this->assertSame('/v1/routing', wp_parse_url($url, PHP_URL_PATH));
+        $this->assertSame('45.4642,9.19|45.7037,9.6625', $query['waypoints']);
+        $this->assertSame('walk', $query['mode']);
+        $this->assertSame('test-key', $query['apiKey']);
+        $this->assertLessThanOrEqual(5, $requests[0]['args']['timeout']);
+        $this->assertSame(0, $requests[0]['args']['redirection']);
+        $this->assertSame(5242880, $requests[0]['args']['limit_response_size']);
+    }
+
+    public function test_unknown_route_mode_becomes_drive()
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $this->route_for(['route_mode' => 'teleport']);
+
+        parse_str(wp_parse_url($requests[0]['url'], PHP_URL_QUERY), $query);
+        $this->assertSame('drive', $query['mode']);
+    }
+
+    public function test_routed_geometry_is_converted_to_leaflet_order_and_rounded()
+    {
+        $this->with_geoapify_key();
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $route = $this->route_for();
+
+        $this->assertTrue($route['routed']);
+        $this->assertEquals([[[45.4642, 9.19], [45.47001, 9.2], [45.6, 9.4], [45.7037, 9.6625]]], $route['lines']);
+        $this->assertEquals([[45.4642, 9.19], [45.7037, 9.6625]], $route['bounds']);
+    }
+
+    public function test_route_summary_shows_distance_and_time_only_when_enabled()
+    {
+        $this->with_geoapify_key();
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines(), 51234, 2880);
+        });
+
+        $this->assertSame('51.2 km · 48 min', $this->route_for(['route_summary' => 'yes'])['summary']);
+        $this->assertNull($this->route_for()['summary']);
+    }
+
+    public function test_route_summary_uses_hours_for_long_trips_and_ignores_unusable_numbers()
+    {
+        $this->with_geoapify_key();
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines(), 251234, 11100);
+        });
+        $this->assertSame('251 km · 3 h 5 min', $this->route_for(['route_summary' => 'yes'])['summary']);
+
+        delete_transient($this->route_cache_key('drive', [[45.4642, 9.19], [45.7037, 9.6625]]));
+        remove_all_filters('pre_http_request');
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines(), '<img src=x>', -5);
+        });
+        $this->assertNull($this->route_for(['route_summary' => 'yes'])['summary']);
+    }
+
+    public function test_cached_route_is_drawn_without_a_second_request()
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $first = $this->route_for(['route_mode' => 'walk']);
+        $second = $this->route_for(['route_mode' => 'walk']);
+        $this->route_for(['route_mode' => 'bicycle']);
+
+        $this->assertCount(2, $requests);
+        $this->assertSame($first['lines'], $second['lines']);
+        $this->assertTrue($second['routed']);
+    }
+
+    public function test_successful_route_is_cached_for_a_week_and_failures_for_ten_minutes()
+    {
+        $this->with_geoapify_key();
+        $stops = [[45.4642, 9.19], [45.7037, 9.6625]];
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+        $this->route_for();
+        $this->assertEqualsWithDelta(WEEK_IN_SECONDS, $this->transient_lifetime($this->route_cache_key('drive', $stops)), 60);
+
+        delete_transient($this->route_cache_key('drive', $stops));
+        remove_all_filters('pre_http_request');
+        $this->stub_routing(static function () {
+            return new WP_Error('http_request_failed', 'timeout');
+        });
+        $this->route_for();
+        $this->assertEqualsWithDelta(600, $this->transient_lifetime($this->route_cache_key('drive', $stops)), 60);
+    }
+
+    public function failed_route_responses()
+    {
+        $too_many = [];
+        for ($i = 0; $i < 20001; $i++) {
+            $too_many[] = [9 + ($i % 1000) / 1000, 45 + ($i % 700) / 1000];
+        }
+        $status = static function ($code) {
+            return ['response' => ['code' => $code], 'headers' => [], 'cookies' => [], 'body' => '{}'];
+        };
+        $ok = static function ($body) {
+            return ['response' => ['code' => 200], 'headers' => [], 'cookies' => [], 'body' => $body];
+        };
+
+        return [
+            'timeout' => [new WP_Error('http_request_failed', 'cURL error 28'), 'request_failed'],
+            'server error' => [$status(500), 'request_failed'],
+            'quota' => [$status(429), 'quota'],
+            'bad key' => [$status(403), 'request_failed'],
+            'not json' => [$ok('not json'), 'invalid_response'],
+            'point geometry' => [$this->route_response([9.19, 45.46], 1, 1, 'Point'), 'invalid_response'],
+            'non numeric coordinate' => [$this->route_response([[['a', 45.4], [9.2, 45.5]]]), 'invalid_response'],
+            'latitude out of range' => [$this->route_response([[[9.2, 95.4], [9.3, 45.5]]]), 'invalid_response'],
+            'empty collection' => [$ok('{"type":"FeatureCollection","features":[]}'), 'invalid_response'],
+            'too many points' => [$this->route_response([$too_many]), 'invalid_response'],
+            'body over 5 MB' => [$ok(str_repeat(' ', 5242881)), 'invalid_response'],
+        ];
+    }
+
+    /**
+     * @dataProvider failed_route_responses
+     */
+    public function test_failed_route_response_falls_back_to_a_straight_line($response, $reason)
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(static function () use ($response) {
+            return $response;
+        });
+        $failures = new ArrayObject();
+        add_action('osm_map_elementor_route_failed', static function ($why, $status) use ($failures) {
+            $failures[] = [$why, $status];
+        }, 10, 2);
+
+        $route = $this->route_for();
+
+        $this->assertFalse($route['routed']);
+        $this->assertEquals([[[45.4642, 9.19], [45.7037, 9.6625]]], $route['lines']);
+        $this->assertCount(1, $failures);
+        $this->assertSame($reason, $failures[0][0]);
+        $this->assertStringNotContainsString('test-key', wp_json_encode($failures->getArrayCopy()));
+        $this->assertStringNotContainsString('45.4642', wp_json_encode($failures->getArrayCopy()));
+
+        $this->route_for();
+        $this->assertCount(1, $requests, 'A failure is remembered instead of requested again.');
+    }
+
+    public function test_route_lock_draws_the_fallback_without_requesting_or_caching()
+    {
+        $this->with_geoapify_key();
+        $stops = [[45.4642, 9.19], [45.7037, 9.6625]];
+        $key = $this->route_cache_key('drive', $stops);
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+        set_transient($key . '_lock', 1, 30);
+
+        $html = $this->render_admin(['marker_list' => [$this->route_marker()]]);
+
+        $this->assertFalse($this->js_value($html, 'markers')[0]['routed']);
+        $this->assertCount(0, $requests);
+        $this->assertFalse(get_transient($key));
+        $this->assertStringContainsString('still loading', $html);
+    }
+
+    public function test_each_render_requests_at_most_five_routes()
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+        $markers = [];
+        for ($i = 0; $i < 6; $i++) {
+            $markers[] = $this->route_marker(['route_end' => (45.7 + $i / 100) . ', 9.66']);
+        }
+
+        $entries = $this->js_value($this->render_admin(['marker_list' => $markers]), 'markers');
+
+        $this->assertCount(5, $requests);
+        $this->assertSame([true, true, true, true, true, false], array_column($entries, 'routed'));
+        $this->assertFalse(get_transient($this->route_cache_key('drive', [[45.4642, 9.19], [45.75, 9.66]])));
+    }
+
+    public function test_geoapify_key_never_reaches_the_page_or_the_cache()
+    {
+        $this->with_geoapify_key();
+        $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $html = $this->render_frontend(['marker_list' => [$this->route_marker()]]);
+        $scripts = $html . $this->inline_scripts_after_markers_handle();
+
+        $this->assertStringNotContainsString('test-key', $scripts);
+        $this->assertStringNotContainsString('apiKey', $scripts);
+        $cached = get_transient($this->route_cache_key('drive', [[45.4642, 9.19], [45.7037, 9.6625]]));
+        $this->assertStringNotContainsString('test-key', wp_json_encode($cached));
+    }
+
+    public function test_only_numbers_from_the_routing_response_reach_the_script()
+    {
+        $this->with_geoapify_key();
+        $response = $this->route_response([[['9.19', '45.4642'], [9.6, 45.6], [9.6625, 45.7037]]]);
+        $body = json_decode($response['body'], true);
+        $body['features'][0]['properties']['name'] = '<script>alert(2)</script>';
+        $response['body'] = wp_json_encode($body);
+        $this->stub_routing(static function () use ($response) {
+            return $response;
+        });
+
+        $html = $this->render_admin(['marker_list' => [$this->route_marker()]]);
+
+        $this->assertStringNotContainsString('<script>alert(2)', $html);
+        foreach ($this->js_value($html, 'markers')[0]['lines'] as $line) {
+            foreach ($line as $point) {
+                $this->assertTrue(is_float($point[0]) || is_int($point[0]));
+                $this->assertTrue(is_float($point[1]) || is_int($point[1]));
+            }
+        }
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));
