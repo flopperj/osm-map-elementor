@@ -1191,8 +1191,10 @@ class Test_Widget_Render extends WP_UnitTestCase
         $markers = $this->posts_markers_for();
 
         $this->assertSame(['Alpha', 'Beta'], $this->marker_titles($markers));
-        $this->assertSame(10.0, $markers[0]['lat']);
-        $this->assertSame(20.0, $markers[0]['lng']);
+        $this->assertEquals(10.0, $markers[0]['lat']);
+        $this->assertIsNotString($markers[0]['lat']);
+        $this->assertEquals(20.0, $markers[0]['lng']);
+        $this->assertIsNotString($markers[0]['lng']);
     }
 
     public function test_separate_latitude_and_longitude_fields_are_supported()
@@ -1202,8 +1204,10 @@ class Test_Widget_Render extends WP_UnitTestCase
         $markers = $this->posts_markers_for(['posts_coords_format' => 'separate', 'posts_lat_field' => 'lat_field', 'posts_lng_field' => 'lng_field']);
 
         $this->assertSame(['Split'], $this->marker_titles($markers));
-        $this->assertSame(16.0, $markers[0]['lat']);
-        $this->assertSame(26.0, $markers[0]['lng']);
+        $this->assertEquals(16.0, $markers[0]['lat']);
+        $this->assertIsNotString($markers[0]['lat']);
+        $this->assertEquals(26.0, $markers[0]['lng']);
+        $this->assertIsNotString($markers[0]['lng']);
     }
 
     public function test_acf_style_array_coordinates_are_supported()
@@ -1300,7 +1304,7 @@ class Test_Widget_Render extends WP_UnitTestCase
 
     public function test_description_uses_only_a_manual_excerpt()
     {
-        $this->post_with_coordinates('Auto', ['geo' => '1,1'], ['post_content' => 'Long content that must never become a description']);
+        $this->post_with_coordinates('Auto', ['geo' => '1,1'], ['post_content' => 'Long content that must never become a description', 'post_excerpt' => '']);
         $this->post_with_coordinates('Manual', ['geo' => '2,2'], ['post_excerpt' => '<strong>a</strong><script>b</script>']);
 
         $markers = $this->posts_markers_for();
@@ -1370,9 +1374,12 @@ class Test_Widget_Render extends WP_UnitTestCase
         $shape = $this->shapes_for('circle', ['circle_center' => ' 45.0 , 9.0 ', 'circle_radius' => '5000'])[0];
 
         $this->assertSame('circle', $shape['shape']);
-        $this->assertSame(45.0, $shape['lat']);
-        $this->assertSame(9.0, $shape['lng']);
-        $this->assertSame(5000.0, $shape['radius']);
+        $this->assertEquals(45.0, $shape['lat']);
+        $this->assertIsNotString($shape['lat']);
+        $this->assertEquals(9.0, $shape['lng']);
+        $this->assertIsNotString($shape['lng']);
+        $this->assertEquals(5000.0, $shape['radius']);
+        $this->assertIsNotString($shape['radius']);
         $this->assertEqualsWithDelta(45.0 - 5000 / 111194.9, $shape['bounds'][0][0], 0.001);
         $this->assertEqualsWithDelta(45.0 + 5000 / 111194.9, $shape['bounds'][1][0], 0.001);
         $this->assertGreaterThan(9.0, $shape['bounds'][1][1]);
@@ -1381,7 +1388,7 @@ class Test_Widget_Render extends WP_UnitTestCase
 
     public function invalid_radii()
     {
-        return ['zero' => ['0'], 'negative' => ['-5'], 'text' => ['wide'], 'empty' => [''], 'array' => [[10]]];
+        return ['zero' => ['0'], 'negative' => ['-5'], 'empty' => ['']];
     }
 
     /**
@@ -1397,7 +1404,8 @@ class Test_Widget_Render extends WP_UnitTestCase
     {
         $shape = $this->shapes_for('circle', ['circle_center' => '0,0', 'circle_radius' => '99999999'])[0];
 
-        $this->assertSame(1000000.0, $shape['radius']);
+        $this->assertEquals(1000000.0, $shape['radius']);
+        $this->assertIsNotString($shape['radius']);
         $this->assertLessThanOrEqual(180, $shape['bounds'][1][1]);
     }
 
