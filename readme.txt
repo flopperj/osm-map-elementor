@@ -1,6 +1,6 @@
 === OSM Map Widget for Elementor ===
 Plugin Name: OSM Map Widget for Elementor
-Version: 1.5.1
+Version: 1.6.0
 Author: Plugin Contributors
 Author URI: https://github.com/flopperj/osm-map-elementor/graphs/contributors
 Contributors: garbowza, intelchip, youngmedianetwork
@@ -8,7 +8,7 @@ Tags: elementor, elementor widget, map widget, open street map, addons
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -64,6 +64,13 @@ Used only in the Elementor editor, and only when a Google Maps API key is saved 
 When a custom map tile URL is configured in the plugin settings, the visitor's browser requests tiles from that server, and its terms and privacy policy apply.
 
 == Changelog ==
+= 1.6.0 =
+* NEW: Map Center setting. Keep "Midpoint of markers", choose "Fit all markers" to zoom and center the map so every visible marker fits (Zoom Level becomes the closest it zooms in), or enter custom center coordinates. Existing maps keep their current center. Thanks to @skonebeke, @herondino and @giamox.
+* NEW: Area (rectangle) markers. Set a marker's Type to Area and enter two opposite corners; areas have their own border and fill colors and the same popups, tooltips and buttons as markers. Thanks to [@ms-lepol](https://github.com/ms-lepol).
+* NEW: Markers from posts. Set Marker Source to Posts to show a marker for each published post of a chosen type, using coordinates from custom fields such as ACF fields. Thanks to @samben28 and @scatata.
+* IMPROVEMENT: The map's scripts and styles (Leaflet, Mapbox GL, Font Awesome) load only on pages with an OSM Map widget, and the plugin no longer adds jQuery to every page. Sites that need the assets everywhere can return true from the `osm_map_elementor_load_assets_on_every_page` filter. Thanks to @ausdemnichts.
+* IMPROVEMENT: Font Awesome markers have an accessible name for screen readers and keyboard users, taken from the marker title. Thanks to @letiziam2024.
+
 = 1.5.1 =
 * FIX: HTML in a marker's Description shows as formatting again instead of as text. Descriptions allow the same HTML as post content, so scripts, event handlers and javascript: links are removed. Text inside angle brackets, such as an email address in `<>`, is treated as markup and removed, so write `&lt;` for a literal `<`. Thanks to @fastnormal and @tdebaillon.
 * SECURITY: The map's script now receives only the zoom levels and breakpoints it uses, instead of every widget setting, so a marker's unfiltered Description no longer appears in the page source.
@@ -107,6 +114,9 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 For older versions, see the [full changelog](https://github.com/flopperj/osm-map-elementor/wiki/Changelog).
 
 == Upgrade Notice ==
+= 1.6.0 =
+Adds Map Center (fit all markers or custom coordinates), rectangle areas and markers from posts, and loads the map's scripts only on pages that use it.
+
 = 1.5.1 =
 Marker descriptions show their HTML formatting again, and maps display correctly inside tabs, popups and row containers.
 
