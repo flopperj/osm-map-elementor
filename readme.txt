@@ -42,6 +42,7 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 6. Add custom marker icons. Available icon types: Default, Font Awesome and Custom Image.
 7. Map Center: "Fit all markers" zooms and centers the map so every marker is visible
 8. Shapes: rectangles, circles, polygons, lines and pasted GeoJSON, each with its own colors and popup
+9. On the site: a route follows roads from its start to its end, with distance and time in the popup
 10. Markers from posts, with coordinates read from custom fields such as ACF
 11. Map Center and marker Type settings in the Elementor editor
 
