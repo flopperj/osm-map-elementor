@@ -42,7 +42,10 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_POSTS_DEFAULT = 20;
     private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
     private const OSM_AREA_DEFAULT_OPACITY = 0.2;
-    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line', 'geojson'];
+    private const OSM_SHAPE_TYPES = ['area', 'circle', 'polygon', 'line', 'geojson', 'route'];
+    private const OSM_ROUTE_MODES = ['drive', 'walk', 'bicycle'];
+    private const OSM_ROUTE_WAYPOINTS_MAX = 10;
+    private const OSM_STROKE_WIDTH_DEFAULT = 3;
     private const OSM_GEOJSON_MAX_BYTES = 204800;
     private const OSM_GEOJSON_POINTS_MAX = 5000;
     private const OSM_SHAPE_POINTS_MAX = 500;
@@ -57,6 +60,9 @@ class Widget_OSM_Map extends Widget_Base
         'shadowSize' => [41, 41],
     ];
     private const OSM_FA_MARKER_TOP = -50;
+
+    /** @var array[] Routes drawn as straight lines during the current render, with the reason. */
+    private $osm_route_notices = [];
 
     /**
      * Get widget name.
@@ -285,10 +291,27 @@ class Widget_OSM_Map extends Widget_Base
                     'polygon' => __('Polygon', 'osm-map-elementor'),
                     'line' => __('Line', 'osm-map-elementor'),
                     'geojson' => __('GeoJSON', 'osm-map-elementor'),
+                    'route' => __('Route', 'osm-map-elementor'),
                 ],
                 'description' => __('Shapes are drawn on the map and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
             ]
         );
+
+        if (empty(get_option('osm_widget')['geoapify_key'] ?? null)) {
+            $repeater->add_control(
+                'route_key_note',
+                [
+                    'type' => Controls_Manager::RAW_HTML,
+                    'raw' => $this->osm_settings_note(
+                        /* translators: 1: opening link tag to the plugin settings page, 2: closing link tag. */
+                        esc_html__('Routes follow roads only with a Geoapify API key, which you can add in the plugin settings %1$shere%2$s. Without one the route is drawn as a dashed straight line.', 'osm-map-elementor')
+                    ),
+                    'condition' => [
+                        'marker_type' => 'route',
+                    ],
+                ]
+            );
+        }
 
         $repeater->add_control(
             'marker_location',
@@ -407,6 +430,119 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $repeater->add_control(
+            'route_start',
+            [
+                'label' => __('Start', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_waypoints',
+            [
+                'label' => __('Stops', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXTAREA,
+                'placeholder' => "45.47, 9.18\n45.48, 9.17",
+                'description' => __('Optional. One "lat, long" stop per line, up to 10, visited in order.', 'osm-map-elementor'),
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_end',
+            [
+                'label' => __('End', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_mode',
+            [
+                'label' => __('Travel Mode', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'drive',
+                'options' => [
+                    'drive' => __('Driving', 'osm-map-elementor'),
+                    'walk' => __('Walking', 'osm-map-elementor'),
+                    'bicycle' => __('Cycling', 'osm-map-elementor'),
+                ],
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_pins',
+            [
+                'label' => __('Start and End Markers', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => 'yes',
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'route_summary',
+            [
+                'label' => __('Show Distance and Time', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => '',
+                'condition' => [
+                    'marker_type' => 'route',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'shape_stroke_width',
+            [
+                'label' => __('Line Width', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 1,
+                        'max' => 12,
+                        'step' => 1,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_STROKE_WIDTH_DEFAULT,
+                ],
+                'condition' => [
+                    'marker_type' => ['line', 'route'],
+                ],
+            ]
+        );
+
+        $repeater->add_control(
             'area_border_color',
             [
                 'label' => __('Border Color', 'osm-map-elementor'),
@@ -416,7 +552,7 @@ class Widget_OSM_Map extends Widget_Base
                     'active' => false,
                 ],
                 'condition' => [
-                    'marker_type' => ['area', 'circle', 'polygon', 'line', 'geojson'],
+                    'marker_type' => ['area', 'circle', 'polygon', 'line', 'geojson', 'route'],
                 ],
             ]
         );
@@ -1959,6 +2095,7 @@ class Widget_OSM_Map extends Widget_Base
     protected function render()
     {
         $global_settings = get_option('osm_widget');
+        $this->osm_route_notices = [];
         $settings = $this->get_settings_for_display();
         $markers = 'posts' === ($settings['marker_source'] ?? 'manual') ? $this->osm_posts_markers($settings) : $this->get_settings_for_display('marker_list');
         $breakpoints_config = \Elementor\Plugin::$instance->breakpoints->get_breakpoints_config();
@@ -2016,7 +2153,7 @@ class Widget_OSM_Map extends Widget_Base
                     'lng' => $parsed['lng']
                 ];
                 if (null !== $shape) {
-                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points'], $entry['marker']['geojson_data']);
+                    unset($entry['marker']['area_corner_1'], $entry['marker']['area_corner_2'], $entry['marker']['circle_center'], $entry['marker']['circle_radius'], $entry['marker']['shape_points'], $entry['marker']['geojson_data'], $entry['marker']['route_start'], $entry['marker']['route_end'], $entry['marker']['route_waypoints'], $entry['marker']['route_mode'], $entry['marker']['route_pins'], $entry['marker']['route_summary'], $entry['marker']['shape_stroke_width']);
                     $entry = array_merge($entry, array_diff_key($shape, ['lat' => 1, 'lng' => 1]));
                 }
                 $coords[] = $entry;
@@ -2047,6 +2184,12 @@ class Widget_OSM_Map extends Widget_Base
         echo '<div id="' . esc_attr('osm-map-' . $this->get_id()) . '" 
         class="osm-map-container" 
         data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
+
+        if (is_admin() || \Elementor\Plugin::$instance->preview->is_preview_mode()) {
+            foreach ($this->osm_route_notices as $notice) {
+                echo '<p class="osm-map-notice">' . esc_html($this->osm_route_notice_text($notice['reason'], $notice['title'])) . '</p>';
+            }
+        }
 
         $display_settings = array_intersect_key($settings, array_flip(['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
 
@@ -2255,6 +2398,8 @@ class Widget_OSM_Map extends Widget_Base
                 let markerIcon = null;
                 let markerOptions = {};
                 const markerLabel = <?php echo wp_json_encode(__('Map marker', 'osm-map-elementor')); ?>;
+                const routeStartLabel = <?php echo wp_json_encode(__('start', 'osm-map-elementor')); ?>;
+                const routeEndLabel = <?php echo wp_json_encode(__('end', 'osm-map-elementor')); ?>;
 
                 <?php
                 $icon_type = !empty($settings['icon_type']) ? $settings['icon_type'] : null;
@@ -2398,6 +2543,19 @@ class Widget_OSM_Map extends Widget_Base
                                     return L.circleMarker(point, Object.assign({radius: 6}, item.area));
                                 })
                             ));
+                        case 'route':
+                            return L.featureGroup([
+                                L.polyline(item.lines, item.routed ? item.area : Object.assign({dashArray: '8 8'}, item.area))
+                            ].concat(item.pins.map(function (pin, index) {
+                                const pinMarker = L.marker(pin, markerOptions);
+                                pinMarker.on('add', function () {
+                                    const element = pinMarker.getElement();
+                                    if (element && 'IMG' !== element.tagName) {
+                                        element.setAttribute('aria-label', (item.marker.marker_title || markerLabel) + ' ' + (0 === index ? routeStartLabel : routeEndLabel));
+                                    }
+                                });
+                                return pinMarker;
+                            })));
                         default:
                             return L.rectangle(item.bounds, item.area);
                     }
@@ -2439,6 +2597,10 @@ class Widget_OSM_Map extends Widget_Base
                             tooltipContent += `<div class="marker-description">${this.marker.marker_description}</div>`;
                         }
 
+                        if (this.summary) {
+                            tooltipContent += `<div class="marker-route-summary">${escapeHtml(this.summary)}</div>`;
+                        }
+
                         // add marker button
                         if (this.marker.show_button === 'yes' && this.marker.button_text) {
                             let button_url_target = this.marker.hasOwnProperty('button_url_target') && this.marker.button_url_target ? escapeHtml(this.marker.button_url_target) : '_blank';
@@ -2459,7 +2621,7 @@ class Widget_OSM_Map extends Widget_Base
                         tooltipContent += '</div>';
 
                         // add tooltip / popup to marker
-                        if (this.marker.marker_title || this.marker.marker_description || this.marker.button_text && this.marker.show_button) {
+                        if (this.marker.marker_title || this.marker.marker_description || this.summary || this.marker.button_text && this.marker.show_button) {
                             let markerBehavior = this.marker.hasOwnProperty('marker_behavior') ? this.marker.marker_behavior : null;
                             switch (markerBehavior) {
                                 case 'popup':
@@ -2836,9 +2998,15 @@ class Widget_OSM_Map extends Widget_Base
         $style = [
             'color' => $this->osm_sanitize_color($marker['area_border_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
         ];
-        if ('line' !== $type) {
+        if ('line' === $type || 'route' === $type) {
+            $style['weight'] = (int) $this->osm_slider_size($marker['shape_stroke_width'] ?? null, 1, 12, self::OSM_STROKE_WIDTH_DEFAULT);
+        } else {
             $style['fillColor'] = $this->osm_sanitize_color($marker['area_fill_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR);
             $style['fillOpacity'] = $this->osm_slider_size($marker['area_fill_opacity'] ?? null, 0, 1, self::OSM_AREA_DEFAULT_OPACITY);
+        }
+
+        if ('route' === $type) {
+            return $this->osm_parse_route($marker, $style);
         }
 
         if ('area' === $type) {
@@ -2911,6 +3079,108 @@ class Widget_OSM_Map extends Widget_Base
             'points' => $points,
             'area' => $style,
         ];
+    }
+
+    /**
+     * @param float[][] $bounds [[south, west], [north, east]]
+     * @return float[] [lat, lng]
+     */
+    private function osm_bounds_centre(array $bounds): array
+    {
+        return [($bounds[0][0] + $bounds[1][0]) / 2, ($bounds[0][1] + $bounds[1][1]) / 2];
+    }
+
+    /**
+     * @return array|null Shape entry with lines, bounds, pins and routed flag; null when the start or end is invalid.
+     */
+    private function osm_parse_route(array $marker, array $style)
+    {
+        $start = $this->osm_parse_marker_coords($marker['route_start'] ?? null);
+        $end = $this->osm_parse_marker_coords($marker['route_end'] ?? null);
+        if (null === $start || null === $end) {
+            return null;
+        }
+
+        $stops = [[$start['lat'], $start['lng']]];
+        $lines = is_string($marker['route_waypoints'] ?? null) ? preg_split('/\R/', $marker['route_waypoints']) : [];
+        foreach ($lines as $line) {
+            $waypoint = $this->osm_parse_marker_coords($line);
+            if (null !== $waypoint) {
+                $stops[] = [$waypoint['lat'], $waypoint['lng']];
+            }
+            if (count($stops) > self::OSM_ROUTE_WAYPOINTS_MAX) {
+                break;
+            }
+        }
+        $stops[] = [$end['lat'], $end['lng']];
+
+        $mode = in_array($marker['route_mode'] ?? '', self::OSM_ROUTE_MODES, true) ? $marker['route_mode'] : 'drive';
+        $route = $this->osm_route_geometry($stops, $mode);
+        if (!$route['routed']) {
+            $this->osm_route_notices[] = [
+                'title' => isset($marker['marker_title']) && is_string($marker['marker_title']) ? $marker['marker_title'] : '',
+                'reason' => $route['reason'],
+            ];
+        }
+
+        $points = [];
+        foreach ($route['lines'] as $line) {
+            $points = array_merge($points, $line);
+        }
+        $bounds = $this->osm_get_bounds([['lat' => 0, 'lng' => 0, 'bounds' => $points]]);
+        $centre = $this->osm_bounds_centre($bounds);
+
+        return [
+            'lat' => $centre[0],
+            'lng' => $centre[1],
+            'bounds' => $bounds,
+            'shape' => 'route',
+            'lines' => $route['lines'],
+            'routed' => $route['routed'],
+            'pins' => 'yes' === ($marker['route_pins'] ?? 'yes') ? [$stops[0], end($stops)] : [],
+            'summary' => null,
+            'area' => $style,
+        ];
+    }
+
+    /**
+     * @param float[][] $stops [lat, lng] start, waypoints, end.
+     * @return array{lines: float[][][], routed: bool, distance: float|null, time: float|null, reason: string|null}
+     */
+    private function osm_route_geometry(array $stops, string $mode): array
+    {
+        return ['lines' => [$stops], 'routed' => false, 'distance' => null, 'time' => null, 'reason' => 'no_key'];
+    }
+
+    private function osm_route_notice_text(string $reason, string $title): string
+    {
+        if ('' === $title) {
+            $title = __('Route', 'osm-map-elementor');
+        }
+
+        switch ($reason) {
+            case 'request_failed':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the route request failed. Check the Geoapify API key and try again later.', 'osm-map-elementor');
+                break;
+            case 'quota':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because the Geoapify request limit was reached.', 'osm-map-elementor');
+                break;
+            case 'invalid_response':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line because Geoapify returned a route this plugin cannot use.', 'osm-map-elementor');
+                break;
+            case 'busy':
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line for now; the route is still loading.', 'osm-map-elementor');
+                break;
+            default:
+                /* translators: %s: route title. */
+                $message = __('%s: drawn as a straight line. Add a Geoapify API key in the plugin settings to follow roads.', 'osm-map-elementor');
+        }
+
+        return sprintf($message, $title);
     }
 
     /**

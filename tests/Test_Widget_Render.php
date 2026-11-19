@@ -1012,10 +1012,10 @@ class Test_Widget_Render extends WP_UnitTestCase
     public function test_marker_type_defaults_to_point_and_shape_fields_show_only_for_their_types()
     {
         $fields = $this->make_widget()->get_controls('marker_list')['fields'];
-        $shapes = ['area', 'circle', 'polygon', 'line', 'geojson'];
+        $shapes = ['area', 'circle', 'polygon', 'line', 'geojson', 'route'];
 
         $this->assertSame('point', $fields['marker_type']['default']);
-        $this->assertSame(['point', 'area', 'circle', 'polygon', 'line', 'geojson'], array_keys($fields['marker_type']['options']));
+        $this->assertSame(['point', 'area', 'circle', 'polygon', 'line', 'geojson', 'route'], array_keys($fields['marker_type']['options']));
         $this->assertSame('Rectangle', $fields['marker_type']['options']['area']);
         $this->assertSame(['marker_type!' => $shapes], $fields['marker_location']['condition']);
         $this->assertSame(['marker_type!' => $shapes], $fields['marker_coords']['condition']);
@@ -1426,7 +1426,7 @@ class Test_Widget_Render extends WP_UnitTestCase
     {
         $shape = $this->shapes_for('line', ['shape_points' => "1,1\n2,2", 'area_border_color' => '#d63638'])[0];
 
-        $this->assertSame(['color' => '#d63638'], $shape['area']);
+        $this->assertSame(['color' => '#d63638', 'weight' => 3], $shape['area']);
     }
 
     public function test_shape_points_are_capped()
@@ -1465,12 +1465,14 @@ class Test_Widget_Render extends WP_UnitTestCase
         $html = $this->render_admin(['marker_list' => [
             $this->shape_marker('polygon', ['shape_points' => "1,1\n2,2\n3,1\n</script><script>alert(1)</script>"]),
             $this->shape_marker('circle', ['circle_center' => '1,1', 'circle_radius' => '5']),
+            $this->route_marker(['route_waypoints' => "1,1\n</script><script>alert(1)</script>", 'shape_stroke_width' => ['unit' => 'px', 'size' => 4]]),
         ]]);
         $markers = $this->js_value($html, 'markers');
 
         $this->assertStringNotContainsString('<script>alert(1)', $html);
+        $this->assertCount(3, $markers);
         foreach ($markers as $entry) {
-            foreach (['shape_points', 'circle_center', 'circle_radius', 'area_corner_1', 'area_corner_2'] as $key) {
+            foreach (['shape_points', 'circle_center', 'circle_radius', 'area_corner_1', 'area_corner_2', 'route_start', 'route_end', 'route_waypoints', 'route_mode', 'route_pins', 'route_summary', 'shape_stroke_width'] as $key) {
                 $this->assertArrayNotHasKey($key, $entry['marker']);
             }
         }
@@ -1631,6 +1633,188 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('L.polygon(rings, item.area)', $js);
         $this->assertStringContainsString('L.polyline(line, {color: item.area.color})', $js);
         $this->assertStringContainsString('L.circleMarker(point, Object.assign({radius: 6}, item.area))', $js);
+    }
+
+    private function route_marker(array $overrides = [])
+    {
+        return $this->shape_marker('route', array_merge([
+            'marker_title' => 'Milan to Bergamo',
+            'route_start' => '45.4642, 9.1900',
+            'route_end' => '45.7037, 9.6625',
+        ], $overrides));
+    }
+
+    private function route_for(array $overrides = [], array $settings = [])
+    {
+        $html = $this->render_admin($settings + ['marker_list' => [$this->route_marker($overrides)]]);
+
+        return $this->js_value($html, 'markers')[0] ?? null;
+    }
+
+    private function count_http_requests()
+    {
+        $calls = new ArrayObject();
+        add_filter('pre_http_request', static function ($pre, $args, $url) use ($calls) {
+            $calls[] = $url;
+
+            return new WP_Error('blocked', 'Network is stubbed in tests.');
+        }, 10, 3);
+
+        return $calls;
+    }
+
+    public function test_route_type_shows_its_fields_and_hides_point_and_fill_fields()
+    {
+        $fields = $this->make_widget()->get_controls('marker_list')['fields'];
+
+        $this->assertSame('Route', $fields['marker_type']['options']['route']);
+        foreach (['route_start', 'route_end', 'route_waypoints', 'route_mode', 'route_pins', 'route_summary'] as $id) {
+            $this->assertSame(['marker_type' => 'route'], $fields[$id]['condition'], $id);
+        }
+        $this->assertSame('drive', $fields['route_mode']['default']);
+        $this->assertSame(['drive', 'walk', 'bicycle'], array_keys($fields['route_mode']['options']));
+        $this->assertSame('yes', $fields['route_pins']['default']);
+        $this->assertNotSame('yes', $fields['route_summary']['default']);
+        $this->assertContains('route', $fields['area_border_color']['condition']['marker_type']);
+        $this->assertNotContains('route', $fields['area_fill_color']['condition']['marker_type']);
+        $this->assertNotContains('route', $fields['area_fill_opacity']['condition']['marker_type']);
+        $this->assertContains('route', $fields['marker_coords']['condition']['marker_type!']);
+    }
+
+    public function test_stroke_width_shows_for_lines_and_routes_only()
+    {
+        $control = $this->make_widget()->get_controls('marker_list')['fields']['shape_stroke_width'];
+
+        $this->assertSame(['marker_type' => ['line', 'route']], $control['condition']);
+        $this->assertSame(3, $control['default']['size']);
+        $this->assertSame(12, $control['range']['px']['max']);
+    }
+
+    public function test_route_key_note_is_registered_only_without_a_geoapify_key()
+    {
+        $without = $this->make_widget()->get_controls('marker_list')['fields'];
+        $this->assertSame(['marker_type' => 'route'], $without['route_key_note']['condition']);
+        $this->assertStringContainsString('options-general.php?page=osm-map-elementor', $without['route_key_note']['raw']);
+
+        update_option('osm_widget', ['geoapify_key' => 'test-key']);
+        $widget = $this->make_widget();
+        Plugin::$instance->controls_manager->delete_stack($widget);
+        $with = $this->make_widget()->get_controls('marker_list')['fields'];
+        $this->assertArrayNotHasKey('route_key_note', $with);
+        Plugin::$instance->controls_manager->delete_stack($widget);
+    }
+
+    /**
+     * @dataProvider invalid_coordinates
+     */
+    public function test_route_with_an_invalid_start_or_end_is_skipped_without_requests($coords)
+    {
+        $calls = $this->count_http_requests();
+        update_option('osm_widget', ['geoapify_key' => 'test-key']);
+
+        $this->assertNull($this->route_for(['route_start' => $coords]));
+        $this->assertNull($this->route_for(['route_end' => $coords]));
+        $this->assertCount(0, $calls);
+    }
+
+    public function test_route_stops_are_capped_and_invalid_lines_dropped()
+    {
+        $stops = [];
+        for ($i = 0; $i < 12; $i++) {
+            $stops[] = (45.5 + $i / 100) . ',9.3';
+        }
+        $stops[1] = 'not a stop';
+        $stops[3] = '99,9';
+
+        $route = $this->route_for(['route_waypoints' => implode("\n", $stops)]);
+
+        $this->assertCount(12, $route['lines'][0]);
+        $this->assertSame([45.4642, 9.19], $route['lines'][0][0]);
+        $this->assertSame([45.7037, 9.6625], $route['lines'][0][11]);
+    }
+
+    public function test_route_without_a_key_draws_a_straight_line_through_its_stops_without_requests()
+    {
+        $calls = $this->count_http_requests();
+
+        $route = $this->route_for(['route_waypoints' => "45.4669, 9.1817\n45.4721, 9.1795"]);
+
+        $this->assertSame('route', $route['shape']);
+        $this->assertFalse($route['routed']);
+        $this->assertEquals([[[45.4642, 9.19], [45.4669, 9.1817], [45.4721, 9.1795], [45.7037, 9.6625]]], $route['lines']);
+        $this->assertCount(0, $calls);
+    }
+
+    public function test_route_pins_follow_the_switch()
+    {
+        $this->assertEquals([[45.4642, 9.19], [45.7037, 9.6625]], $this->route_for()['pins']);
+        $this->assertSame([], $this->route_for(['route_pins' => ''])['pins']);
+    }
+
+    public function test_route_style_has_the_border_colour_and_a_clamped_width_but_no_fill()
+    {
+        $default = $this->route_for(['area_border_color' => '#d63638'])['area'];
+        $wide = $this->route_for(['shape_stroke_width' => ['unit' => 'px', 'size' => 99]])['area'];
+
+        $this->assertSame(['color' => '#d63638', 'weight' => 3], $default);
+        $this->assertSame(12, $wide['weight']);
+    }
+
+    public function test_route_bounds_feed_fit_and_its_centre_feeds_the_midpoint()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->route_marker(), $this->marker(['marker_coords' => '40,12'])],
+            'center_mode' => 'fit',
+        ]);
+
+        $this->assertEquals([[40, 9.19], [45.7037, 12]], $this->js_value($html, 'mapView')['bounds']);
+        $route_only = $this->render_admin(['marker_list' => [$this->route_marker()]]);
+        [$lat, $lng] = array_map('floatval', explode(',', $this->center_attribute($route_only)));
+        $this->assertEqualsWithDelta(45.58395, $lat, 1e-6);
+        $this->assertEqualsWithDelta(9.42625, $lng, 1e-6);
+    }
+
+    public function test_saved_non_route_items_are_unchanged()
+    {
+        $items = [
+            ['area', ['area_corner_1' => '45.9,7.0', 'area_corner_2' => '44.0,9.5']],
+            ['circle', ['circle_center' => '45,9', 'circle_radius' => '5000']],
+            ['polygon', ['shape_points' => "1,1\n2,2\n3,1"]],
+            ['geojson', ['geojson_data' => '{"type":"Point","coordinates":[1,2]}']],
+        ];
+
+        foreach ($items as [$type, $overrides]) {
+            $entry = $this->shapes_for($type, $overrides)[0];
+            foreach (['routed', 'pins', 'summary'] as $key) {
+                $this->assertArrayNotHasKey($key, $entry, $type);
+            }
+            $this->assertArrayNotHasKey('weight', $entry['area'], $type);
+        }
+    }
+
+    public function test_editor_render_explains_a_straight_route_and_the_front_end_does_not()
+    {
+        $marker = $this->route_marker(['marker_title' => 'Trip <b>one</b>']);
+
+        $editor = $this->render_admin(['marker_list' => [$marker]]);
+        $front = $this->render_frontend(['marker_list' => [$marker]]);
+
+        $this->assertStringContainsString('class="osm-map-notice"', $editor);
+        $this->assertStringContainsString('Trip &lt;b&gt;one&lt;/b&gt;', $editor);
+        $this->assertStringContainsString('Geoapify API key', $editor);
+        $this->assertStringNotContainsString('osm-map-notice', $front);
+    }
+
+    public function test_script_draws_routes_as_a_group_of_line_and_pins_with_a_dashed_fallback()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString("case 'route':", $js);
+        $this->assertStringContainsString("Object.assign({dashArray: '8 8'}, item.area)", $js);
+        $this->assertStringContainsString('L.polyline(item.lines', $js);
+        $this->assertStringContainsString('const routeStartLabel = ' . wp_json_encode('start') . ';', $js);
+        $this->assertStringContainsString('const routeEndLabel = ' . wp_json_encode('end') . ';', $js);
+        $this->assertStringContainsString('marker-route-summary', $js);
     }
 
     public function test_debug_helper_is_removed()
