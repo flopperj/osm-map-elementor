@@ -218,7 +218,7 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('escapeHtml(this.marker.button_text)', $js);
     }
 
-    public function test_marker_description_cannot_break_out_of_the_editor_script()
+    public function test_editor_script_json_escapes_a_description_that_closes_the_script_tag()
     {
         $html = $this->render_admin(['marker_list' => [$this->marker(['marker_description' => '</script><script>alert(1)</script>'])]]);
 
@@ -229,10 +229,19 @@ class Test_Widget_Render extends WP_UnitTestCase
     public function test_frontend_script_carries_the_sanitized_description_html()
     {
         $this->render_frontend(['marker_list' => [$this->marker(['marker_description' => '<strong>Bold</strong><script>alert(1)</script>'])]]);
-        $scripts = $this->inline_scripts_after_markers_handle();
 
-        $this->assertStringContainsString('<strong>Bold<\/strong>', $scripts);
-        $this->assertStringNotContainsString('<script>alert(1)</script>', $scripts);
+        $markers = $this->js_value($this->inline_scripts_after_markers_handle(), 'markers');
+
+        $this->assertSame('<strong>Bold</strong>alert(1)', $markers[0]['marker']['marker_description']);
+    }
+
+    public function test_text_in_angle_brackets_is_treated_as_markup()
+    {
+        $this->assertSame('Contact: Jane ', $this->markers_for(['marker_description' => 'Contact: Jane <jane@example.com>'])[0]['marker']['marker_description']);
+        $this->assertSame(
+            'Contact: Jane &lt;jane@example.com&gt;',
+            $this->markers_for(['marker_description' => 'Contact: Jane &lt;jane@example.com&gt;'])[0]['marker']['marker_description']
+        );
     }
 
     public function test_custom_tile_url_is_json_encoded_and_keeps_its_placeholders()
