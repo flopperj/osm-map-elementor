@@ -45,6 +45,7 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 9. On the site: a route follows roads from its start to its end, with distance and time in the popup
 10. Markers from posts, with coordinates read from custom fields such as ACF
 11. Map Center and marker Type settings in the Elementor editor
+12. In the editor: draw routes along roads between two points with the Route marker type (needs a free Geoapify API key)
 
 
 == External services ==
