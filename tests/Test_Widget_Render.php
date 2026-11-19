@@ -825,6 +825,174 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertSame(0, substr_count($html, 'const markerIconOptions'));
     }
 
+    private function two_markers_on_the_equator()
+    {
+        return [
+            $this->marker(['marker_coords' => '0,10']),
+            $this->marker(['marker_coords' => '0,20']),
+            $this->marker(['marker_coords' => '50,50', 'marker_visible' => '']),
+        ];
+    }
+
+    private function center_attribute($html)
+    {
+        preg_match('/data-center="([^"]*)"/', $html, $match);
+
+        return html_entity_decode($match[1]);
+    }
+
+    public function test_center_mode_control_defaults_to_midpoint_with_three_choices()
+    {
+        $control = $this->make_widget()->get_controls('center_mode');
+
+        $this->assertSame('midpoint', $control['default']);
+        $this->assertSame(['midpoint', 'fit', 'custom'], array_keys($control['options']));
+    }
+
+    public function test_center_coordinates_show_only_in_custom_mode_and_accept_dynamic_tags()
+    {
+        $control = $this->make_widget()->get_controls('center_coords');
+
+        $this->assertSame(['center_mode' => 'custom'], $control['condition']);
+        $this->assertTrue($control['dynamic']['active']);
+    }
+
+    public function test_fit_padding_shows_only_in_fit_mode_with_a_50px_default()
+    {
+        $control = $this->make_widget()->get_controls('fit_padding');
+
+        $this->assertSame(['center_mode' => 'fit'], $control['condition']);
+        $this->assertSame(50, $control['default']['size']);
+        $this->assertEquals(['min' => 0, 'max' => 200, 'step' => 5], $control['range']['px']);
+    }
+
+    public function test_saved_widget_without_a_center_mode_keeps_the_marker_midpoint()
+    {
+        $settings = ['marker_list' => $this->two_markers_on_the_equator()];
+
+        $html = $this->render_admin($settings);
+        [$lat, $lng] = array_map('floatval', explode(',', $this->center_attribute($html)));
+
+        $this->assertEqualsWithDelta(0.0, $lat, 0.0001);
+        $this->assertEqualsWithDelta(15.0, $lng, 0.1);
+        $this->assertSame($this->center_attribute($html), $this->center_attribute($this->render_admin($settings + ['center_mode' => 'midpoint'])));
+        $this->assertStringContainsString('map.setView(centerCoords, zoomLevel);', $html);
+        $this->assertSame('midpoint', $this->js_value($html, 'mapView')['mode']);
+        $this->assertNull($this->js_value($html, 'mapView')['bounds']);
+    }
+
+    public function test_custom_center_replaces_the_midpoint()
+    {
+        $html = $this->render_admin([
+            'marker_list' => $this->two_markers_on_the_equator(),
+            'center_mode' => 'custom',
+            'center_coords' => ' 45.5 , 7.6 ',
+        ]);
+
+        $this->assertSame('45.5,7.6', $this->center_attribute($html));
+    }
+
+    /**
+     * @dataProvider invalid_coordinates
+     */
+    public function test_invalid_custom_center_falls_back_to_the_midpoint($coords)
+    {
+        $markers = $this->two_markers_on_the_equator();
+
+        $custom = $this->render_admin(['marker_list' => $markers, 'center_mode' => 'custom', 'center_coords' => $coords]);
+        $midpoint = $this->render_admin(['marker_list' => $markers]);
+
+        $this->assertSame($this->center_attribute($midpoint), $this->center_attribute($custom));
+    }
+
+    public function test_custom_center_is_used_when_there_are_no_markers()
+    {
+        $html = $this->render_admin(['marker_list' => [], 'center_mode' => 'custom', 'center_coords' => '51.5072, -0.1276']);
+
+        $this->assertSame('51.5072,-0.1276', $this->center_attribute($html));
+        $this->assertSame([], $this->js_value($html, 'markers'));
+        $this->assertStringContainsString('} else if (center) {', $html);
+        $this->assertStringContainsString('buildMarkers([]);', $html);
+    }
+
+    public function test_center_coordinates_are_ignored_outside_custom_mode()
+    {
+        $markers = $this->two_markers_on_the_equator();
+        $expected = $this->center_attribute($this->render_admin(['marker_list' => $markers]));
+
+        foreach (['midpoint', 'fit'] as $mode) {
+            $html = $this->render_admin(['marker_list' => $markers, 'center_mode' => $mode, 'center_coords' => '1,2']);
+            $this->assertSame($expected, $this->center_attribute($html));
+        }
+    }
+
+    public function test_custom_center_input_never_reaches_the_page_unparsed()
+    {
+        $html = $this->render_admin(['center_mode' => 'custom', 'center_coords' => '1,2"><script>x</script>']);
+
+        $this->assertStringNotContainsString('<script>x', $html);
+        $this->assertStringNotContainsString('1,2"', $html);
+    }
+
+    public function test_map_view_carries_only_the_normalised_mode_padding_and_bounds()
+    {
+        $view = $this->js_value($this->render_admin(['center_mode' => 'evil']), 'mapView');
+        $this->assertSame(['mode', 'padding', 'bounds'], array_keys($view));
+        $this->assertSame('midpoint', $view['mode']);
+
+        $padding = function ($saved) {
+            return $this->js_value($this->render_admin(['center_mode' => 'fit', 'fit_padding' => $saved]), 'mapView')['padding'];
+        };
+        $this->assertSame(200, $padding(['unit' => 'px', 'size' => 500]));
+        $this->assertSame(0, $padding(['unit' => 'px', 'size' => -5]));
+        $this->assertSame(50, $padding(null));
+        $this->assertSame(50, $padding(['unit' => 'px', 'size' => 'abc']));
+    }
+
+    public function test_fit_bounds_cover_every_visible_marker()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [
+                $this->marker(['marker_coords' => '10,20']),
+                $this->marker(['marker_coords' => '-5,40']),
+                $this->marker(['marker_coords' => '30,-10']),
+                $this->marker(['marker_coords' => '80,170', 'marker_visible' => '']),
+            ],
+            'center_mode' => 'fit',
+        ]);
+
+        $this->assertEquals([[-5, -10], [30, 40]], $this->js_value($html, 'mapView')['bounds']);
+    }
+
+    public function test_display_settings_allowlist_is_unchanged_by_the_center_settings()
+    {
+        $display = $this->js_value($this->render_admin([
+            'center_mode' => 'fit',
+            'center_coords' => '1,2',
+            'fit_padding' => ['unit' => 'px', 'size' => 20],
+        ]), 'displaySettings');
+
+        $this->assertSame([], array_diff(array_keys($display), ['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+    }
+
+    public function test_fit_mode_script_fits_bounds_capped_at_the_zoom_level_and_refits_on_resize()
+    {
+        $js = $this->render_admin(['center_mode' => 'fit']);
+
+        $this->assertMatchesRegularExpression('/fitBounds\(mapView\.bounds, \{padding: \[mapView\.padding, mapView\.padding\], maxZoom: zoomLevel, animate: false\}\)/', $js);
+        $this->assertStringContainsString('size.x <= 0 || size.y <= 0', $js);
+        $this->assertMatchesRegularExpression('/map\.invalidateSize\(\);\s*refitView\(\);/', $js);
+    }
+
+    public function test_fit_mode_stops_refitting_after_the_user_interacts()
+    {
+        $js = $this->render_admin(['center_mode' => 'fit']);
+
+        $this->assertStringContainsString('userInteracted', $js);
+        $this->assertStringContainsString("['pointerdown', 'wheel', 'keydown']", $js);
+        $this->assertStringContainsString('{once: true, passive: true}', $js);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

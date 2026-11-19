@@ -34,6 +34,10 @@ class Widget_OSM_Map extends Widget_Base
 
     private const OSM_MARKER_SIZE_MIN = 25;
     private const OSM_MARKER_SIZE_MAX = 200;
+    private const OSM_FIT_PADDING_MIN = 0;
+    private const OSM_FIT_PADDING_MAX = 200;
+    private const OSM_FIT_PADDING_DEFAULT = 50;
+    private const OSM_CENTER_MODES = ['midpoint', 'fit', 'custom'];
     // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
     private const OSM_DEFAULT_ICON_GEOMETRY = [
         'iconSize' => [25, 41],
@@ -366,6 +370,60 @@ class Widget_OSM_Map extends Widget_Base
                     /* translators: 1: opening link tag to the plugin settings page, 2: closing link tag. */
                     esc_html__('To take advantage of custom tiles and auto-population of coordinates in markers, please update API keys in global settings %1$shere%2$s', 'osm-map-elementor')
                 )
+            ]
+        );
+
+        $this->add_control(
+            'center_mode',
+            [
+                'label' => __('Map Center', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'midpoint',
+                'options' => [
+                    'midpoint' => __('Midpoint of markers', 'osm-map-elementor'),
+                    'fit' => __('Fit all markers', 'osm-map-elementor'),
+                    'custom' => __('Custom coordinates', 'osm-map-elementor'),
+                ],
+                'description' => __('Fit all markers zooms and centers the map so every visible marker fits. Zoom Level is then the closest the map zooms in.', 'osm-map-elementor'),
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_control(
+            'center_coords',
+            [
+                'label' => __('Center Coordinates', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'center_mode' => 'custom',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'fit_padding',
+            [
+                'label' => __('Fit Padding', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => self::OSM_FIT_PADDING_MIN,
+                        'max' => self::OSM_FIT_PADDING_MAX,
+                        'step' => 5,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_FIT_PADDING_DEFAULT,
+                ],
+                'condition' => [
+                    'center_mode' => 'fit',
+                ],
             ]
         );
 
@@ -1569,8 +1627,19 @@ class Widget_OSM_Map extends Widget_Base
         $requested_tile = isset($settings['geoapify_tile']) && is_string($settings['geoapify_tile']) ? $settings['geoapify_tile'] : '';
         $geoapify_tile = array_key_exists($requested_tile, self::osm_tile_options()) ? $requested_tile : 'osm-carto';
 
-        // get center coordinates for our map
+        $center_mode = in_array($settings['center_mode'] ?? '', self::OSM_CENTER_MODES, true) ? $settings['center_mode'] : 'midpoint';
         $center_coords = !empty($coords) ? $this->osm_get_center_coords($coords) : [];
+        if ('custom' === $center_mode) {
+            $custom_center = $this->osm_parse_marker_coords($settings['center_coords'] ?? null);
+            if (null !== $custom_center) {
+                $center_coords = [$custom_center['lat'], $custom_center['lng']];
+            }
+        }
+        $map_view = [
+            'mode' => $center_mode,
+            'padding' => (int) $this->osm_slider_size($settings['fit_padding'] ?? null, self::OSM_FIT_PADDING_MIN, self::OSM_FIT_PADDING_MAX, self::OSM_FIT_PADDING_DEFAULT),
+            'bounds' => 'fit' === $center_mode && !empty($coords) ? $this->osm_get_bounds($coords) : null,
+        ];
 
         echo '<div id="' . esc_attr('osm-map-' . $this->get_id()) . '" 
         class="osm-map-container" 
@@ -1590,6 +1659,7 @@ class Widget_OSM_Map extends Widget_Base
                 const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
+                const mapView = <?php echo wp_json_encode($map_view); ?>;
 
                 // Security: HTML escaping functions to prevent XSS
                 const escapeHtml = function (text) {
@@ -1656,6 +1726,24 @@ class Widget_OSM_Map extends Widget_Base
                     dragging: <?php echo !empty($settings['pan_control']) ? 'true' : 'false'; ?>
                 });
 
+                let userInteracted = false;
+                ['pointerdown', 'wheel', 'keydown'].forEach(function (type) {
+                    map.getContainer().addEventListener(type, function () {
+                        userInteracted = true;
+                    }, {once: true, passive: true});
+                });
+                const refitView = function () {
+                    if ('fit' !== mapView.mode || !mapView.bounds || userInteracted) {
+                        return;
+                    }
+                    const size = map.getSize();
+                    // fitBounds on a 0x0 container produces an invalid zoom; the resize observer refits once the map is visible.
+                    if (size.x <= 0 || size.y <= 0) {
+                        return;
+                    }
+                    map.fitBounds(mapView.bounds, {padding: [mapView.padding, mapView.padding], maxZoom: zoomLevel, animate: false});
+                };
+
                 // Leaflet measures its container only when created, so a map that starts
                 // hidden (tabs, popups) stays 0x0 until it is told the size changed.
                 if (mapElement && typeof ResizeObserver !== 'undefined') {
@@ -1667,6 +1755,7 @@ class Widget_OSM_Map extends Widget_Base
                         const size = entries[entries.length - 1].contentRect;
                         if (size.width > 0 && size.height > 0) {
                             map.invalidateSize();
+                            refitView();
                         }
                     });
                     mapElement._osmResizeObserver.observe(mapElement);
@@ -1676,6 +1765,7 @@ class Widget_OSM_Map extends Widget_Base
                     let centerCoords = center.split(',');
                     map.setView(centerCoords, zoomLevel);
                 }
+                refitView();
 
                 <?php if('osm-carto' === $geoapify_tile):?>
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1977,6 +2067,7 @@ class Widget_OSM_Map extends Widget_Base
 
                     setTimeout(function () {
                         map.invalidateSize();
+                        refitView();
                     }, 100)
                 };
 
@@ -1991,6 +2082,8 @@ class Widget_OSM_Map extends Widget_Base
                 // we want to make sure we have at least one marker visible
                 if (canRenderMap) {
                     buildMarkers(markers);
+                } else if (center) {
+                    buildMarkers([]);
                 } else {
 
                     // set our default coordinates to Nairobi Kenya
@@ -2098,15 +2191,45 @@ class Widget_OSM_Map extends Widget_Base
     /**
      * @param mixed $setting Elementor slider value.
      */
-    private function osm_marker_scale($setting): float
+    private function osm_slider_size($setting, float $min, float $max, float $default): float
     {
         if (!is_array($setting) || !isset($setting['size']) || !is_numeric($setting['size'])) {
-            return 1.0;
+            return $default;
         }
 
-        $percent = max(self::OSM_MARKER_SIZE_MIN, min(self::OSM_MARKER_SIZE_MAX, (float) $setting['size']));
+        return max($min, min($max, (float) $setting['size']));
+    }
 
-        return $percent / 100;
+    /**
+     * @param mixed $setting Elementor slider value.
+     */
+    private function osm_marker_scale($setting): float
+    {
+        return $this->osm_slider_size($setting, self::OSM_MARKER_SIZE_MIN, self::OSM_MARKER_SIZE_MAX, 100) / 100;
+    }
+
+    /**
+     * Bounding box of the coordinates and of any rectangle corners they carry.
+     *
+     * @param array[] $coords Entries with lat, lng and optionally bounds.
+     * @return float[][] [[south, west], [north, east]]
+     */
+    private function osm_get_bounds(array $coords): array
+    {
+        $south = $west = INF;
+        $north = $east = -INF;
+
+        foreach ($coords as $entry) {
+            $points = isset($entry['bounds']) ? $entry['bounds'] : [[$entry['lat'], $entry['lng']]];
+            foreach ($points as $point) {
+                $south = min($south, $point[0]);
+                $north = max($north, $point[0]);
+                $west = min($west, $point[1]);
+                $east = max($east, $point[1]);
+            }
+        }
+
+        return [[$south, $west], [$north, $east]];
     }
 
     /**
