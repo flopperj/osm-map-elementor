@@ -1923,7 +1923,7 @@ class Test_Widget_Render extends WP_UnitTestCase
         parse_str(wp_parse_url($url, PHP_URL_QUERY), $query);
         $this->assertSame('api.geoapify.com', wp_parse_url($url, PHP_URL_HOST));
         $this->assertSame('/v1/routing', wp_parse_url($url, PHP_URL_PATH));
-        $this->assertSame('45.4642,9.19|45.7037,9.6625', $query['waypoints']);
+        $this->assertSame('45.464200,9.190000|45.703700,9.662500', $query['waypoints']);
         $this->assertSame('walk', $query['mode']);
         $this->assertSame('test-key', $query['apiKey']);
         $this->assertLessThanOrEqual(5, $requests[0]['args']['timeout']);
@@ -2077,6 +2077,19 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('Long trip', $editor);
         $this->assertStringContainsString('too long', $editor);
         $this->assertStringContainsString('split it', $editor);
+    }
+
+    public function test_route_waypoints_are_sent_in_fixed_decimal_notation()
+    {
+        $this->with_geoapify_key();
+        $requests = $this->stub_routing(function () {
+            return $this->route_response($this->road_lines());
+        });
+
+        $this->route_for(['route_start' => '0.00005, -0.00005']);
+
+        parse_str(wp_parse_url($requests[0]['url'], PHP_URL_QUERY), $query);
+        $this->assertStringStartsWith('0.000050,-0.000050|', $query['waypoints']);
     }
 
     public function failed_route_responses()

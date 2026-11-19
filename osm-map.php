@@ -3236,7 +3236,7 @@ class Widget_OSM_Map extends Widget_Base
 
         $url = self::OSM_ROUTE_ENDPOINT . '?' . http_build_query([
             'waypoints' => implode('|', array_map(function ($point) {
-                return $point[0] . ',' . $point[1];
+                return sprintf('%.6F,%.6F', $point[0], $point[1]);
             }, $stops)),
             'mode' => $mode,
             'apiKey' => $key,
