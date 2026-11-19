@@ -1107,6 +1107,227 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertSame(1, substr_count($js, 'bindPopup(tooltipContent);'));
     }
 
+    private function post_with_coordinates($title, array $meta, array $args = [])
+    {
+        $id = self::factory()->post->create(array_merge(['post_title' => $title, 'post_status' => 'publish'], $args));
+        foreach ($meta as $key => $value) {
+            update_post_meta($id, $key, $value);
+        }
+
+        return $id;
+    }
+
+    private function posts_markers_for(array $settings = [])
+    {
+        $html = $this->render_admin(array_merge([
+            'marker_source' => 'posts',
+            'posts_post_type' => 'post',
+            'posts_coords_field' => 'geo',
+            'posts_orderby' => 'title',
+            'posts_order' => 'ASC',
+        ], $settings));
+
+        return $this->js_value($html, 'markers');
+    }
+
+    private function marker_titles(array $markers)
+    {
+        return array_map(function ($entry) {
+            return $entry['marker']['marker_title'];
+        }, $markers);
+    }
+
+    public function test_marker_source_defaults_to_manual_and_hides_the_repeater_for_posts()
+    {
+        $widget = $this->make_widget();
+
+        $this->assertSame('manual', $widget->get_controls('marker_source')['default']);
+        $this->assertSame(['manual', 'posts'], array_keys($widget->get_controls('marker_source')['options']));
+        $this->assertSame(['marker_source!' => 'posts'], $widget->get_controls('marker_list')['condition']);
+    }
+
+    public function test_posts_controls_show_only_for_posts()
+    {
+        $controls = $this->make_widget()->get_controls();
+
+        foreach (['posts_post_type', 'posts_taxonomy', 'posts_per_page', 'posts_orderby', 'posts_order', 'posts_coords_format', 'posts_description', 'posts_marker_behavior', 'posts_show_button'] as $id) {
+            $this->assertSame('posts', $controls[$id]['condition']['marker_source'], $id);
+        }
+        $this->assertSame('single', $controls['posts_coords_field']['condition']['posts_coords_format']);
+        $this->assertSame('separate', $controls['posts_lat_field']['condition']['posts_coords_format']);
+        $this->assertSame('meta', $controls['posts_description_field']['condition']['posts_description']);
+    }
+
+    public function test_manual_source_ignores_posts()
+    {
+        $this->post_with_coordinates('Sapporo', ['geo' => '43.06,141.35']);
+
+        $markers = $this->markers_for(['marker_title' => 'Manual only']);
+
+        $this->assertSame(['Manual only'], $this->marker_titles($markers));
+    }
+
+    public function test_published_posts_with_coordinates_become_markers()
+    {
+        $this->post_with_coordinates('Beta', ['geo' => '12,22']);
+        $this->post_with_coordinates('Alpha', ['geo' => ' 10 , 20 ']);
+
+        $markers = $this->posts_markers_for();
+
+        $this->assertSame(['Alpha', 'Beta'], $this->marker_titles($markers));
+        $this->assertSame(10.0, $markers[0]['lat']);
+        $this->assertSame(20.0, $markers[0]['lng']);
+    }
+
+    public function test_separate_latitude_and_longitude_fields_are_supported()
+    {
+        $this->post_with_coordinates('Split', ['lat_field' => '16', 'lng_field' => '26']);
+
+        $markers = $this->posts_markers_for(['posts_coords_format' => 'separate', 'posts_lat_field' => 'lat_field', 'posts_lng_field' => 'lng_field']);
+
+        $this->assertSame(['Split'], $this->marker_titles($markers));
+        $this->assertSame(16.0, $markers[0]['lat']);
+        $this->assertSame(26.0, $markers[0]['lng']);
+    }
+
+    public function test_acf_style_array_coordinates_are_supported()
+    {
+        $this->post_with_coordinates('Map field', ['geo' => ['lat' => 45.1, 'lng' => 7.6, 'address' => 'x']]);
+
+        $markers = $this->posts_markers_for();
+
+        $this->assertSame(45.1, $markers[0]['lat']);
+        $this->assertSame(7.6, $markers[0]['lng']);
+    }
+
+    public function test_drafts_private_and_password_protected_posts_are_excluded()
+    {
+        $this->post_with_coordinates('Public', ['geo' => '1,1']);
+        $this->post_with_coordinates('Draft', ['geo' => '2,2'], ['post_status' => 'draft']);
+        $this->post_with_coordinates('Private', ['geo' => '3,3'], ['post_status' => 'private']);
+        $this->post_with_coordinates('Protected', ['geo' => '4,4'], ['post_password' => 'secret']);
+
+        $this->assertSame(['Public'], $this->marker_titles($this->posts_markers_for()));
+    }
+
+    public function test_posts_with_invalid_or_missing_coordinates_are_skipped()
+    {
+        $this->post_with_coordinates('Good', ['geo' => '1,1']);
+        $this->post_with_coordinates('Bad', ['geo' => 'nonsense']);
+        $this->post_with_coordinates('Out of range', ['geo' => '95,10']);
+        $this->post_with_coordinates('Missing', []);
+
+        $this->assertSame(['Good'], $this->marker_titles($this->posts_markers_for()));
+    }
+
+    public function test_protected_or_malformed_field_names_are_refused()
+    {
+        $this->post_with_coordinates('Hidden', ['_secret' => '1,1', 'a b' => '1,1', "x' OR 1" => '1,1']);
+
+        foreach (['_secret', 'a b', "x' OR 1"] as $field) {
+            $this->assertSame([], $this->posts_markers_for(['posts_coords_field' => $field]), $field);
+        }
+    }
+
+    public function test_unknown_post_type_yields_no_markers()
+    {
+        $this->post_with_coordinates('Any', ['geo' => '1,1']);
+
+        $this->assertSame([], $this->posts_markers_for(['posts_post_type' => 'nonexistent']));
+        $this->assertSame([], $this->posts_markers_for(['posts_post_type' => 'attachment']));
+    }
+
+    public function test_attachment_and_elementor_library_are_not_offered()
+    {
+        $options = array_keys($this->make_widget()->get_controls('posts_post_type')['options']);
+
+        $this->assertContains('post', $options);
+        $this->assertNotContains('attachment', $options);
+        $this->assertNotContains('elementor_library', $options);
+    }
+
+    public function test_taxonomy_terms_filter_the_posts()
+    {
+        $in = $this->post_with_coordinates('In term', ['geo' => '1,1']);
+        $this->post_with_coordinates('Outside', ['geo' => '2,2']);
+        $term = self::factory()->category->create(['slug' => 'wanted']);
+        wp_set_object_terms($in, [$term], 'category');
+
+        $markers = $this->posts_markers_for(['posts_taxonomy' => 'category', 'posts_terms' => 'wanted, ']);
+
+        $this->assertSame(['In term'], $this->marker_titles($markers));
+    }
+
+    public function test_number_of_posts_is_capped_at_100()
+    {
+        $captured = [];
+        $capture = function ($query) use (&$captured) {
+            $captured = $query->query_vars;
+        };
+        add_action('pre_get_posts', $capture);
+
+        $this->posts_markers_for(['posts_per_page' => 500]);
+
+        remove_action('pre_get_posts', $capture);
+        $this->assertSame(100, $captured['posts_per_page']);
+        $this->assertTrue($captured['no_found_rows']);
+        $this->assertFalse($captured['update_post_term_cache']);
+        $this->assertNotFalse($captured['update_post_meta_cache']);
+    }
+
+    public function test_post_title_is_stripped_and_decoded_once()
+    {
+        $this->post_with_coordinates('Tom &amp; Jerry <b>x</b>', ['geo' => '1,1']);
+
+        $this->assertSame(['Tom & Jerry x'], $this->marker_titles($this->posts_markers_for()));
+    }
+
+    public function test_description_uses_only_a_manual_excerpt()
+    {
+        $this->post_with_coordinates('Auto', ['geo' => '1,1'], ['post_content' => 'Long content that must never become a description']);
+        $this->post_with_coordinates('Manual', ['geo' => '2,2'], ['post_excerpt' => '<strong>a</strong><script>b</script>']);
+
+        $markers = $this->posts_markers_for();
+
+        $this->assertSame('', $markers[0]['marker']['marker_description']);
+        $this->assertSame('<strong>a</strong>b', $markers[1]['marker']['marker_description']);
+    }
+
+    public function test_description_meta_field_is_sanitised()
+    {
+        $this->post_with_coordinates('Meta', ['geo' => '1,1', 'blurb' => '<em>hi</em><script>x</script>']);
+
+        $markers = $this->posts_markers_for(['posts_description' => 'meta', 'posts_description_field' => 'blurb']);
+
+        $this->assertSame('<em>hi</em>x', $markers[0]['marker']['marker_description']);
+    }
+
+    public function test_post_button_links_to_the_permalink_in_the_same_tab()
+    {
+        $id = $this->post_with_coordinates('Linked', ['geo' => '1,1']);
+
+        $marker = $this->posts_markers_for(['posts_show_button' => 'yes', 'posts_button_text' => 'Open'])[0]['marker'];
+
+        $this->assertSame(get_permalink($id), $marker['button_url']);
+        $this->assertSame('_self', $marker['button_url_target']);
+        $this->assertSame('yes', $marker['show_button']);
+        $this->assertSame('Open', $marker['button_text']);
+    }
+
+    public function test_posts_markers_feed_fit_bounds()
+    {
+        $this->post_with_coordinates('One', ['geo' => '10,20']);
+        $this->post_with_coordinates('Two', ['geo' => '14,24']);
+
+        $html = $this->render_admin([
+            'marker_source' => 'posts',
+            'posts_coords_field' => 'geo',
+            'center_mode' => 'fit',
+        ]);
+
+        $this->assertEquals([[10, 20], [14, 24]], $this->js_value($html, 'mapView')['bounds']);
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));

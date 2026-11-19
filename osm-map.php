@@ -38,6 +38,8 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_FIT_PADDING_MAX = 200;
     private const OSM_FIT_PADDING_DEFAULT = 50;
     private const OSM_CENTER_MODES = ['midpoint', 'fit', 'custom'];
+    private const OSM_POSTS_MAX = 100;
+    private const OSM_POSTS_DEFAULT = 20;
     private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
     private const OSM_AREA_DEFAULT_OPACITY = 0.2;
     // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
@@ -184,6 +186,48 @@ class Widget_OSM_Map extends Widget_Base
             'stadia-stamen-watercolor' => __('Stadia - Stamen Watercolor', 'osm-map-elementor'),
             'custom-tile' => __('Custom Map Tile', 'osm-map-elementor'),
         ];
+    }
+
+    private static function osm_marker_behavior_options()
+    {
+        return [
+            'popup' => 'Popup',
+            'tooltip' => 'Tooltip',
+            'static_close_on' => 'Static with close',
+            'static_close_off' => 'Static without close',
+            'none' => 'None'
+        ];
+    }
+
+    /**
+     * Public, viewable post types selectable as a marker source; also the allowlist applied when rendering.
+     *
+     * @return string[]
+     */
+    private static function osm_post_type_options()
+    {
+        $options = [];
+        foreach (get_post_types(['public' => true], 'objects') as $slug => $type) {
+            if (in_array($slug, ['attachment', 'elementor_library'], true) || !is_post_type_viewable($type)) {
+                continue;
+            }
+            $options[$slug] = $type->labels->name;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function osm_taxonomy_options()
+    {
+        $options = [];
+        foreach (get_taxonomies(['public' => true], 'objects') as $slug => $taxonomy) {
+            $options[$slug] = $taxonomy->labels->name;
+        }
+
+        return $options;
     }
 
     /**
@@ -384,13 +428,7 @@ class Widget_OSM_Map extends Widget_Base
                 'label' => __('Behavior', 'osm-map-elementor'),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'popup',
-                'options' => [
-                    'popup' => 'Popup',
-                    'tooltip' => 'Tooltip',
-                    'static_close_on' => 'Static with close',
-                    'static_close_off' => 'Static without close',
-                    'none' => 'None'
-                ]
+                'options' => self::osm_marker_behavior_options(),
             ]
         );
 
@@ -599,6 +637,200 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $this->add_control(
+            'marker_source',
+            [
+                'label' => __('Marker Source', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'manual',
+                'options' => [
+                    'manual' => __('Manual list', 'osm-map-elementor'),
+                    'posts' => __('Posts', 'osm-map-elementor'),
+                ],
+                'description' => __('Posts shows one marker for each published post, using coordinates stored in custom fields (for example ACF fields). Set Map Center to "Fit all markers" so every post is visible.', 'osm-map-elementor'),
+                'separator' => 'before',
+            ]
+        );
+
+        $this->add_control(
+            'posts_post_type',
+            [
+                'label' => __('Post Type', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'post',
+                'options' => self::osm_post_type_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_taxonomy',
+            [
+                'label' => __('Filter by Taxonomy', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => '',
+                'options' => ['' => __('None', 'osm-map-elementor')] + self::osm_taxonomy_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_terms',
+            [
+                'label' => __('Terms', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('term-slug, another-slug', 'osm-map-elementor'),
+                'description' => __('Term slugs, comma separated.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_taxonomy!' => ''],
+            ]
+        );
+
+        $this->add_control(
+            'posts_per_page',
+            [
+                'label' => __('Number of Posts', 'osm-map-elementor'),
+                'type' => Controls_Manager::NUMBER,
+                'min' => 1,
+                'max' => self::OSM_POSTS_MAX,
+                'default' => self::OSM_POSTS_DEFAULT,
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_orderby',
+            [
+                'label' => __('Order By', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'date',
+                'options' => [
+                    'date' => __('Date', 'osm-map-elementor'),
+                    'title' => __('Title', 'osm-map-elementor'),
+                    'menu_order' => __('Menu order', 'osm-map-elementor'),
+                ],
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_order',
+            [
+                'label' => __('Order', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'DESC',
+                'options' => [
+                    'DESC' => __('Descending', 'osm-map-elementor'),
+                    'ASC' => __('Ascending', 'osm-map-elementor'),
+                ],
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_coords_format',
+            [
+                'label' => __('Coordinates Stored In', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'single',
+                'options' => [
+                    'single' => __('One field (lat, long)', 'osm-map-elementor'),
+                    'separate' => __('Separate latitude and longitude fields', 'osm-map-elementor'),
+                ],
+                'description' => __('A field holding an array with lat and lng keys, such as an ACF Google Map field, also works.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_coords_field',
+            [
+                'label' => __('Coordinates Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'single'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_lat_field',
+            [
+                'label' => __('Latitude Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'separate'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_lng_field',
+            [
+                'label' => __('Longitude Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_coords_format' => 'separate'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_description',
+            [
+                'label' => __('Description', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'excerpt',
+                'options' => [
+                    'none' => __('None', 'osm-map-elementor'),
+                    'excerpt' => __('Post excerpt', 'osm-map-elementor'),
+                    'meta' => __('Custom field', 'osm-map-elementor'),
+                ],
+                'description' => __('Only an excerpt written for the post is used; excerpts are never generated from the content.', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_description_field',
+            [
+                'label' => __('Description Field', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('field_name', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_description' => 'meta'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_marker_behavior',
+            [
+                'label' => __('Behavior', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'popup',
+                'options' => self::osm_marker_behavior_options(),
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_show_button',
+            [
+                'label' => __('Show Button', 'osm-map-elementor'),
+                'type' => Controls_Manager::SWITCHER,
+                'label_on' => __('Show', 'osm-map-elementor'),
+                'label_off' => __('Hide', 'osm-map-elementor'),
+                'return_value' => 'yes',
+                'default' => 'no',
+                'condition' => ['marker_source' => 'posts'],
+            ]
+        );
+
+        $this->add_control(
+            'posts_button_text',
+            [
+                'label' => __('Button Text', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'default' => __('View', 'osm-map-elementor'),
+                'condition' => ['marker_source' => 'posts', 'posts_show_button' => 'yes'],
+            ]
+        );
+
+        $this->add_control(
             'marker_list',
             [
                 'label' => __('Marker List', 'osm-map-elementor'),
@@ -607,7 +839,8 @@ class Widget_OSM_Map extends Widget_Base
                 'default' => [
                     []
                 ],
-                'title_field' => '{{ marker_title }}'
+                'title_field' => '{{ marker_title }}',
+                'condition' => ['marker_source!' => 'posts'],
             ]
         );
 
@@ -1678,7 +1911,7 @@ class Widget_OSM_Map extends Widget_Base
     {
         $global_settings = get_option('osm_widget');
         $settings = $this->get_settings_for_display();
-        $markers = $this->get_settings_for_display('marker_list');
+        $markers = 'posts' === ($settings['marker_source'] ?? 'manual') ? $this->osm_posts_markers($settings) : $this->get_settings_for_display('marker_list');
         $breakpoints_config = \Elementor\Plugin::$instance->breakpoints->get_breakpoints_config();
         $settings['breakpoints'] = [
             'sm' => (int)($breakpoints_config['mobile']['value'] ?? 767),
@@ -2316,6 +2549,126 @@ class Widget_OSM_Map extends Widget_Base
             wp_enqueue_script($handle);
             $dependencies[] = $handle;
         }
+    }
+
+    /**
+     * Builds marker list items from published posts, shaped like repeater items so they pass through the same sanitising loop.
+     *
+     * @return array[]
+     */
+    private function osm_posts_markers(array $settings)
+    {
+        $post_type = isset($settings['posts_post_type']) && is_string($settings['posts_post_type']) ? $settings['posts_post_type'] : 'post';
+        if (!array_key_exists($post_type, self::osm_post_type_options())) {
+            return [];
+        }
+
+        $per_page = (int) $this->osm_slider_size(['size' => $settings['posts_per_page'] ?? null], 1, self::OSM_POSTS_MAX, self::OSM_POSTS_DEFAULT);
+        $orderby = in_array($settings['posts_orderby'] ?? '', ['date', 'title', 'menu_order'], true) ? $settings['posts_orderby'] : 'date';
+        $order = 'ASC' === ($settings['posts_order'] ?? '') ? 'ASC' : 'DESC';
+        $args = [
+            'post_type' => $post_type,
+            'post_status' => 'publish',
+            'has_password' => false,
+            'posts_per_page' => $per_page,
+            'orderby' => $orderby,
+            'order' => $order,
+            'no_found_rows' => true,
+            'ignore_sticky_posts' => true,
+            'update_post_term_cache' => false,
+            'suppress_filters' => false,
+        ];
+
+        $taxonomy = isset($settings['posts_taxonomy']) && is_string($settings['posts_taxonomy']) ? $settings['posts_taxonomy'] : '';
+        if ('' !== $taxonomy && array_key_exists($taxonomy, self::osm_taxonomy_options())) {
+            $terms = array_filter(array_map('sanitize_title', explode(',', is_string($settings['posts_terms'] ?? null) ? $settings['posts_terms'] : '')));
+            if ($terms) {
+                $args['tax_query'] = [['taxonomy' => $taxonomy, 'field' => 'slug', 'terms' => array_values($terms)]];
+            }
+        }
+
+        $query = new \WP_Query($args);
+        $description_mode = in_array($settings['posts_description'] ?? 'excerpt', ['none', 'excerpt', 'meta'], true) ? ($settings['posts_description'] ?? 'excerpt') : 'excerpt';
+        $description_key = 'meta' === $description_mode ? $this->osm_meta_key($settings['posts_description_field'] ?? null) : null;
+        $behavior = array_key_exists($settings['posts_marker_behavior'] ?? '', self::osm_marker_behavior_options()) ? $settings['posts_marker_behavior'] : 'popup';
+        $show_button = !empty($settings['posts_show_button']) && 'yes' === $settings['posts_show_button'];
+        $charset = get_bloginfo('charset');
+
+        $markers = [];
+        foreach ($query->posts as $post) {
+            $coords = $this->osm_post_coords((int) $post->ID, $settings);
+            if (null === $coords) {
+                continue;
+            }
+
+            $description = '';
+            if ('excerpt' === $description_mode && '' !== $post->post_excerpt) {
+                $description = $post->post_excerpt;
+            } elseif (null !== $description_key) {
+                $value = get_post_meta($post->ID, $description_key, true);
+                $description = is_string($value) ? $value : '';
+            }
+
+            $markers[] = [
+                '_id' => 'post-' . $post->ID,
+                'marker_title' => html_entity_decode(wp_strip_all_tags(get_the_title($post)), ENT_QUOTES | ENT_HTML5, $charset),
+                'marker_coords' => $coords,
+                'marker_description' => $description,
+                'marker_behavior' => $behavior,
+                'show_button' => $show_button ? 'yes' : 'no',
+                'button_text' => $show_button && isset($settings['posts_button_text']) && is_string($settings['posts_button_text']) ? $settings['posts_button_text'] : '',
+                'button_url' => $show_button ? get_permalink($post) : '',
+                'button_url_target' => '_self',
+            ];
+        }
+
+        return $markers;
+    }
+
+    /**
+     * @return string|null A "lat,lng" string for the existing coordinate parser, or null when the post has no usable field.
+     */
+    private function osm_post_coords(int $post_id, array $settings)
+    {
+        $separate = 'separate' === ($settings['posts_coords_format'] ?? 'single');
+        $key = $this->osm_meta_key($settings[$separate ? 'posts_lat_field' : 'posts_coords_field'] ?? null);
+        if (null === $key) {
+            return null;
+        }
+
+        $value = get_post_meta($post_id, $key, true);
+        if (is_array($value)) {
+            return isset($value['lat'], $value['lng']) && is_scalar($value['lat']) && is_scalar($value['lng']) ? $value['lat'] . ',' . $value['lng'] : null;
+        }
+
+        if (!$separate) {
+            return is_string($value) ? $value : null;
+        }
+
+        $lng_key = $this->osm_meta_key($settings['posts_lng_field'] ?? null);
+        $lng = null === $lng_key ? null : get_post_meta($post_id, $lng_key, true);
+
+        return is_scalar($value) && is_scalar($lng) ? $value . ',' . $lng : null;
+    }
+
+    /**
+     * Only plain, public meta keys may be read, so an editor cannot surface private plugin data on a public page.
+     *
+     * @param mixed $raw
+     * @return string|null
+     */
+    private function osm_meta_key($raw)
+    {
+        if (!is_string($raw)) {
+            return null;
+        }
+
+        $key = trim($raw);
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $key) || is_protected_meta($key, 'post')) {
+            return null;
+        }
+
+        return $key;
     }
 
     /**
