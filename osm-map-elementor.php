@@ -220,13 +220,6 @@ add_action('admin_init', function () {
     }
 });
 
-// queue jquery in header
-function enqueue_jquery_in_head()
-{
-    wp_enqueue_script('jquery');
-}
-add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_jquery_in_head', 1);
-
 function register_widget_assets()
 {
     require_once __DIR__ . '/osm-map.php';
