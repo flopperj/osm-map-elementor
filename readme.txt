@@ -115,7 +115,7 @@ For older versions, see the [full changelog](https://github.com/flopperj/osm-map
 
 == Upgrade Notice ==
 = 1.6.0 =
-Adds Map Center (fit all markers or custom coordinates), rectangle areas and markers from posts, and loads the map's scripts only on pages that use it.
+Adds Map Center (fit all markers or custom coordinates), shapes (rectangles, circles, polygons, lines and GeoJSON) and markers from posts, and loads the map's scripts only on pages that use it.
 
 = 1.5.1 =
 Marker descriptions show their HTML formatting again, and maps display correctly inside tabs, popups and row containers.
