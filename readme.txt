@@ -69,6 +69,7 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 * SECURITY: The map's script now receives only the zoom levels and breakpoints it uses, instead of every widget setting, so a marker's unfiltered Description no longer appears in the page source.
 * FIX: Maps that start hidden, such as in Elementor tabs, accordions or popups, now load their tiles and center correctly when they appear instead of staying grey. Thanks to @blackspiral and @designstuuv.
 * FIX: The map fills the available width in a row (flexbox) container instead of collapsing to zero width. A width set in the widget's Advanced settings still takes priority. Thanks to @ag13.
+* IMPROVEMENT: OSM Carto tiles load from tile.openstreetmap.org, as OpenStreetMap recommends, instead of the old a/b/c subdomains.
 
 = 1.5.0 =
 * NEW: Marker Size setting for the Default and Font Awesome marker icons. It scales the whole marker from 25% to 200%, and popups and tooltips follow the new size. Existing maps keep their current marker size. The Font Awesome Icon Size setting now scales together with the pin. Thanks to @xanhcloud24.

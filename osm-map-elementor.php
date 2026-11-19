@@ -173,7 +173,7 @@ add_action('admin_menu', function () {
                         <div class="card-content">
                             <p><strong>See more tile servers:</strong>
                                 <a href="http://wiki.openstreetmap.org/wiki/Tile_servers" target="_blank" rel="noopener noreferrer">here</a>
-                                <br><strong>Example:</strong> https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</p>
+                                <br><strong>Example:</strong> https://tile.openstreetmap.org/{z}/{x}/{y}.png</p>
                             <input type="text" name="osm_widget[osm_custom]"
                                    value="<?php echo esc_attr($setting('osm_custom')); ?>"/>
 

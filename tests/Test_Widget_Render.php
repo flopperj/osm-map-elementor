@@ -454,6 +454,14 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertMatchesRegularExpression('/\.e-con \.elementor-widget-osm-map-elementor\s*\{\s*width:\s*100%;\s*\}/', $css);
     }
 
+    public function test_osm_carto_tiles_load_from_the_single_tile_host()
+    {
+        $html = $this->render_admin(['geoapify_tile' => 'osm-carto']);
+
+        $this->assertStringContainsString("L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'", $html);
+        $this->assertStringNotContainsString('{s}.tile.openstreetmap.org', $html);
+    }
+
     private function new_tab_links($html)
     {
         preg_match_all('/<a\b[^>]*target="_blank"[^>]*>/', stripslashes($html), $links);
