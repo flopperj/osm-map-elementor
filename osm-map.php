@@ -2741,7 +2741,7 @@ class Widget_OSM_Map extends Widget_Base
         }
     }
 
-    private static function osm_fontawesome_enabled(): bool
+    public static function osm_fontawesome_enabled(): bool
     {
         $widget_settings = get_option('osm_widget', []);
 

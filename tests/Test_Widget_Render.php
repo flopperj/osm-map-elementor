@@ -424,6 +424,41 @@ class Test_Widget_Render extends WP_UnitTestCase
         remove_filter('osm_map_elementor_load_assets_on_every_page', '__return_true');
     }
 
+    public function every_page_font_awesome_settings()
+    {
+        return [
+            'unset' => [[], false],
+            'default with other settings' => [['geoapify_key' => 'x'], true],
+            'explicitly enabled' => [['enable_fontawesome' => 1], true],
+            'disabled' => [['enable_fontawesome' => 0], false],
+        ];
+    }
+
+    /**
+     * @dataProvider every_page_font_awesome_settings
+     */
+    public function test_every_page_loading_includes_font_awesome_when_the_widget_would($settings, $enabled)
+    {
+        update_option('osm_widget', $settings);
+        add_filter('osm_map_elementor_load_assets_on_every_page', '__return_true');
+
+        do_action('wp_enqueue_scripts');
+
+        remove_filter('osm_map_elementor_load_assets_on_every_page', '__return_true');
+        delete_option('osm_widget');
+        $this->assertSame($enabled, wp_style_is('font-awesome-free', 'enqueued'));
+    }
+
+    public function test_font_awesome_is_not_enqueued_without_the_every_page_filter()
+    {
+        update_option('osm_widget', ['enable_fontawesome' => 1]);
+
+        do_action('wp_enqueue_scripts');
+
+        delete_option('osm_widget');
+        $this->assertFalse(wp_style_is('font-awesome-free', 'enqueued'));
+    }
+
     private function render_frontend(array $settings = [], $id = 'abc1234')
     {
         set_current_screen('front');

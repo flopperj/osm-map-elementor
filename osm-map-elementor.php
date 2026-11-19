@@ -245,6 +245,9 @@ add_action('wp_enqueue_scripts', function () {
         wp_enqueue_style($style);
     }
     wp_enqueue_script('leaflet-fa-markers');
+    if (Widget_OSM_Map::osm_fontawesome_enabled()) {
+        wp_enqueue_style('font-awesome-free');
+    }
 }, 20);
 
 function render_elementor_version_notice($installed_version)
