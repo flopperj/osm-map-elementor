@@ -38,6 +38,8 @@ class Widget_OSM_Map extends Widget_Base
     private const OSM_FIT_PADDING_MAX = 200;
     private const OSM_FIT_PADDING_DEFAULT = 50;
     private const OSM_CENTER_MODES = ['midpoint', 'fit', 'custom'];
+    private const OSM_AREA_DEFAULT_COLOR = '#3388ff';
+    private const OSM_AREA_DEFAULT_OPACITY = 0.2;
     // Mirrors L.Icon.Default in the vendored Leaflet; Test_Vendored_Marker_Geometry fails if they drift.
     private const OSM_DEFAULT_ICON_GEOMETRY = [
         'iconSize' => [25, 41],
@@ -237,6 +239,20 @@ class Widget_OSM_Map extends Widget_Base
         );
 
         $repeater->add_control(
+            'marker_type',
+            [
+                'label' => __('Type', 'osm-map-elementor'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'point',
+                'options' => [
+                    'point' => __('Point', 'osm-map-elementor'),
+                    'area' => __('Area (rectangle)', 'osm-map-elementor'),
+                ],
+                'description' => __('Areas are drawn as a rectangle and do not use the marker icon or marker size settings.', 'osm-map-elementor'),
+            ]
+        );
+
+        $repeater->add_control(
             'marker_location',
             [
                 'label' => __('Location', 'osm-map-elementor'),
@@ -244,6 +260,9 @@ class Widget_OSM_Map extends Widget_Base
                 'placeholder' => __('Marker Location', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
+                ],
+                'condition' => [
+                    'marker_type!' => 'area',
                 ],
             ]
         );
@@ -256,6 +275,93 @@ class Widget_OSM_Map extends Widget_Base
                 'placeholder' => __('lat, long', 'osm-map-elementor'),
                 'dynamic' => [
                     'active' => true,
+                ],
+                'condition' => [
+                    'marker_type!' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_corner_1',
+            [
+                'label' => __('First Corner', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'description' => __('Two opposite corners of the rectangle, in any order.', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_corner_2',
+            [
+                'label' => __('Opposite Corner', 'osm-map-elementor'),
+                'type' => Controls_Manager::TEXT,
+                'placeholder' => __('lat, long', 'osm-map-elementor'),
+                'dynamic' => [
+                    'active' => true,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_border_color',
+            [
+                'label' => __('Border Color', 'osm-map-elementor'),
+                'type' => Controls_Manager::COLOR,
+                'default' => self::OSM_AREA_DEFAULT_COLOR,
+                'global' => [
+                    'active' => false,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_fill_color',
+            [
+                'label' => __('Fill Color', 'osm-map-elementor'),
+                'type' => Controls_Manager::COLOR,
+                'default' => self::OSM_AREA_DEFAULT_COLOR,
+                'global' => [
+                    'active' => false,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'area_fill_opacity',
+            [
+                'label' => __('Fill Opacity', 'osm-map-elementor'),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => ['px'],
+                'range' => [
+                    'px' => [
+                        'min' => 0,
+                        'max' => 1,
+                        'step' => 0.05,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => self::OSM_AREA_DEFAULT_OPACITY,
+                ],
+                'condition' => [
+                    'marker_type' => 'area',
                 ],
             ]
         );
@@ -1603,20 +1709,42 @@ class Widget_OSM_Map extends Widget_Base
                     continue;
                 }
 
-                $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
-                if (null === $parsed) {
-                    continue;
+                $is_area = 'area' === ($marker['marker_type'] ?? 'point');
+                $area_bounds = null;
+                if ($is_area) {
+                    $area_bounds = $this->osm_parse_area_corners($marker['area_corner_1'] ?? null, $marker['area_corner_2'] ?? null);
+                    if (null === $area_bounds) {
+                        continue;
+                    }
+                    $parsed = [
+                        'lat' => ($area_bounds[0][0] + $area_bounds[1][0]) / 2,
+                        'lng' => ($area_bounds[0][1] + $area_bounds[1][1]) / 2,
+                    ];
+                } else {
+                    $parsed = $this->osm_parse_marker_coords($marker['marker_coords'] ?? null);
+                    if (null === $parsed) {
+                        continue;
+                    }
                 }
 
                 $marker['button_url'] = !empty($marker['button_url']) ? esc_url_raw($marker['button_url'], ['http', 'https', 'mailto', 'tel']) : '';
                 $marker['button_url_target'] = in_array($marker['button_url_target'] ?? '', ['_self', '_blank'], true) ? $marker['button_url_target'] : '_blank';
                 // The popup inserts the description as HTML, so this is its only sanitization.
                 $marker['marker_description'] = isset($marker['marker_description']) && is_string($marker['marker_description']) ? wp_kses_post($marker['marker_description']) : '';
-                $coords[] = [
+                $entry = [
                     'marker' => $marker,
                     'lat' => $parsed['lat'],
                     'lng' => $parsed['lng']
                 ];
+                if ($is_area) {
+                    $entry['bounds'] = $area_bounds;
+                    $entry['area'] = [
+                        'color' => $this->osm_sanitize_color($marker['area_border_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
+                        'fillColor' => $this->osm_sanitize_color($marker['area_fill_color'] ?? null, self::OSM_AREA_DEFAULT_COLOR),
+                        'fillOpacity' => $this->osm_slider_size($marker['area_fill_opacity'] ?? null, 0, 1, self::OSM_AREA_DEFAULT_OPACITY),
+                    ];
+                }
+                $coords[] = $entry;
             }
         }
 
@@ -1982,7 +2110,7 @@ class Widget_OSM_Map extends Widget_Base
 
                     let _markers = [];
                     jQuery.each(markers, function () {
-                        const marker = L.marker([this.lat, this.lng], markerOptions);
+                        const marker = this.bounds ? L.rectangle(this.bounds, this.area) : L.marker([this.lat, this.lng], markerOptions);
                         _markers.push(marker);
 
                         // add marker to map
@@ -2054,8 +2182,10 @@ class Widget_OSM_Map extends Widget_Base
 
                                 <?php if('fontawesome' === $icon_type): ?>
                                     // update offset for fontawesome markers
-                                    tooltipOptions.direction = "top";
-                                    tooltipOptions.offset = markerTooltipOffset;
+                                    if (!this.bounds) {
+                                        tooltipOptions.direction = "top";
+                                        tooltipOptions.offset = markerTooltipOffset;
+                                    }
                                 <?php  endif; ?>
 
                                     marker.bindTooltip(tooltipContent, tooltipOptions);
@@ -2265,6 +2395,46 @@ class Widget_OSM_Map extends Widget_Base
         }
 
         return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    /**
+     * Parses two opposite rectangle corners given in any order.
+     *
+     * @param mixed $first
+     * @param mixed $second
+     * @return float[][]|null [[south, west], [north, east]], null when a corner is invalid or the rectangle has no area.
+     */
+    private function osm_parse_area_corners($first, $second)
+    {
+        $a = $this->osm_parse_marker_coords($first);
+        $b = $this->osm_parse_marker_coords($second);
+        if (null === $a || null === $b || $a['lat'] === $b['lat'] || $a['lng'] === $b['lng']) {
+            return null;
+        }
+
+        return [
+            [min($a['lat'], $b['lat']), min($a['lng'], $b['lng'])],
+            [max($a['lat'], $b['lat']), max($a['lng'], $b['lng'])],
+        ];
+    }
+
+    /**
+     * Accepts hex (3, 4, 6 or 8 digits) and rgb()/rgba() colors, which the Elementor picker emits and
+     * sanitize_hex_color() rejects; anything else becomes the default.
+     *
+     * @param mixed $value
+     */
+    private function osm_sanitize_color($value, string $default): string
+    {
+        if (!is_string($value)) {
+            return $default;
+        }
+
+        $value = trim($value);
+        $hex = '/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i';
+        $rgb = '/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+|1\.0+)\s*)?\)$/i';
+
+        return preg_match($hex, $value) || preg_match($rgb, $value) ? $value : $default;
     }
 
     /**

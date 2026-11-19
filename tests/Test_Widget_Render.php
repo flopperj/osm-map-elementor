@@ -993,6 +993,120 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringContainsString('{once: true, passive: true}', $js);
     }
 
+    private function area_marker(array $overrides = [])
+    {
+        return $this->marker(array_merge([
+            'marker_type' => 'area',
+            'area_corner_1' => '45.9,7.0',
+            'area_corner_2' => '44.0,9.5',
+        ], $overrides));
+    }
+
+    private function areas_for(array $overrides, array $settings = [])
+    {
+        $html = $this->render_admin(array_merge(['marker_list' => [$this->area_marker($overrides)]], $settings));
+
+        return $this->js_value($html, 'markers');
+    }
+
+    public function test_marker_type_defaults_to_point_and_area_fields_show_only_for_areas()
+    {
+        $fields = $this->make_widget()->get_controls('marker_list')['fields'];
+
+        $this->assertSame('point', $fields['marker_type']['default']);
+        $this->assertSame(['point', 'area'], array_keys($fields['marker_type']['options']));
+        $this->assertSame(['marker_type!' => 'area'], $fields['marker_location']['condition']);
+        $this->assertSame(['marker_type!' => 'area'], $fields['marker_coords']['condition']);
+        foreach (['area_corner_1', 'area_corner_2', 'area_border_color', 'area_fill_color', 'area_fill_opacity'] as $id) {
+            $this->assertSame(['marker_type' => 'area'], $fields[$id]['condition'], $id);
+        }
+        $this->assertFalse($fields['area_border_color']['global']['active']);
+        $this->assertFalse($fields['area_fill_color']['global']['active']);
+    }
+
+    public function test_saved_marker_without_a_type_renders_exactly_as_before()
+    {
+        $markers = $this->markers_for([]);
+
+        $this->assertSame(['marker', 'lat', 'lng'], array_keys($markers[0]));
+    }
+
+    public function test_area_corners_are_normalised_in_either_order()
+    {
+        $forward = $this->areas_for([]);
+        $reversed = $this->areas_for(['area_corner_1' => '44.0,9.5', 'area_corner_2' => '45.9,7.0']);
+
+        $this->assertEquals([[44.0, 7.0], [45.9, 9.5]], $forward[0]['bounds']);
+        $this->assertEquals($forward[0]['bounds'], $reversed[0]['bounds']);
+        $this->assertEqualsWithDelta(44.95, $forward[0]['lat'], 1e-9);
+        $this->assertEqualsWithDelta(8.25, $forward[0]['lng'], 1e-9);
+    }
+
+    /**
+     * @dataProvider invalid_coordinates
+     */
+    public function test_invalid_area_corner_skips_the_area($coords)
+    {
+        $this->assertSame([], $this->areas_for(['area_corner_2' => $coords]));
+        $this->assertSame([], $this->areas_for(['area_corner_1' => $coords]));
+    }
+
+    public function test_zero_area_rectangle_is_skipped()
+    {
+        $this->assertSame([], $this->areas_for(['area_corner_2' => '44.0,7.0']));
+        $this->assertSame([], $this->areas_for(['area_corner_2' => '45.9,9.5', 'area_corner_1' => '45.9,7.0']));
+    }
+
+    public function test_area_colours_are_sanitised_and_default_to_leaflet_blue()
+    {
+        $this->assertSame('#3388ff', $this->areas_for(['area_border_color' => 'red;}<x>'])[0]['area']['color']);
+        $this->assertSame('#3388ff', $this->areas_for([])[0]['area']['fillColor']);
+        $this->assertSame('#d63638', $this->areas_for(['area_border_color' => '#d63638'])[0]['area']['color']);
+        $this->assertSame('#d6363880', $this->areas_for(['area_border_color' => '#d6363880'])[0]['area']['color']);
+        $this->assertSame('rgba(1, 2, 3, 0.5)', $this->areas_for(['area_fill_color' => 'rgba(1, 2, 3, 0.5)'])[0]['area']['fillColor']);
+    }
+
+    public function test_area_fill_opacity_is_clamped()
+    {
+        $opacity = function ($saved) {
+            return $this->areas_for(['area_fill_opacity' => $saved])[0]['area']['fillOpacity'];
+        };
+
+        $this->assertEquals(1, $opacity(['unit' => 'px', 'size' => 1.5]));
+        $this->assertEquals(0, $opacity(['unit' => 'px', 'size' => -1]));
+        $this->assertEquals(0.35, $opacity(['unit' => 'px', 'size' => 0.35]));
+        $this->assertEquals(0.2, $opacity(null));
+    }
+
+    public function test_area_description_is_sanitised_like_markers()
+    {
+        $markers = $this->areas_for(['marker_description' => '<script>alert(1)</script><b>ok</b>']);
+
+        $this->assertSame('alert(1)<b>ok</b>', $markers[0]['marker']['marker_description']);
+    }
+
+    public function test_areas_extend_fit_bounds_by_both_corners_and_the_midpoint_by_their_centre()
+    {
+        $html = $this->render_admin([
+            'marker_list' => [$this->area_marker(), $this->marker(['marker_coords' => '40,12'])],
+            'center_mode' => 'fit',
+        ]);
+
+        $this->assertEquals([[40, 7.0], [45.9, 12]], $this->js_value($html, 'mapView')['bounds']);
+
+        $midpoint = $this->render_admin(['marker_list' => [$this->area_marker()]]);
+        $this->assertEqualsWithDelta(44.95, (float) explode(',', $this->center_attribute($midpoint))[0], 0.01);
+    }
+
+    public function test_script_draws_areas_as_rectangles_with_the_shared_popup_builder()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString('L.rectangle(this.bounds, this.area)', $js);
+        $this->assertStringContainsString('L.marker([this.lat, this.lng], markerOptions)', $js);
+        $this->assertSame(1, substr_count($js, 'bindPopup(tooltipContent);'));
+    }
+
     public function test_debug_helper_is_removed()
     {
         $this->assertFalse((new ReflectionClass(Widget_OSM_Map::class))->hasMethod('__debug'));
