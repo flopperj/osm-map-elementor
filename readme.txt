@@ -38,8 +38,11 @@ This plugin is [open sourced](https://github.com/flopperj/osm-map-elementor) so 
 2. Add widget to your elementor page
 3. Add multiple markers & style them accordingly
 4. Edit the marker's coordinates to render them in the map
-5. Choose from 14 different custom tiles
-6. NEW: Add custom marker icons. Available Icon types: Default, Font Awesome and Custom Image.
+5. Choose from a library of map tiles
+6. Add custom marker icons. Available icon types: Default, Font Awesome and Custom Image.
+7. Map Center: "Fit all markers" zooms and centers the map so every marker is visible
+8. Shapes: rectangles, circles, polygons, lines and pasted GeoJSON, each with its own colors and popup
+10. Markers from posts, with coordinates read from custom fields such as ACF
 
 
 == External services ==
