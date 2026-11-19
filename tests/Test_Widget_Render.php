@@ -120,6 +120,22 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertSame((int) $config['tablet']['value'], $display['breakpoints']['md']);
     }
 
+    public function test_display_settings_carry_only_the_zoom_levels_and_breakpoints()
+    {
+        $display = $this->js_value($this->render_admin([
+            'marker_list' => [$this->marker(['marker_description' => 'Gate code 4321'])],
+            'zoom_tablet' => ['unit' => 'px', 'size' => 7],
+        ]), 'displaySettings');
+
+        $this->assertSame([], array_diff(array_keys($display), ['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+        $this->assertArrayNotHasKey('marker_list', $display);
+        $this->assertStringNotContainsString('Gate code 4321', wp_json_encode($display));
+        $this->assertArrayHasKey('size', $display['zoom']);
+        $this->assertSame(7, (int) $display['zoom_tablet']['size']);
+        $this->assertArrayHasKey('sm', $display['breakpoints']);
+        $this->assertArrayHasKey('md', $display['breakpoints']);
+    }
+
     public function test_script_scheme_button_url_is_dropped_and_web_urls_are_kept()
     {
         $this->assertSame('', $this->markers_for(['button_url' => 'javascript:alert(1)'])[0]['marker']['button_url']);

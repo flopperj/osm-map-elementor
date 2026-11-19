@@ -66,6 +66,7 @@ When a custom map tile URL is configured in the plugin settings, the visitor's b
 == Changelog ==
 = 1.5.1 =
 * FIX: HTML in a marker's Description shows as formatting again instead of as text. Descriptions allow the same HTML as post content, so scripts, event handlers and javascript: links are removed. Text inside angle brackets, such as an email address in `<>`, is treated as markup and removed, so write `&lt;` for a literal `<`. Thanks to @fastnormal and @tdebaillon.
+* SECURITY: The map's script now receives only the zoom levels and breakpoints it uses, instead of every widget setting, so a marker's unfiltered Description no longer appears in the page source.
 
 = 1.5.0 =
 * NEW: Marker Size setting for the Default and Font Awesome marker icons. It scales the whole marker from 25% to 200%, and popups and tooltips follow the new size. Existing maps keep their current marker size. The Font Awesome Icon Size setting now scales together with the pin. Thanks to @xanhcloud24.

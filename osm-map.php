@@ -1574,11 +1574,13 @@ class Widget_OSM_Map extends Widget_Base
         class="osm-map-container" 
         data-center="' . esc_attr(implode(',', $center_coords)) . '"></div>';
 
+        $display_settings = array_intersect_key($settings, array_flip(['zoom', 'zoom_tablet', 'zoom_mobile', 'breakpoints']));
+
         ob_start();
         ?>
             jQuery(function () {
                 "use strict";
-                const displaySettings = <?php echo wp_json_encode($settings); ?>;
+                const displaySettings = <?php echo wp_json_encode($display_settings); ?>;
                 const mapId = '<?php echo esc_js('osm-map-' . $this->get_id()); ?>';
                 const mapContainer = jQuery('#' + mapId);
                 const center = mapContainer.data('center');
