@@ -436,6 +436,17 @@ class Test_Widget_Render extends WP_UnitTestCase
         $this->assertStringNotContainsString("return 'javascript:void(0)'", $js);
     }
 
+    public function test_script_resizes_the_map_when_its_container_changes_size()
+    {
+        $js = $this->render_admin();
+
+        $this->assertStringContainsString("typeof ResizeObserver !== 'undefined'", $js);
+        $this->assertMatchesRegularExpression('/new ResizeObserver\(function \(entries\) \{.*?map\.invalidateSize\(\);/s', $js);
+        $this->assertStringContainsString('_osmResizeObserver.observe(mapElement)', $js);
+        $this->assertStringContainsString('mapElement._osmResizeObserver.disconnect();', $js);
+        $this->assertStringContainsString('if (!mapElement.isConnected)', $js);
+    }
+
     private function new_tab_links($html)
     {
         preg_match_all('/<a\b[^>]*target="_blank"[^>]*>/', stripslashes($html), $links);

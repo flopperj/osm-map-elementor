@@ -1636,8 +1636,12 @@ class Widget_OSM_Map extends Widget_Base
                 }
 
                 // avoid recreating the html element
-                if (L.DomUtil.get(mapId) !== undefined && L.DomUtil.get(mapId)) {
-                    L.DomUtil.get(mapId)._leaflet_id = null;
+                const mapElement = L.DomUtil.get(mapId);
+                if (mapElement) {
+                    mapElement._leaflet_id = null;
+                    if (mapElement._osmResizeObserver) {
+                        mapElement._osmResizeObserver.disconnect();
+                    }
                 }
 
                 const map = L.map(mapId, {
@@ -1645,6 +1649,22 @@ class Widget_OSM_Map extends Widget_Base
                     zoomControl: <?php echo !empty($settings['zoom_control']) ? 'true' : 'false'; ?>,
                     dragging: <?php echo !empty($settings['pan_control']) ? 'true' : 'false'; ?>
                 });
+
+                // Leaflet measures its container only when created, so a map that starts
+                // hidden (tabs, popups) stays 0x0 until it is told the size changed.
+                if (mapElement && typeof ResizeObserver !== 'undefined') {
+                    mapElement._osmResizeObserver = new ResizeObserver(function (entries) {
+                        if (!mapElement.isConnected) {
+                            mapElement._osmResizeObserver.disconnect();
+                            return;
+                        }
+                        const size = entries[entries.length - 1].contentRect;
+                        if (size.width > 0 && size.height > 0) {
+                            map.invalidateSize();
+                        }
+                    });
+                    mapElement._osmResizeObserver.observe(mapElement);
+                }
 
                 if (center) {
                     let centerCoords = center.split(',');
